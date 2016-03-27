@@ -1,3 +1,5 @@
+// XXX: whitespace shall be a token.
+
 pub enum Token {
     Identifier(String),
     Literal(Literal),
