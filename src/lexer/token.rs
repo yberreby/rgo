@@ -117,7 +117,7 @@ pub enum OperatorOrDelimiter {
     /// ,
     Comma,
     /// .
-    Period,
+    Dot,
     /// ;
     Semicolon,
     /// :
@@ -152,6 +152,8 @@ pub enum IntegerLiteral {
     OctalLit(String),
     HexLit(String),
 }
+
+// XXX: from Rust src
 pub enum Lit {
     Byte(ast::Name),
     Char(ast::Name),
@@ -161,4 +163,13 @@ pub enum Lit {
     StrRaw(ast::Name, usize), // raw str delimited by n hash symbols
     ByteStr(ast::Name),
     ByteStrRaw(ast::Name, usize), // raw byte str delimited by n hash symbols
+}
+
+pub enum DelimToken {
+    /// A round parenthesis: `(` or `)`
+    Paren,
+    /// A square bracket: `[` or `]`
+    Bracket,
+    /// A curly brace: `{` or `}`
+    Brace,
 }
