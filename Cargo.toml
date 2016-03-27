@@ -1,0 +1,6 @@
+[package]
+name = "rgo"
+version = "0.1.0"
+authors = ["Yohai Berreby (yberreby) <yohaiberreby@gmail.com>"]
+
+[dependencies]
