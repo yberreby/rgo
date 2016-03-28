@@ -1,59 +1,16 @@
 // XXX: whitespace shall be a token.
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
-    Identifier(String),
+    /// An identifier.
+    Ident(String),
     Literal(Literal),
     Keyword(Keyword),
-    OperatorOrDelimiter(OperatorOrDelimiter),
-}
+    OpenDelim(DelimToken),
+    CloseDelim(DelimToken),
+    // XXX: not sure whether it's a good think to tokenize _all_ whitespace.
+    Whitespace,
 
-
-// The following keywords are reserved and may not be used as identifiers.
-//
-// break        default      func         interface    select
-// case         defer        go           map          struct
-// chan         else         goto         package      switch
-// const        fallthrough  if           range        type
-// continue     for          import       return       var
-pub enum Keyword {
-    Break,
-    Case,
-    Chan,
-    Const,
-    Continue,
-    Default,
-    Defer,
-    Else,
-    Fallthrough,
-    For,
-    Func,
-    Go,
-    Goto,
-    If,
-    Import,
-    Interface,
-    Map,
-    Package,
-    Range,
-    Return,
-    Select,
-    Struct,
-    Switch,
-    Type,
-    Var,
-}
-
-// The following character sequences represent operators, delimiters, and other special tokens:
-//
-// +    &     +=    &=     &&    ==    !=    (    )
-// -    |     -=    |=     ||    <     <=    [    ]
-// *    ^     *=    ^=     <-    >     >=    {    }
-// /    <<    /=    <<=    ++    =     :=    ,    ;
-// %    >>    %=    >>=    --    !     ...   .    :
-//      &^          &^=
-
-// XXX: I have created a monster.
-pub enum OperatorOrDelimiter {
     Plus,
     Minus,
     Asterisk,
@@ -104,18 +61,6 @@ pub enum OperatorOrDelimiter {
     ShortAssign,
     /// ...
     Ellipsis,
-    /// (
-    Lparen,
-    /// )
-    Rparen,
-    /// [
-    LeftSquareBracket,
-    /// ]
-    RightSquareBracket,
-    /// {
-    LeftCurlyBrace,
-    /// }
-    RightCurlyBrace,
     /// ,
     Comma,
     /// .
@@ -125,6 +70,54 @@ pub enum OperatorOrDelimiter {
     /// :
     Colon,
 }
+
+
+// The following keywords are reserved and may not be used as identifiers.
+//
+// break        default      func         interface    select
+// case         defer        go           map          struct
+// chan         else         goto         package      switch
+// const        fallthrough  if           range        type
+// continue     for          import       return       var
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Keyword {
+    Break,
+    Case,
+    Chan,
+    Const,
+    Continue,
+    Default,
+    Defer,
+    Else,
+    Fallthrough,
+    For,
+    Func,
+    Go,
+    Goto,
+    If,
+    Import,
+    Interface,
+    Map,
+    Package,
+    Range,
+    Return,
+    Select,
+    Struct,
+    Switch,
+    Type,
+    Var,
+}
+
+// The following character sequences represent operators, delimiters, and other special tokens:
+//
+// +    &     +=    &=     &&    ==    !=    (    )
+// -    |     -=    |=     ||    <     <=    [    ]
+// *    ^     *=    ^=     <-    >     >=    {    }
+// /    <<    /=    <<=    ++    =     :=    ,    ;
+// %    >>    %=    >>=    --    !     ...   .    :
+//      &^          &^=
+
 
 
 //  An integer literal is a sequence of digits representing an integer constant. An optional prefix
@@ -141,6 +134,7 @@ pub enum OperatorOrDelimiter {
 // 0xBadFace
 // 170141183460469231731687303715884105727
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
     Integer(String),
     Float(String),
@@ -154,6 +148,7 @@ pub enum Literal {
 
 // XXX: stored as strings. Consider interning strings.
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DelimToken {
     /// A round parenthesis: `(` or `)`
     Paren,
@@ -162,3 +157,16 @@ pub enum DelimToken {
     /// A curly brace: `{` or `}`
     Brace,
 }
+
+//     /// (
+//     Lparen,
+//     /// )
+//     Rparen,
+//     /// [
+//     LeftSquareBracket,
+//     /// ]
+//     RightSquareBracket,
+//     /// {
+//     LeftCurlyBrace,
+//     /// }
+//     RightCurlyBrace,

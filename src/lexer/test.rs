@@ -18,7 +18,7 @@ func main() {
                     Token::Whitespace,
                     Token::Keyword(Keyword::Import),
                     Token::Whitespace,
-                    Token::Literal(Literal::String(StrLit::Interpreted("fmt".into()))),
+                    Token::Literal(Literal::Str("fmt".into())),
                     Token::Whitespace,
                     Token::Keyword(Keyword::Func),
                     Token::Whitespace,
@@ -32,7 +32,7 @@ func main() {
                     Token::Dot,
                     Token::Ident("Println".into()),
                     Token::OpenDelim(DelimToken::Paren),
-                    Token::Literal(Literal::String(StrLit::Interpreted("Hello, rgo".into()))),
+                    Token::Literal(Literal::Str("Hello, rgo".into())),
                     Token::CloseDelim(DelimToken::Paren),
                     Token::Whitespace,
                     Token::CloseDelim(DelimToken::Brace)];
