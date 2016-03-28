@@ -142,30 +142,17 @@ pub enum OperatorOrDelimiter {
 // 170141183460469231731687303715884105727
 
 pub enum Literal {
-    Integer(IntegerLiteral),
-    Float(FloatLiteral),
-    Imaginary(ImaginaryLiteral),
-    Rune(RuneLiteral),
+    Integer(String),
+    Float(String),
+    Imaginary(String),
+    Rune(String),
+    /// Interpreted string literal.
+    Str(String),
+    /// Raw string literal.
+    StrRaw(String),
 }
 
 // XXX: stored as strings. Consider interning strings.
-pub enum IntegerLiteral {
-    DecimalLit(String),
-    OctalLit(String),
-    HexLit(String),
-}
-
-// XXX: from Rust src
-pub enum Lit {
-    Byte(ast::Name),
-    Char(ast::Name),
-    Integer(ast::Name),
-    Float(ast::Name),
-    Str_(ast::Name),
-    StrRaw(ast::Name, usize), // raw str delimited by n hash symbols
-    ByteStr(ast::Name),
-    ByteStrRaw(ast::Name, usize), // raw byte str delimited by n hash symbols
-}
 
 pub enum DelimToken {
     /// A round parenthesis: `(` or `)`
