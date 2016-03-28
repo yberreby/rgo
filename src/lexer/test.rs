@@ -2,7 +2,13 @@ use super::*;
 
 #[test]
 fn tokenize_delimiters() {
+    // XXX: bad handling of EOF.
+    assert_eq!(tokenize("("), vec![Token::OpenDelim(DelimToken::Paren)]);
+    assert_eq!(tokenize(")"), vec![Token::CloseDelim(DelimToken::Paren)]);
     assert_eq!(tokenize("{"), vec![Token::OpenDelim(DelimToken::Brace)]);
+    assert_eq!(tokenize("}"), vec![Token::CloseDelim(DelimToken::Brace)]);
+    assert_eq!(tokenize("["), vec![Token::OpenDelim(DelimToken::Bracket)]);
+    assert_eq!(tokenize("]"), vec![Token::CloseDelim(DelimToken::Bracket)]);
 }
 
 
