@@ -1,3 +1,17 @@
+//! # Lexer
+//!
+//! A `Lexer` parses a source string into a list of tokens, which may later be used to construct an
+//! Abstract Syntax Tree.
+//!
+//! ## Notes
+//!
+//! We want meaningful errors from the start. That means printing the line and column number on
+//! error, returning `Result`s instead of panicking (later on, we may use unwinding to speed up
+//! lexical analysis in non-erroneous cases).
+//!
+//! It is unclear whether we should operator on Unicode `char`, or plain bytes `u8`. `char`s are
+//! more convenient to display; bytes are (most likely) faster to work with.
+
 use std::iter::Iterator;
 
 mod token;
@@ -83,7 +97,6 @@ impl<'src> Iterator for Lexer<'src> {
 }
 
 pub fn tokenize(s: &str) -> Vec<Token> {
-    // Starting with an inline implementation, will break up into smaller pieces later.
     let mut lexer = Lexer::new(s);
     let tokens: Vec<Token> = lexer.collect();
 
