@@ -7,26 +7,37 @@ pub use self::token::*;
 mod test;
 
 pub struct Lexer<'src> {
-    source: &'src str,
-    // XXX: is 'char' the right choice? Shouldn't we use u8? Not sure.
-    /// The last character to be read.
-    current_char: Option<char>,
+    /// Byte offset from the start.
+    pos: usize,
+    /// The source string.
+    src: &'src str,
+    // XXX: char or u8?
+    /// The last byte that was read.
+    current_byte: Option<u8>,
 }
 
 impl<'src> Lexer<'src> {
     pub fn new(s: &str) -> Lexer {
+        let first_byte = s.as_bytes().get(0).cloned();
+        println!("first_byte: {:?}", first_byte);
         let mut l = Lexer {
-            source: s,
-            current_char: Some('\n'), // This is dummy temporary value which is never read.
+            src: s,
+            pos: 0,
+            current_byte: first_byte, // Ugly?
         };
 
-        l.bump();
+        // l.bump();
         l
     }
 
     /// 'eat' one character.
     fn bump(&mut self) {
-        unimplemented!()
+        let old = self.current_byte;
+        self.pos += 1;
+        self.current_byte = self.src.as_bytes().get(self.pos).cloned();
+        // XXX: calling as_bytes every time - perf impact?
+        // This is an Option<u8>.
+        // xxx(perf): .clone() or .map(|&b| b) or .map(|b| *b)?
     }
 }
 
@@ -34,34 +45,37 @@ impl<'src> Iterator for Lexer<'src> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        let c = self.current_char;
+        let c = match self.current_byte {
+            Some(c) => c,
+            None => return None,
+        };
 
-        match c.unwrap() {
-            '(' => {
+        match c {
+            b'(' => {
                 self.bump();
                 return Some(Token::OpenDelim(DelimToken::Paren));
             }
-            ')' => {
+            b')' => {
                 self.bump();
                 return Some(Token::CloseDelim(DelimToken::Paren));
             }
-            '{' => {
+            b'{' => {
                 self.bump();
                 return Some(Token::OpenDelim(DelimToken::Brace));
             }
-            '}' => {
+            b'}' => {
                 self.bump();
                 return Some(Token::CloseDelim(DelimToken::Brace));
             }
-            '[' => {
+            b'[' => {
                 self.bump();
                 return Some(Token::OpenDelim(DelimToken::Bracket));
             }
-            ']' => {
+            b']' => {
                 self.bump();
                 return Some(Token::CloseDelim(DelimToken::Bracket));
             }
-            _ => panic!(),
+            _ => panic!("unexpected char"),
         }
 
         unimplemented!()
@@ -72,5 +86,6 @@ pub fn tokenize(s: &str) -> Vec<Token> {
     // Starting with an inline implementation, will break up into smaller pieces later.
     let mut lexer = Lexer::new(s);
     let tokens: Vec<Token> = lexer.collect();
-    unimplemented!()
+
+    tokens
 }
