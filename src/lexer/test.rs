@@ -1,6 +1,12 @@
 use super::*;
 
 #[test]
+fn tokenize_delimiters() {
+    assert_eq!(tokenize("{"), vec![Token::OpenDelim(DelimToken::Brace)]);
+}
+
+
+#[test]
 fn tokenize_hello() {
     let src = r#"
 package main
