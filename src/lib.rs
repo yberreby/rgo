@@ -7,4 +7,7 @@
 //! Each part should be loosely coupled with the others, only relying on a somewhat stable public
 //! API.
 
+pub mod ast;
+
 pub mod lexer;
+pub mod parser;
