@@ -1,6 +1,8 @@
 // Go language specification: https://golang.org/ref/spec
 
 // SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
+
+/// A complete source file.
 pub struct SourceFile {
     package: String,
     import_decls: Vec<ImportDecl>,
@@ -11,20 +13,46 @@ pub struct SourceFile {
 // ImportSpec       = [ "." | PackageName ] ImportPath .
 // ImportPath       = string_lit .
 
+/// An import declaration.
+/// Contains a list of "import specs".
+///
+/// Example:
+///
+/// ``` go
+/// import (
+///     "fmt"
+///     "io/ioutil"
+/// )
+/// ```
 pub struct ImportDecl {
     specs: Vec<ImportSpec>,
 }
 
+/// An import spec.
+/// Can only appear in an import declaration (AFAIK).
+///
+/// Example: `m "lib/math"`
+/// This imports lib/math as m.
 pub struct ImportSpec {
     alias: Option<String>,
     path: String,
 }
 
 // Declaration   = ConstDecl | TypeDecl | VarDecl .
+/// A regular (i.e. not top-level) declaration.
 pub enum Declaration {
-    ConstDecl,
+    Const(ConstDecl),
     TypeDecl,
     VarDecl,
+}
+
+
+
+// TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
+pub enum TopLevelDecl {
+    Declaration(Declaration),
+    FunctionDecl(FunctionDecl),
+    MethodDecl(MethodDecl),
 }
 
 // ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
@@ -62,13 +90,6 @@ pub enum UnaryExpr {
 // pub enum
 
 
-// TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
-pub enum TopLevelDecl {
-    Declaration(Decl),
-}
-
-
-
 // Primary expressions.
 
 // PrimaryExpr =
@@ -103,6 +124,17 @@ pub fn parse_primary_expr(s: &str) -> PrimaryExpr {
     unimplemented!()
 }
 
+// Represents a slicing operating... [1:54] for ex
 pub enum Slice {
 
 }
+
+
+// == Unimplemented types ==
+
+/// A constant declaration.
+///
+/// Example: `const Pi float64 = 3.14159265358979323846`
+pub struct ConstDecl;
+pub struct TypeDecl;
+pub struct VarDecl;
