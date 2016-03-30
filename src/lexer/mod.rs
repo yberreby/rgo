@@ -76,12 +76,14 @@ impl<'src> Iterator for Lexer<'src> {
     /// assert_eq!(lexer.next(), Some(Token::CloseDelim(DelimToken::Paren)));
     /// ```
     fn next(&mut self) -> Option<Token> {
+        // Stop tokenizing on EOF.
         let c = match self.current_byte {
             Some(c) => c,
             None => return None,
         };
 
         match c {
+            // Single-character tokens.
             b'(' => {
                 self.bump();
                 return Some(Token::OpenDelim(DelimToken::Paren));
@@ -106,6 +108,7 @@ impl<'src> Iterator for Lexer<'src> {
                 self.bump();
                 return Some(Token::CloseDelim(DelimToken::Bracket));
             }
+
             _ => panic!("unexpected char"),
         }
 
