@@ -58,6 +58,21 @@ impl<'src> Lexer<'src> {
 impl<'src> Iterator for Lexer<'src> {
     type Item = Token;
 
+    /// Return the next token, if any.
+    ///
+    /// A fundamental property of this function is that **the next token does not depend on the
+    /// previous one**.
+    /// This means many syntactically incorrect inputs, such as `, , ,` or `;+m/^`, can pass
+    /// tokenization, even though they would fail parsing.
+    /// This also means testing whether a single token is tokenized properly does not require
+    /// scaffolding (i.e. building an entire test program), which is a good thing.
+    ///
+    /// ```
+    /// use rgo::lexer::{Lexer, Token, DelimToken};
+    ///
+    /// let mut lexer = Lexer::new(")");
+    /// assert_eq!(lexer.next(), Some(Token::CloseDelim(DelimToken::Paren)));
+    /// ```
     fn next(&mut self) -> Option<Token> {
         let c = match self.current_byte {
             Some(c) => c,
