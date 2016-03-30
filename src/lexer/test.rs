@@ -29,6 +29,13 @@ fn tokenize_plus_variants() {
     assert_eq!(tokenize("+="), vec![Token::PlusEquals]);
 }
 
+#[test]
+fn tokenize_minus_variants() {
+    assert_eq!(tokenize("-"), vec![Token::Minus]);
+    assert_eq!(tokenize("--"), vec![Token::Decrement]);
+    assert_eq!(tokenize("-="), vec![Token::MinusEquals]);
+}
+
 
 #[test]
 #[ignore] // This cannot work yet.

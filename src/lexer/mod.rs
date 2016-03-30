@@ -128,6 +128,21 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Plus,
                 }
             }
+            b'-' => {
+                self.bump();
+
+                match self.current_byte {
+                    Some(b'-') => {
+                        self.bump();
+                        Token::Decrement
+                    }
+                    Some(b'=') => {
+                        self.bump();
+                        Token::MinusEquals
+                    }
+                    _ => Token::Minus,
+                }
+            }
             b'|' => {
                 self.bump();
 
