@@ -82,31 +82,31 @@ impl<'src> Iterator for Lexer<'src> {
             None => return None,
         };
 
-        match c {
+        let tok = match c {
             // Single-character tokens.
             b'(' => {
                 self.bump();
-                return Some(Token::OpenDelim(DelimToken::Paren));
+                Token::OpenDelim(DelimToken::Paren)
             }
             b')' => {
                 self.bump();
-                return Some(Token::CloseDelim(DelimToken::Paren));
+                Token::CloseDelim(DelimToken::Paren)
             }
             b'{' => {
                 self.bump();
-                return Some(Token::OpenDelim(DelimToken::Brace));
+                Token::OpenDelim(DelimToken::Brace)
             }
             b'}' => {
                 self.bump();
-                return Some(Token::CloseDelim(DelimToken::Brace));
+                Token::CloseDelim(DelimToken::Brace)
             }
             b'[' => {
                 self.bump();
-                return Some(Token::OpenDelim(DelimToken::Bracket));
+                Token::OpenDelim(DelimToken::Bracket)
             }
             b']' => {
                 self.bump();
-                return Some(Token::CloseDelim(DelimToken::Bracket));
+                Token::CloseDelim(DelimToken::Bracket)
             }
             b'+' => {
                 self.bump();
@@ -114,13 +114,13 @@ impl<'src> Iterator for Lexer<'src> {
                 match self.current_byte {
                     Some(b'+') => {
                         self.bump();
-                        return Some(Token::Increment);
+                        Token::Increment
                     }
                     Some(b'=') => {
                         self.bump();
-                        return Some(Token::PlusEquals);
+                        Token::PlusEquals
                     }
-                    _ => return Some(Token::Plus),
+                    _ => Token::Plus,
                 }
             }
             b'|' => {
@@ -129,22 +129,20 @@ impl<'src> Iterator for Lexer<'src> {
                 match self.current_byte {
                     Some(b'|') => {
                         self.bump();
-                        return Some(Token::PipePipe);
+                        Token::PipePipe
                     }
                     Some(b'=') => {
                         self.bump();
-                        return Some(Token::PipeEquals);
+                        Token::PipeEquals
                     }
-                    _ => {
-                        return Some(Token::Pipe);
-                    }
+                    _ => Token::Pipe,
                 }
             }
 
             _ => panic!("unexpected char"),
-        }
+        };
 
-        unimplemented!()
+        Some(tok)
     }
 }
 
