@@ -115,6 +115,8 @@ impl<'src> Iterator for Lexer<'src> {
 
 /// Convenience function to collect all the tokens from a string.
 ///
+/// # Example
+///
 /// ```
 /// use rgo::lexer::{tokenize, Token, DelimToken};
 ///
