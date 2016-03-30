@@ -67,6 +67,8 @@ impl<'src> Iterator for Lexer<'src> {
     /// This also means testing whether a single token is tokenized properly does not require
     /// scaffolding (i.e. building an entire test program), which is a good thing.
     ///
+    /// # Example
+    ///
     /// ```
     /// use rgo::lexer::{Lexer, Token, DelimToken};
     ///
@@ -111,6 +113,16 @@ impl<'src> Iterator for Lexer<'src> {
     }
 }
 
+/// Convenience function to collect all the tokens from a string.
+///
+/// ```
+/// use rgo::lexer::{tokenize, Token, DelimToken};
+///
+/// assert_eq!(tokenize("()"), vec![
+///     Token::OpenDelim(DelimToken::Paren),
+///     Token::CloseDelim(DelimToken::Paren)
+/// ]);
+/// ```
 pub fn tokenize(s: &str) -> Vec<Token> {
     let mut lexer = Lexer::new(s);
     let tokens: Vec<Token> = lexer.collect();
