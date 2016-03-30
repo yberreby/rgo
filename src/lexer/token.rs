@@ -55,9 +55,9 @@ pub enum Token {
     /// &^=
     BitClearEquals,
     /// &&
-    BoolAnd,
+    AndAnd,
     /// ||
-    BoolOr,
+    PipePipe,
     /// <-
     ChanReceive,
     /// ++

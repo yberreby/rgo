@@ -108,6 +108,38 @@ impl<'src> Iterator for Lexer<'src> {
                 self.bump();
                 return Some(Token::CloseDelim(DelimToken::Bracket));
             }
+            b'+' => {
+                self.bump();
+
+                match self.current_byte {
+                    Some(b'+') => {
+                        self.bump();
+                        return Some(Token::Increment);
+                    }
+                    Some(b'=') => {
+                        self.bump();
+                        return Some(Token::PlusEquals);
+                    }
+                    _ => return Some(Token::Plus),
+                }
+            }
+            b'|' => {
+                self.bump();
+
+                match self.current_byte {
+                    Some(b'|') => {
+                        self.bump();
+                        return Some(Token::PipePipe);
+                    }
+                    Some(b'=') => {
+                        self.bump();
+                        return Some(Token::PipeEquals);
+                    }
+                    _ => {
+                        return Some(Token::Pipe);
+                    }
+                }
+            }
 
             _ => panic!("unexpected char"),
         }

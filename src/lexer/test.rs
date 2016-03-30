@@ -11,6 +11,20 @@ fn tokenize_delimiters() {
     assert_eq!(tokenize("]"), vec![Token::CloseDelim(DelimToken::Bracket)]);
 }
 
+// Tokens that start with '|'.
+#[test]
+fn tokenize_pipe_variants() {
+    assert_eq!(tokenize("|"), vec![Token::Pipe]);
+    assert_eq!(tokenize("||"), vec![Token::PipePipe]);
+    assert_eq!(tokenize("|="), vec![Token::PipeEquals]);
+}
+
+#[test]
+fn tokenize_plus_variants() {
+    assert_eq!(tokenize("+"), vec![Token::Plus]);
+    assert_eq!(tokenize("++"), vec![Token::Increment]);
+    assert_eq!(tokenize("+="), vec![Token::PlusEquals]);
+}
 
 #[test]
 fn tokenize_hello() {
