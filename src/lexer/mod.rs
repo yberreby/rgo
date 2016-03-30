@@ -108,6 +108,11 @@ impl<'src> Iterator for Lexer<'src> {
                 self.bump();
                 Token::CloseDelim(DelimToken::Bracket)
             }
+            b',' => {
+                self.bump();
+                Token::Comma
+            }
+            // More complex tokens.
             b'+' => {
                 self.bump();
 
@@ -139,7 +144,7 @@ impl<'src> Iterator for Lexer<'src> {
                 }
             }
 
-            _ => panic!("unexpected char"),
+            _ => panic!("unexpected start of token"),
         };
 
         Some(tok)

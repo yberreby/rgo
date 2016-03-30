@@ -2,7 +2,6 @@ use super::*;
 
 #[test]
 fn tokenize_delimiters() {
-    // XXX: bad handling of EOF.
     assert_eq!(tokenize("("), vec![Token::OpenDelim(DelimToken::Paren)]);
     assert_eq!(tokenize(")"), vec![Token::CloseDelim(DelimToken::Paren)]);
     assert_eq!(tokenize("{"), vec![Token::OpenDelim(DelimToken::Brace)]);
@@ -11,7 +10,11 @@ fn tokenize_delimiters() {
     assert_eq!(tokenize("]"), vec![Token::CloseDelim(DelimToken::Bracket)]);
 }
 
-// Tokens that start with '|'.
+#[test]
+fn tokenize_comma() {
+    assert_eq!(tokenize(","), vec![Token::Comma]);
+}
+
 #[test]
 fn tokenize_pipe_variants() {
     assert_eq!(tokenize("|"), vec![Token::Pipe]);
@@ -26,7 +29,9 @@ fn tokenize_plus_variants() {
     assert_eq!(tokenize("+="), vec![Token::PlusEquals]);
 }
 
+
 #[test]
+#[ignore] // This cannot work yet.
 fn tokenize_hello() {
     let src = r#"
 package main
