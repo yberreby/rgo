@@ -1,26 +1,35 @@
-// XXX: whitespace shall be a token.
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
-    /// An identifier.
     Ident(String),
     Literal(Literal),
     Keyword(Keyword),
     OpenDelim(DelimToken),
     CloseDelim(DelimToken),
     // XXX: not sure whether it's a good think to tokenize _all_ whitespace.
+    // I'm doing it because I don't want to tie tokenization to automatic semicolon insertion.
     Whitespace,
-
+    // Various operators.
+    /// +
     Plus,
+    /// -
     Minus,
+    /// *
     Asterisk,
+    /// /
     Slash,
+    /// %
     Percent,
+    /// &
     Ampersand,
+    /// |
     Pipe,
+    /// ^
     Caret,
+    /// <<
     Lshift,
+    /// >>
     Rshift,
+    /// &^
     BitClear,
     // Compound operators.
     /// +=
@@ -33,19 +42,33 @@ pub enum Token {
     DivideEquals,
     /// %=
     ModuloEquals,
+    /// &=
     AndEquals,
+    /// |=
     PipeEquals,
+    /// ^=
     XorEquals,
+    /// <<=
     LshiftEquals,
+    /// >>=
     RshiftEquals,
+    /// &^=
     BitClearEquals,
+    /// &&
     BoolAnd,
+    /// ||
     BoolOr,
+    /// <-
     ChanReceive,
+    /// ++
     Increment,
+    /// --
     Decrement,
+    /// ==
     Equals,
+    /// <
     LessThan,
+    /// >
     GreaterThan,
     /// =
     Assign,
@@ -58,7 +81,7 @@ pub enum Token {
     /// >=
     GreaterThanOrEqual,
     /// :=
-    ShortAssign,
+    ColonAssign,
     /// ...
     Ellipsis,
     /// ,
@@ -71,14 +94,16 @@ pub enum Token {
     Colon,
 }
 
-
-// The following keywords are reserved and may not be used as identifiers.
-//
-// break        default      func         interface    select
-// case         defer        go           map          struct
-// chan         else         goto         package      switch
-// const        fallthrough  if           range        type
-// continue     for          import       return       var
+/// Opening or closing delimiter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DelimToken {
+    /// A round parenthesis: `(` or `)`
+    Paren,
+    /// A square bracket: `[` or `]`
+    Bracket,
+    /// A curly brace: `{` or `}`
+    Brace,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Keyword {
@@ -109,64 +134,19 @@ pub enum Keyword {
     Var,
 }
 
-// The following character sequences represent operators, delimiters, and other special tokens:
-//
-// +    &     +=    &=     &&    ==    !=    (    )
-// -    |     -=    |=     ||    <     <=    [    ]
-// *    ^     *=    ^=     <-    >     >=    {    }
-// /    <<    /=    <<=    ++    =     :=    ,    ;
-// %    >>    %=    >>=    --    !     ...   .    :
-//      &^          &^=
-
-
-
-//  An integer literal is a sequence of digits representing an integer constant. An optional prefix
-//  sets a non-decimal base: 0 for octal, 0x or 0X for hexadecimal. In hexadecimal literals, letters
-//  a-f and A-F represent values 10 through 15.
-//
-// int_lit     = decimal_lit | octal_lit | hex_lit .
-// decimal_lit = ( "1" … "9" ) { decimal_digit } .
-// octal_lit   = "0" { octal_digit } .
-// hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
-//
-// 42
-// 0600
-// 0xBadFace
-// 170141183460469231731687303715884105727
-
+/// Literal of any kind.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
+    /// Integer literal.
     Integer(String),
+    /// Floating-point literal.
     Float(String),
+    /// Imaginary literal (e.g. `6.67428e-11i`).
     Imaginary(String),
+    /// Rune literal (e.g. `'本'`, `'\U00101234'`).
     Rune(String),
     /// Interpreted string literal.
     Str(String),
     /// Raw string literal.
     StrRaw(String),
 }
-
-// XXX: stored as strings. Consider interning strings.
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DelimToken {
-    /// A round parenthesis: `(` or `)`
-    Paren,
-    /// A square bracket: `[` or `]`
-    Bracket,
-    /// A curly brace: `{` or `}`
-    Brace,
-}
-
-//     /// (
-//     Lparen,
-//     /// )
-//     Rparen,
-//     /// [
-//     LeftSquareBracket,
-//     /// ]
-//     RightSquareBracket,
-//     /// {
-//     LeftCurlyBrace,
-//     /// }
-//     RightCurlyBrace,

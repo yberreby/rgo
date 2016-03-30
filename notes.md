@@ -1,6 +1,4 @@
 # notes
 
-Unit tests + integration tests
-
-Unit tests: parse this, assert AST = this
-Integration tests: compile and run this, assert result = this...
+- Strings should be interned.
+- Complex and 128-bit numbers will not be supported at first.
