@@ -36,6 +36,40 @@ fn tokenize_minus_variants() {
     assert_eq!(tokenize("-="), vec![Token::MinusEquals]);
 }
 
+#[test]
+#[ignore]
+fn tokenize_keywords() {
+    let test_keyword = |s, k| {
+        assert_eq!(tokenize(s), vec![Token::Keyword(k)]);
+    };
+
+    test_keyword("break", Keyword::Break);
+    test_keyword("case", Keyword::Case);
+    test_keyword("chan", Keyword::Chan);
+    test_keyword("const", Keyword::Const);
+    test_keyword("continue", Keyword::Continue);
+    test_keyword("default", Keyword::Default);
+    test_keyword("defer", Keyword::Defer);
+    test_keyword("else", Keyword::Else);
+    test_keyword("fallthrough", Keyword::Fallthrough);
+    test_keyword("for", Keyword::For);
+    test_keyword("func", Keyword::Func);
+    test_keyword("go", Keyword::Go);
+    test_keyword("goto", Keyword::Goto);
+    test_keyword("if", Keyword::If);
+    test_keyword("import", Keyword::Import);
+    test_keyword("interface", Keyword::Interface);
+    test_keyword("map", Keyword::Map);
+    test_keyword("package", Keyword::Package);
+    test_keyword("range", Keyword::Range);
+    test_keyword("return", Keyword::Return);
+    test_keyword("select", Keyword::Select);
+    test_keyword("struct", Keyword::Struct);
+    test_keyword("switch", Keyword::Switch);
+    test_keyword("type", Keyword::Type);
+    test_keyword("var", Keyword::Var);
+}
+
 
 #[test]
 #[ignore] // This cannot work yet.
