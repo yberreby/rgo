@@ -1,4 +1,4 @@
-use super::*;
+use super::{Token, DelimToken, Literal, Keyword, tokenize};
 
 #[test]
 fn tokenize_delimiters() {
@@ -153,4 +153,19 @@ func main() {
                     Token::Whitespace];
 
     assert_eq!(tokenize(src), expected);
+}
+
+#[test]
+fn tokenize_simple_assignment() {
+    assert_eq!(tokenize("someVar := 23 + 45"),
+               vec![
+               Token::Ident("someVar".into()),
+               Token::Whitespace,
+               Token::ColonAssign,
+               Token::Whitespace,
+               Token::Literal(Literal::Integer("23".into())),
+               Token::Whitespace,
+               Token::Plus,
+               Token::Literal(Literal::Integer("45".into())),
+    ]);
 }
