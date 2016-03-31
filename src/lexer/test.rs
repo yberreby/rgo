@@ -87,6 +87,14 @@ fn tokenize_mixed_whitespace() {
 }
 
 #[test]
+fn tokenize_package_declaration() {
+    assert_eq!(tokenize("package main"),
+               vec![Token::Keyword(Keyword::Package),
+                    Token::Whitespace,
+                    Token::Ident("main".into())]);
+}
+
+#[test]
 #[ignore] // This cannot work yet.
 fn tokenize_hello() {
     let src = r#"
