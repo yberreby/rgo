@@ -42,6 +42,13 @@ fn tokenize_minus_variants() {
     assert_eq!(tokenize("-="), vec![Token::MinusEquals]);
 }
 
+
+#[test]
+fn tokenize_colon_variants() {
+    assert_eq!(tokenize(":"), vec![Token::Colon]);
+    assert_eq!(tokenize(":="), vec![Token::ColonAssign]);
+}
+
 #[test]
 fn tokenize_ident() {
     let test_ident = |s| {

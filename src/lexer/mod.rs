@@ -142,6 +142,16 @@ impl<'src> Iterator for Lexer<'src> {
                     Token::Dot
                 }
             }
+            ':' => {
+                self.bump();
+
+                if self.current_char == Some('=') {
+                    self.bump();
+                    Token::ColonAssign
+                } else {
+                    Token::Colon
+                }
+            }
             '+' => {
                 self.bump();
 
@@ -271,7 +281,8 @@ impl<'src> Iterator for Lexer<'src> {
 
                 let s = &self.src[start..self.pos];
 
-                // Skip the quote.
+                // Skip the quote _after_ slicing so that it isn't included
+                // in the slice.
                 self.bump();
                 // XXX(perf): alloc.
                 Token::Literal(Literal::Str(s.into()))
