@@ -101,6 +101,14 @@ fn tokenize_plain_interpreted_str() {
 }
 
 #[test]
+fn tokenize_simple_import() {
+    assert_eq!(tokenize("import \"fmt\""),
+               vec![Token::Keyword(Keyword::Import),
+                    Token::Whitespace,
+                    Token::Literal(Literal::Str("fmt".into()))]);
+}
+
+#[test]
 #[ignore] // This cannot work yet.
 fn tokenize_hello() {
     let src = r#"
