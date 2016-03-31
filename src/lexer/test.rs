@@ -95,6 +95,12 @@ fn tokenize_package_declaration() {
 }
 
 #[test]
+fn tokenize_plain_interpreted_str() {
+    assert_eq!(tokenize("\"hello\""),
+               vec![Token::Literal(Literal::Str("hello".into()))]);
+}
+
+#[test]
 #[ignore] // This cannot work yet.
 fn tokenize_hello() {
     let src = r#"

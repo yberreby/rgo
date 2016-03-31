@@ -232,6 +232,26 @@ impl<'src> Iterator for Lexer<'src> {
                 Token::Whitespace
 
             }
+            '"' => {
+                self.bump();
+                let start = self.pos;
+
+                while let Some(c) = self.current_char {
+                    // FIXME: backslash
+                    if c != '"' {
+                        self.bump();
+                    } else {
+                        break;
+                    }
+                }
+
+                let s = &self.src[start..self.pos];
+
+                // Skip the quote.
+                self.bump();
+                // XXX(perf): alloc.
+                Token::Literal(Literal::Str(s.into()))
+            }
             _ => panic!("unexpected start of token"),
         };
 
