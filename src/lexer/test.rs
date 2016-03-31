@@ -37,7 +37,15 @@ fn tokenize_minus_variants() {
 }
 
 #[test]
-#[ignore]
+fn tokenize_ident() {
+    let test_ident = |s| {
+        assert_eq!(tokenize(s), vec![Token::Ident(s.into())]);
+    };
+
+    test_ident("foo");
+}
+
+#[test]
 fn tokenize_keywords() {
     let test_keyword = |s, k| {
         assert_eq!(tokenize(s), vec![Token::Keyword(k)]);

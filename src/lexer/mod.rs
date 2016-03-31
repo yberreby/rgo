@@ -10,7 +10,7 @@
 //! lexical analysis in non-erroneous cases).
 //!
 //! It is unclear whether we should operator on Unicode `char`, or plain bytes `u8`. `char`s are
-//! more convenient to display; bytes are (most likely) faster to work with.
+//! more convenient to display and offer a clean API; bytes are (most likely) faster to work with.
 
 use std::iter::Iterator;
 
@@ -25,33 +25,38 @@ pub struct Lexer<'src> {
     pos: usize,
     /// The source string.
     src: &'src str,
-    // XXX: char or u8?
-    /// The last byte that was read.
-    current_byte: Option<u8>,
+    /// The last char that was read.
+    current_char: Option<char>,
 }
 
 impl<'src> Lexer<'src> {
     pub fn new(s: &str) -> Lexer {
-        let first_byte = s.as_bytes().get(0).cloned();
-        println!("first_byte: {:?}", first_byte);
+        let first_char = s.chars().next();
+        println!("first_char: {:?}", first_char);
         let mut l = Lexer {
             src: s,
             pos: 0,
-            current_byte: first_byte, // Ugly?
+            current_char: first_char, // Ugly?
         };
 
-        // l.bump();
         l
     }
 
     /// 'eat' one character.
     fn bump(&mut self) {
-        let old = self.current_byte;
+        let old = self.current_char;
         self.pos += 1;
-        self.current_byte = self.src.as_bytes().get(self.pos).cloned();
-        // XXX: calling as_bytes every time - perf impact?
-        // This is an Option<u8>.
-        // xxx(perf): .clone() or .map(|&b| b) or .map(|b| *b)?
+
+        if self.pos < self.src.len() {
+            let ch = char_at(&self.src, self.pos);
+            self.current_char = Some(ch);
+        } else {
+            self.current_char = None;
+        }
+    }
+
+    fn scan_identifier(&mut self) -> String {
+        unimplemented!()
     }
 }
 
@@ -77,88 +82,135 @@ impl<'src> Iterator for Lexer<'src> {
     /// ```
     fn next(&mut self) -> Option<Token> {
         // Stop tokenizing on EOF.
-        let c = match self.current_byte {
+        let c = match self.current_char {
             Some(c) => c,
             None => return None,
         };
 
         let tok = match c {
             // Single-character tokens.
-            b'(' => {
+            '(' => {
                 self.bump();
                 Token::OpenDelim(DelimToken::Paren)
             }
-            b')' => {
+            ')' => {
                 self.bump();
                 Token::CloseDelim(DelimToken::Paren)
             }
-            b'{' => {
+            '{' => {
                 self.bump();
                 Token::OpenDelim(DelimToken::Brace)
             }
-            b'}' => {
+            '}' => {
                 self.bump();
                 Token::CloseDelim(DelimToken::Brace)
             }
-            b'[' => {
+            '[' => {
                 self.bump();
                 Token::OpenDelim(DelimToken::Bracket)
             }
-            b']' => {
+            ']' => {
                 self.bump();
                 Token::CloseDelim(DelimToken::Bracket)
             }
-            b',' => {
+            ',' => {
                 self.bump();
                 Token::Comma
             }
             // More complex tokens.
-            b'+' => {
+            '+' => {
                 self.bump();
 
-                match self.current_byte {
-                    Some(b'+') => {
+                match self.current_char {
+                    Some('+') => {
                         self.bump();
                         Token::Increment
                     }
-                    Some(b'=') => {
+                    Some('=') => {
                         self.bump();
                         Token::PlusEquals
                     }
                     _ => Token::Plus,
                 }
             }
-            b'-' => {
+            '-' => {
                 self.bump();
 
-                match self.current_byte {
-                    Some(b'-') => {
+                match self.current_char {
+                    Some('-') => {
                         self.bump();
                         Token::Decrement
                     }
-                    Some(b'=') => {
+                    Some('=') => {
                         self.bump();
                         Token::MinusEquals
                     }
                     _ => Token::Minus,
                 }
             }
-            b'|' => {
+            '|' => {
                 self.bump();
 
-                match self.current_byte {
-                    Some(b'|') => {
+                match self.current_char {
+                    Some('|') => {
                         self.bump();
                         Token::PipePipe
                     }
-                    Some(b'=') => {
+                    Some('=') => {
                         self.bump();
                         Token::PipeEquals
                     }
                     _ => Token::Pipe,
                 }
             }
+            c if can_start_identifier(c) => {
+                let start = self.pos;
+                println!("c: {}", c);
 
+                loop {
+                    if let Some(c) = self.current_char {
+                        if can_continue_identifier(c) {
+                            self.bump();
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                let ident = &self.src[start..self.pos];
+
+                match &*ident {
+                    "break" => Token::Keyword(Keyword::Break),
+                    "case" => Token::Keyword(Keyword::Case),
+                    "chan" => Token::Keyword(Keyword::Chan),
+                    "const" => Token::Keyword(Keyword::Const),
+                    "continue" => Token::Keyword(Keyword::Continue),
+                    "default" => Token::Keyword(Keyword::Default),
+                    "defer" => Token::Keyword(Keyword::Defer),
+                    "else" => Token::Keyword(Keyword::Else),
+                    "fallthrough" => Token::Keyword(Keyword::Fallthrough),
+                    "for" => Token::Keyword(Keyword::For),
+                    "func" => Token::Keyword(Keyword::Func),
+                    "go" => Token::Keyword(Keyword::Go),
+                    "goto" => Token::Keyword(Keyword::Goto),
+                    "if" => Token::Keyword(Keyword::If),
+                    "import" => Token::Keyword(Keyword::Import),
+                    "interface" => Token::Keyword(Keyword::Interface),
+                    "map" => Token::Keyword(Keyword::Map),
+                    "package" => Token::Keyword(Keyword::Package),
+                    "range" => Token::Keyword(Keyword::Range),
+                    "return" => Token::Keyword(Keyword::Return),
+                    "select" => Token::Keyword(Keyword::Select),
+                    "struct" => Token::Keyword(Keyword::Struct),
+                    "switch" => Token::Keyword(Keyword::Switch),
+                    "type" => Token::Keyword(Keyword::Type),
+                    "var" => Token::Keyword(Keyword::Var),
+
+                    // `ident` is not a keyword.
+                    // XXX(perf): unnecessary alloc.
+                    _ => Token::Ident(ident.into()),
+                }
+            }
             _ => panic!("unexpected start of token"),
         };
 
@@ -183,4 +235,21 @@ pub fn tokenize(s: &str) -> Vec<Token> {
     let tokens: Vec<Token> = lexer.collect();
 
     tokens
+}
+
+
+// Unicode Scalar Value = Any Unicode code point except high-surrogate and low-surrogate code
+// points.
+
+
+fn can_start_identifier(c: char) -> bool {
+    c.is_alphabetic()
+}
+
+fn can_continue_identifier(c: char) -> bool {
+    c.is_alphabetic() || c.is_numeric()
+}
+
+pub fn char_at(s: &str, byte: usize) -> char {
+    s[byte..].chars().next().unwrap()
 }
