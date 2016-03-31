@@ -57,3 +57,12 @@ care about the output, and unit tests that care only about a very small part of
 the code. Lexing should be very easy to test; parsing, a bit harder, as AFAIK it
 requires more context (e.g. `foo` can be a package name, a package alias, a
 constant, a function parameter...).
+
+## Thu Mar 31 15:16 - Next steps
+
+The lexer can now tokenize a "Hello, rgo" program properly!
+
+Next steps: integer literals (very easy); semicolon; various compound tokens.
+
+I'm going to have to set this project aside for a few months because of my
+studies.
