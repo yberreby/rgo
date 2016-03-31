@@ -211,6 +211,20 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Ident(ident.into()),
                 }
             }
+            c if c.is_whitespace() => {
+                // XXX: this loop pattern is not pretty.
+                loop {
+                    if let Some(c) = self.current_char {
+                        if c.is_whitespace() {
+                            self.bump();
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                Token::Whitespace
+
+            }
             _ => panic!("unexpected start of token"),
         };
 
@@ -241,6 +255,7 @@ pub fn tokenize(s: &str) -> Vec<Token> {
 // Unicode Scalar Value = Any Unicode code point except high-surrogate and low-surrogate code
 // points.
 
+// XXX(perf): expensive check on Unicode chars.
 
 fn can_start_identifier(c: char) -> bool {
     c.is_alphabetic()

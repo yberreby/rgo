@@ -78,6 +78,13 @@ fn tokenize_keywords() {
     test_keyword("var", Keyword::Var);
 }
 
+#[test]
+fn tokenize_mixed_whitespace() {
+    assert_eq!(tokenize(" \t
+                        
+                        \t  "),
+               vec![Token::Whitespace]);
+}
 
 #[test]
 #[ignore] // This cannot work yet.
