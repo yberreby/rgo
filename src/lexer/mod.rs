@@ -118,6 +118,11 @@ impl<'src> Iterator for Lexer<'src> {
                 Token::Comma
             }
             // More complex tokens.
+            '.' => {
+                self.bump();
+                // FIXME: ellipsis '...'
+                Token::Dot
+            }
             '+' => {
                 self.bump();
 
@@ -252,7 +257,7 @@ impl<'src> Iterator for Lexer<'src> {
                 // XXX(perf): alloc.
                 Token::Literal(Literal::Str(s.into()))
             }
-            _ => panic!("unexpected start of token"),
+            c => panic!("unexpected start of token: '{}'", c),
         };
 
         Some(tok)

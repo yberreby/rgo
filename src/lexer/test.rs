@@ -109,10 +109,8 @@ fn tokenize_simple_import() {
 }
 
 #[test]
-#[ignore] // This cannot work yet.
 fn tokenize_hello() {
-    let src = r#"
-package main
+    let src = r#"package main
 
 import "fmt"
 
@@ -132,8 +130,8 @@ func main() {
                     Token::Keyword(Keyword::Func),
                     Token::Whitespace,
                     Token::Ident("main".into()),
-                    Token::OpenDelim(DelimToken::Bracket),
-                    Token::CloseDelim(DelimToken::Bracket),
+                    Token::OpenDelim(DelimToken::Paren),
+                    Token::CloseDelim(DelimToken::Paren),
                     Token::Whitespace,
                     Token::OpenDelim(DelimToken::Brace),
                     Token::Whitespace,
@@ -144,7 +142,9 @@ func main() {
                     Token::Literal(Literal::Str("Hello, rgo".into())),
                     Token::CloseDelim(DelimToken::Paren),
                     Token::Whitespace,
-                    Token::CloseDelim(DelimToken::Brace)];
+                    Token::CloseDelim(DelimToken::Brace),
+                    // There's a newline after the closing curly bracket.
+                    Token::Whitespace];
 
     assert_eq!(tokenize(src), expected);
 }
