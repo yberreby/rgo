@@ -16,6 +16,12 @@ fn tokenize_comma() {
 }
 
 #[test]
+fn tokenize_dot_variants() {
+    assert_eq!(tokenize("."), vec![Token::Dot]);
+    assert_eq!(tokenize("..."), vec![Token::Ellipsis]);
+}
+
+#[test]
 fn tokenize_pipe_variants() {
     assert_eq!(tokenize("|"), vec![Token::Pipe]);
     assert_eq!(tokenize("||"), vec![Token::PipePipe]);

@@ -55,6 +55,18 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    /// Return the next character **without** bumping.
+    /// Useful for lookahead.
+    fn next_char(&self) -> Option<char> {
+        let next_pos = self.pos + 1;
+        if self.pos < self.src.len() {
+            let ch = char_at(&self.src, next_pos);
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
     fn scan_identifier(&mut self) -> String {
         unimplemented!()
     }
@@ -120,8 +132,15 @@ impl<'src> Iterator for Lexer<'src> {
             // More complex tokens.
             '.' => {
                 self.bump();
-                // FIXME: ellipsis '...'
-                Token::Dot
+
+                // Look for an ellipsis ('...').
+                if self.current_char == Some('.') && self.next_char() == Some('.') {
+                    self.bump();
+                    self.bump();
+                    Token::Ellipsis
+                } else {
+                    Token::Dot
+                }
             }
             '+' => {
                 self.bump();
