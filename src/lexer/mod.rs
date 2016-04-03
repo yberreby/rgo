@@ -230,6 +230,10 @@ impl<'src> Iterator for Lexer<'src> {
                         self.bump();
                         Token::LessThanOrEqual
                     }
+                    Some('-') => {
+                        self.bump();
+                        Token::ChanReceive
+                    }
                     _ => Token::LessThan,
                 }
             }

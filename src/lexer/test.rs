@@ -76,6 +76,7 @@ fn tokenize_colon_variants() {
 #[test]
 fn tokenize_lt_variants() {
     tok_cmp(tokenize("<"), vec![Token::LessThan]);
+    tok_cmp(tokenize("<-"), vec![Token::ChanReceive]);
     tok_cmp(tokenize("<="), vec![Token::LessThanOrEqual]);
     tok_cmp(tokenize("<<"), vec![Token::Lshift]);
     tok_cmp(tokenize("<<="), vec![Token::LshiftAssign]);
