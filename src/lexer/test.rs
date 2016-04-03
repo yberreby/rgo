@@ -266,6 +266,12 @@ fn tokenize_simple_assignment() {
     ]);
 }
 
+#[test]
+fn tokenize_string_escape() {
+    tok_cmp(tokenize(r##""\\\"oqdz""##),
+            vec![Token::Literal(Literal::Str("\\\\\\\"oqdz".into()))]);
+}
+
 // =====
 // Comments
 // =====
