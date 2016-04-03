@@ -30,21 +30,20 @@ pub struct Lexer<'src> {
 }
 
 impl<'src> Lexer<'src> {
+    /// Create a new Lexer from the given source string.
     pub fn new(s: &str) -> Lexer {
+        // Initialize the lexer with the first character of the source string.
         let first_char = s.chars().next();
-        println!("first_char: {:?}", first_char);
-        let mut l = Lexer {
+
+        Lexer {
             src: s,
             pos: 0,
-            current_char: first_char, // Ugly?
-        };
-
-        l
+            current_char: first_char,
+        }
     }
 
     /// 'eat' one character.
     fn bump(&mut self) {
-        let old = self.current_char;
         self.pos += 1;
 
         if self.pos < self.src.len() {
@@ -67,13 +66,9 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    fn scan_identifier(&mut self) -> String {
-        unimplemented!()
-    }
-
     /// Scan a number literal (integer or float).
     // FIXME: ONLY supports integers in base 10 for now.
-    fn scan_number(&mut self, first_char: char) -> Literal {
+    fn scan_number(&mut self) -> Literal {
         // Integer literal grammar:
         //
         // int_lit     = decimal_lit | octal_lit | hex_lit .
@@ -370,7 +365,7 @@ impl<'src> Iterator for Lexer<'src> {
                 }
             }
             // Scan integer.
-            c if c.is_digit(10) => Token::Literal(self.scan_number(c)),
+            c if c.is_digit(10) => Token::Literal(self.scan_number()),
             c if can_start_identifier(c) => {
                 let start = self.pos;
                 println!("c: {}", c);
@@ -459,7 +454,7 @@ impl<'src> Iterator for Lexer<'src> {
 /// ]);
 /// ```
 pub fn tokenize(s: &str) -> Vec<Token> {
-    let mut lexer = Lexer::new(s);
+    let lexer = Lexer::new(s);
     let tokens: Vec<Token> = lexer.collect();
 
     tokens
@@ -477,10 +472,6 @@ fn can_start_identifier(c: char) -> bool {
 
 fn can_continue_identifier(c: char) -> bool {
     c.is_alphabetic() || c.is_numeric()
-}
-
-fn is_ascii_digit(c: char) -> bool {
-    '0' <= c && c <= '9'
 }
 
 pub fn char_at(s: &str, byte: usize) -> char {
