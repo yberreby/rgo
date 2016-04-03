@@ -5,11 +5,9 @@ pub enum Token {
     Keyword(Keyword),
     OpenDelim(DelimToken),
     CloseDelim(DelimToken),
-    // XXX: not sure whether it's a good think to tokenize _all_ whitespace.
-    // I'm doing it because I don't want to tie tokenization to automatic semicolon insertion.
     /// Significant whitespace, containing one or more newlines.
     Whitespace,
-    // Various operators.
+    // Binary operators.
     /// +
     Plus,
     /// -
@@ -23,7 +21,7 @@ pub enum Token {
     /// &
     And,
     /// |
-    Pipe,
+    Or,
     /// ^
     Caret,
     /// <<
@@ -33,6 +31,10 @@ pub enum Token {
     /// &^
     BitClear,
     // Compound operators.
+    /// ++
+    Increment,
+    /// --
+    Decrement,
     /// +=
     PlusAssign,
     /// -=
@@ -46,7 +48,7 @@ pub enum Token {
     /// &=
     AndAssign,
     /// |=
-    PipeAssign,
+    OrAssign,
     /// ^=
     CaretAssign,
     /// <<=
@@ -55,34 +57,32 @@ pub enum Token {
     RshiftAssign,
     /// &^=
     BitClearAssign,
+    // Boolean operators.
+    /// !
+    Not,
     /// &&
     AndAnd,
     /// ||
-    PipePipe,
-    /// <-
-    ChanReceive,
-    /// ++
-    Increment,
-    /// --
-    Decrement,
+    OrOr,
     /// ==
     Equals,
+    /// !=
+    NotEqual,
     /// <
     LessThan,
     /// >
     GreaterThan,
-    /// =
-    Assign,
-    /// !
-    Not,
-    /// !=
-    NotEqual,
     /// <=
     LessThanOrEqual,
     /// >=
     GreaterThanOrEqual,
+    // Miscellaneous operators and tokens.
+    /// =
+    Assign,
     /// :=
     ColonAssign,
+    /// <-
+    ChanReceive,
     /// ...
     Ellipsis,
     /// ,
@@ -106,6 +106,7 @@ pub enum DelimToken {
     Brace,
 }
 
+/// Reserved keywords.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Keyword {
     Break,

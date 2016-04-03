@@ -21,11 +21,11 @@ pub use self::token::*;
 mod test;
 
 pub struct Lexer<'src> {
-    /// Byte offset from the start.
+    /// Byte offset from the start of the source string.
     pos: usize,
     /// The source string.
     src: &'src str,
-    /// The last char that was read.
+    /// The last character to be read.
     current_char: Option<char>,
 }
 
@@ -348,13 +348,13 @@ impl<'src> Iterator for Lexer<'src> {
                 match self.current_char {
                     Some('|') => {
                         self.bump();
-                        Token::PipePipe
+                        Token::OrOr
                     }
                     Some('=') => {
                         self.bump();
-                        Token::PipeAssign
+                        Token::OrAssign
                     }
-                    _ => Token::Pipe,
+                    _ => Token::Or,
                 }
             }
             '&' => {
@@ -458,7 +458,6 @@ impl<'src> Iterator for Lexer<'src> {
                     "switch" => Token::Keyword(Keyword::Switch),
                     "type" => Token::Keyword(Keyword::Type),
                     "var" => Token::Keyword(Keyword::Var),
-                    // `ident` is not a keyword.
                     // XXX(perf): unnecessary alloc.
                     _ => Token::Ident(ident.into()),
                 }
@@ -469,8 +468,8 @@ impl<'src> Iterator for Lexer<'src> {
                 let start = self.pos;
 
                 while let Some(c) = self.current_char {
-                    // Handle \" escape.
-                    // XXX/FIXME: \\"
+                    // If we encounter a backslash escape, we just skip past the '\' and the
+                    // following character.
                     if c == '\\' {
                         self.bump();
                         self.bump();
@@ -516,10 +515,11 @@ pub fn tokenize(s: &str) -> Vec<Token> {
 }
 
 
-// Unicode Scalar Value = Any Unicode code point except high-surrogate and low-surrogate code
-// points.
-
-// XXX(perf): expensive check on Unicode chars.
+// =====
+// Utility functions.
+//
+// XXX(perf): expensive checks on Unicode chars (is_alphabetic(), is_numeric()) in these functions.
+// =====
 
 fn can_start_identifier(c: char) -> bool {
     c.is_alphabetic() || c == '_'
@@ -529,6 +529,6 @@ fn can_continue_identifier(c: char) -> bool {
     c.is_alphabetic() || c.is_numeric() || c == '_'
 }
 
-pub fn char_at(s: &str, byte: usize) -> char {
+fn char_at(s: &str, byte: usize) -> char {
     s[byte..].chars().next().unwrap()
 }

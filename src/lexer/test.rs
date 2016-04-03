@@ -47,9 +47,9 @@ fn tokenize_dot_variants() {
 
 #[test]
 fn tokenize_pipe_variants() {
-    tok_cmp(tokenize("|"), vec![Token::Pipe]);
-    tok_cmp(tokenize("||"), vec![Token::PipePipe]);
-    tok_cmp(tokenize("|="), vec![Token::PipeAssign]);
+    tok_cmp(tokenize("|"), vec![Token::Or]);
+    tok_cmp(tokenize("||"), vec![Token::OrOr]);
+    tok_cmp(tokenize("|="), vec![Token::OrAssign]);
 }
 
 #[test]
