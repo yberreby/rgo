@@ -111,7 +111,7 @@ impl<'src> Iterator for Lexer<'src> {
     /// let mut lexer = Lexer::new(")"); assert_eq!(lexer.next(),
     /// Some(Token::CloseDelim(DelimToken::Paren))); ```
     fn next(&mut self) -> Option<Token> {
-        // Whitespace handling.
+        // Whitespace and comment handling.
         let mut contains_newline = false;
 
         while let Some(c) = self.current_char {
@@ -119,9 +119,8 @@ impl<'src> Iterator for Lexer<'src> {
                 contains_newline = true;
             }
 
+            // Are we at the start of a general comment (`/* ... */`)?
             if c == '/' && self.next_char() == Some('*') {
-                // This is the start of a general comment.
-
                 // Skip the '/*'.
                 self.bump();
                 self.bump();
@@ -138,7 +137,25 @@ impl<'src> Iterator for Lexer<'src> {
                 // Skip the '*/'.
                 self.bump();
                 self.bump();
+
+                // Resume whitespace skipping.
                 continue;
+            } else {
+                // Otherwise, at we at the start of a line comment (`// ...`)?
+                if c == '/' && self.next_char() == Some('/') {
+                    while let Some(c) = self.current_char {
+                        if c == '\n' {
+                            break;
+                        } else {
+                            self.bump();
+                        }
+                    }
+
+                    // Resume whitespace skipping.
+                    // Since we have not bumped past the newline character,
+                    // the next iteration of the loop will catch it.
+                    continue;
+                }
             }
 
             if c.is_whitespace() {
@@ -148,6 +165,8 @@ impl<'src> Iterator for Lexer<'src> {
             }
         }
 
+        // If a body of whitespace contains one or more newlines, it is considered significant
+        // and must therefore be tokenized.
         if contains_newline {
             return Some(Token::Whitespace);
         }
