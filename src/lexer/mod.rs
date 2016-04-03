@@ -44,7 +44,7 @@ impl<'src> Lexer<'src> {
 
     /// 'eat' one character.
     fn bump(&mut self) {
-        self.pos += 1;
+        self.pos += self.current_char.unwrap().len_utf8();
 
         if self.pos < self.src.len() {
             let ch = char_at(&self.src, self.pos);
