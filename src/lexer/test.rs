@@ -123,6 +123,12 @@ fn tokenize_star_variants() {
     tok_cmp(tokenize("*="), vec![Token::StarAssign]);
 }
 
+#[test]
+fn tokenize_equal_variants() {
+    tok_cmp(tokenize("="), vec![Token::Assign]);
+    tok_cmp(tokenize("=="), vec![Token::Equals]);
+}
+
 // From the Go spec:
 // "A general comment containing no newlines acts like a space. Any other comment acts like a
 // newline."

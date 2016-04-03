@@ -234,6 +234,16 @@ impl<'src> Iterator for Lexer<'src> {
                     Token::Colon
                 }
             }
+            '=' => {
+                self.bump();
+
+                if self.current_char == Some('=') {
+                    self.bump();
+                    Token::Equals
+                } else {
+                    Token::Assign
+                }
+            }
             '+' => {
                 self.bump();
 
