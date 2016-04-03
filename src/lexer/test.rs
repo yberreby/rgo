@@ -2,7 +2,7 @@ use super::{Token, DelimToken, Literal, Keyword, tokenize};
 
 /// Utility function to compare two slices of tokens.
 /// Better than `assert_eq!` because it shows the mismatch more clearly.
-fn assert_eq_tok<T, U>(found_s: T, expected_s: U)
+fn tok_cmp<T, U>(found_s: T, expected_s: U)
     where T: AsRef<[Token]>,
           U: AsRef<[Token]>
 {
@@ -21,57 +21,57 @@ fn assert_eq_tok<T, U>(found_s: T, expected_s: U)
 
 #[test]
 fn tokenize_delimiters() {
-    assert_eq_tok(tokenize("("), vec![Token::OpenDelim(DelimToken::Paren)]);
-    assert_eq_tok(tokenize(")"), vec![Token::CloseDelim(DelimToken::Paren)]);
-    assert_eq_tok(tokenize("{"), vec![Token::OpenDelim(DelimToken::Brace)]);
-    assert_eq_tok(tokenize("}"), vec![Token::CloseDelim(DelimToken::Brace)]);
-    assert_eq_tok(tokenize("["), vec![Token::OpenDelim(DelimToken::Bracket)]);
-    assert_eq_tok(tokenize("]"), vec![Token::CloseDelim(DelimToken::Bracket)]);
+    tok_cmp(tokenize("("), vec![Token::OpenDelim(DelimToken::Paren)]);
+    tok_cmp(tokenize(")"), vec![Token::CloseDelim(DelimToken::Paren)]);
+    tok_cmp(tokenize("{"), vec![Token::OpenDelim(DelimToken::Brace)]);
+    tok_cmp(tokenize("}"), vec![Token::CloseDelim(DelimToken::Brace)]);
+    tok_cmp(tokenize("["), vec![Token::OpenDelim(DelimToken::Bracket)]);
+    tok_cmp(tokenize("]"), vec![Token::CloseDelim(DelimToken::Bracket)]);
 }
 
 #[test]
 fn tokenize_comma() {
-    assert_eq_tok(tokenize(","), vec![Token::Comma]);
+    tok_cmp(tokenize(","), vec![Token::Comma]);
 }
 
 #[test]
 fn tokenize_dot_variants() {
-    assert_eq_tok(tokenize("."), vec![Token::Dot]);
-    assert_eq_tok(tokenize("..."), vec![Token::Ellipsis]);
+    tok_cmp(tokenize("."), vec![Token::Dot]);
+    tok_cmp(tokenize("..."), vec![Token::Ellipsis]);
 }
 
 #[test]
 fn tokenize_pipe_variants() {
-    assert_eq_tok(tokenize("|"), vec![Token::Pipe]);
-    assert_eq_tok(tokenize("||"), vec![Token::PipePipe]);
-    assert_eq_tok(tokenize("|="), vec![Token::PipeEquals]);
+    tok_cmp(tokenize("|"), vec![Token::Pipe]);
+    tok_cmp(tokenize("||"), vec![Token::PipePipe]);
+    tok_cmp(tokenize("|="), vec![Token::PipeEquals]);
 }
 
 #[test]
 fn tokenize_plus_variants() {
-    assert_eq_tok(tokenize("+"), vec![Token::Plus]);
-    assert_eq_tok(tokenize("++"), vec![Token::Increment]);
-    assert_eq_tok(tokenize("+="), vec![Token::PlusEquals]);
+    tok_cmp(tokenize("+"), vec![Token::Plus]);
+    tok_cmp(tokenize("++"), vec![Token::Increment]);
+    tok_cmp(tokenize("+="), vec![Token::PlusEquals]);
 }
 
 #[test]
 fn tokenize_minus_variants() {
-    assert_eq_tok(tokenize("-"), vec![Token::Minus]);
-    assert_eq_tok(tokenize("--"), vec![Token::Decrement]);
-    assert_eq_tok(tokenize("-="), vec![Token::MinusEquals]);
+    tok_cmp(tokenize("-"), vec![Token::Minus]);
+    tok_cmp(tokenize("--"), vec![Token::Decrement]);
+    tok_cmp(tokenize("-="), vec![Token::MinusEquals]);
 }
 
 
 #[test]
 fn tokenize_colon_variants() {
-    assert_eq_tok(tokenize(":"), vec![Token::Colon]);
-    assert_eq_tok(tokenize(":="), vec![Token::ColonAssign]);
+    tok_cmp(tokenize(":"), vec![Token::Colon]);
+    tok_cmp(tokenize(":="), vec![Token::ColonAssign]);
 }
 
 #[test]
 fn tokenize_ident() {
     let test_ident = |s| {
-        assert_eq_tok(tokenize(s), vec![Token::Ident(s.into())]);
+        tok_cmp(tokenize(s), vec![Token::Ident(s.into())]);
     };
 
     test_ident("foo");
@@ -80,7 +80,7 @@ fn tokenize_ident() {
 #[test]
 fn tokenize_keywords() {
     let test_keyword = |s, k| {
-        assert_eq_tok(tokenize(s), vec![Token::Keyword(k)]);
+        tok_cmp(tokenize(s), vec![Token::Keyword(k)]);
     };
 
     test_keyword("break", Keyword::Break);
@@ -112,32 +112,30 @@ fn tokenize_keywords() {
 
 #[test]
 fn tokenize_mixed_whitespace() {
-    assert_eq_tok(tokenize(" \t
+    tok_cmp(tokenize(" \t
                         
                         \t  "),
-                  vec![Token::Whitespace]);
+            vec![Token::Whitespace]);
 }
 
 #[test]
 fn tokenize_package_declaration() {
-    assert_eq_tok(tokenize("package main"),
-                  vec![Token::Keyword(Keyword::Package),
-                       Token::Whitespace,
-                       Token::Ident("main".into())]);
+    tok_cmp(tokenize("package main"),
+            vec![Token::Keyword(Keyword::Package), Token::Whitespace, Token::Ident("main".into())]);
 }
 
 #[test]
 fn tokenize_plain_interpreted_str() {
-    assert_eq_tok(tokenize("\"hello\""),
-                  vec![Token::Literal(Literal::Str("hello".into()))]);
+    tok_cmp(tokenize("\"hello\""),
+            vec![Token::Literal(Literal::Str("hello".into()))]);
 }
 
 #[test]
 fn tokenize_simple_import() {
-    assert_eq_tok(tokenize("import \"fmt\""),
-                  vec![Token::Keyword(Keyword::Import),
-                       Token::Whitespace,
-                       Token::Literal(Literal::Str("fmt".into()))]);
+    tok_cmp(tokenize("import \"fmt\""),
+            vec![Token::Keyword(Keyword::Import),
+                 Token::Whitespace,
+                 Token::Literal(Literal::Str("fmt".into()))]);
 }
 
 #[test]
@@ -178,13 +176,13 @@ func main() {
                     // There's a newline after the closing curly bracket.
                     Token::Whitespace];
 
-    assert_eq_tok(tokenize(src), expected);
+    tok_cmp(tokenize(src), expected);
 }
 
 #[test]
 fn tokenize_simple_assignment() {
-    assert_eq_tok(tokenize("someVar := 23 + 45"),
-                  vec![
+    tok_cmp(tokenize("someVar := 23 + 45"),
+            vec![
                Token::Ident("someVar".into()),
                Token::Whitespace,
                Token::ColonAssign,
