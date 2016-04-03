@@ -35,6 +35,11 @@ fn tokenize_comma() {
 }
 
 #[test]
+fn tokenize_semicolon() {
+    tok_cmp(tokenize(";"), vec![Token::Semicolon]);
+}
+
+#[test]
 fn tokenize_dot_variants() {
     tok_cmp(tokenize("."), vec![Token::Dot]);
     tok_cmp(tokenize("..."), vec![Token::Ellipsis]);

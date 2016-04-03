@@ -155,6 +155,10 @@ impl<'src> Iterator for Lexer<'src> {
                 self.bump();
                 Token::Comma
             }
+            ';' => {
+                self.bump();
+                Token::Semicolon
+            }
             // More complex tokens.
             '.' => {
                 self.bump();
