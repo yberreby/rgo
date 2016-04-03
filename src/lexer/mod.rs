@@ -58,7 +58,7 @@ impl<'src> Lexer<'src> {
     /// Useful for lookahead.
     fn next_char(&self) -> Option<char> {
         let next_pos = self.pos + 1;
-        if self.pos < self.src.len() {
+        if next_pos < self.src.len() {
             let ch = char_at(&self.src, next_pos);
             Some(ch)
         } else {
@@ -117,6 +117,28 @@ impl<'src> Iterator for Lexer<'src> {
         while let Some(c) = self.current_char {
             if c == '\n' {
                 contains_newline = true;
+            }
+
+            if c == '/' && self.next_char() == Some('*') {
+                // This is the start of a general comment.
+
+                // Skip the '/*'.
+                self.bump();
+                self.bump();
+
+                // Skip the comment body.
+                while let Some(c) = self.current_char {
+                    if c == '*' && self.next_char() == Some('/') {
+                        break;
+                    } else {
+                        self.bump();
+                    }
+                }
+
+                // Skip the '*/'.
+                self.bump();
+                self.bump();
+                continue;
             }
 
             if c.is_whitespace() {

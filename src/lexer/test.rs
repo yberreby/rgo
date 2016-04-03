@@ -259,3 +259,19 @@ fn tokenize_simple_assignment() {
                Token::Literal(Literal::Integer("45".into())),
     ]);
 }
+
+// =====
+// Comments
+// =====
+
+#[test]
+fn tokenize_simple_assignment_with_inline_comment() {
+    tok_cmp(tokenize("someVar /* someVar is a variable; and I'm a COMMENT! */ := 23 + 45"),
+            vec![
+               Token::Ident("someVar".into()),
+               Token::ColonAssign,
+               Token::Literal(Literal::Integer("23".into())),
+               Token::Plus,
+               Token::Literal(Literal::Integer("45".into())),
+    ]);
+}
