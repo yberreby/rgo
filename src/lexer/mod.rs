@@ -201,14 +201,10 @@ impl<'src> Iterator for Lexer<'src> {
                 let start = self.pos;
                 println!("c: {}", c);
 
-                loop {
-                    if let Some(c) = self.current_char {
-                        println!("ident c: {}", c);
-                        if can_continue_identifier(c) {
-                            self.bump();
-                        } else {
-                            break;
-                        }
+                while let Some(c) = self.current_char {
+                    println!("ident c: {}", c);
+                    if can_continue_identifier(c) {
+                        self.bump();
                     } else {
                         break;
                     }
@@ -251,14 +247,10 @@ impl<'src> Iterator for Lexer<'src> {
             c if c.is_whitespace() => {
                 println!("ws start c: {}", c);
                 // XXX: this loop pattern is not pretty.
-                loop {
-                    if let Some(c) = self.current_char {
-                        println!("ws c: {}", c);
-                        if c.is_whitespace() {
-                            self.bump();
-                        } else {
-                            break;
-                        }
+                while let Some(c) = self.current_char {
+                    println!("ws c: {}", c);
+                    if c.is_whitespace() {
+                        self.bump();
                     } else {
                         break;
                     }
