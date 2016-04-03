@@ -14,7 +14,7 @@ pub enum Token {
     /// -
     Minus,
     /// *
-    Asterisk,
+    Star,
     /// /
     Slash,
     /// %
@@ -37,7 +37,7 @@ pub enum Token {
     /// -=
     MinusAssign,
     /// *=
-    TimesAssign,
+    StarAssign,
     /// /=
     DivideAssign,
     /// %=

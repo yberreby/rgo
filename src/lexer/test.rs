@@ -91,6 +91,12 @@ fn tokenize_gt_variants() {
 }
 
 #[test]
+fn tokenize_star_variants() {
+    tok_cmp(tokenize("*"), vec![Token::Star]);
+    tok_cmp(tokenize("*="), vec![Token::StarAssign]);
+}
+
+#[test]
 fn tokenize_ident() {
     let test_ident = |s| {
         tok_cmp(tokenize(s), vec![Token::Ident(s.into())]);

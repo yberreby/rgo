@@ -212,6 +212,17 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Minus,
                 }
             }
+            '*' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('=') => {
+                        self.bump();
+                        Token::StarAssign
+                    }
+                    _ => Token::Star,
+                }
+            }
             '<' => {
                 self.bump();
 
