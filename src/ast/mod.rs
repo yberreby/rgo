@@ -140,6 +140,22 @@ pub enum Slice {
 }
 
 
+
+// From the Go spec:
+//
+// FunctionDecl = "func" FunctionName ( Function | Signature ) .
+// FunctionName = identifier .
+// Function     = Signature FunctionBody .
+// FunctionBody = Block .
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionDecl {
+    // XXX: functions with same name but different origins, how do we handle them?
+    name: String,
+    signature: Signature,
+    body: Block,
+}
+
+
 // == Unimplemented types ==
 
 /// A constant declaration.
@@ -147,8 +163,7 @@ pub enum Slice {
 /// Example: `const Pi float64 = 3.14159265358979323846`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstDecl;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FunctionDecl;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MethodDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,3 +182,7 @@ pub struct Conversion;
 pub struct Argument;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryOperator {}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signature;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block;
