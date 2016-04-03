@@ -97,6 +97,12 @@ fn tokenize_star_variants() {
 }
 
 #[test]
+fn tokenize_slash_variants() {
+    tok_cmp(tokenize("/"), vec![Token::Slash]);
+    tok_cmp(tokenize("/="), vec![Token::SlashAssign]);
+}
+
+#[test]
 fn tokenize_ident() {
     let test_ident = |s| {
         tok_cmp(tokenize(s), vec![Token::Ident(s.into())]);

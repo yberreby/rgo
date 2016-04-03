@@ -223,6 +223,17 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Star,
                 }
             }
+            '/' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('=') => {
+                        self.bump();
+                        Token::SlashAssign
+                    }
+                    _ => Token::Slash,
+                }
+            }
             '<' => {
                 self.bump();
 

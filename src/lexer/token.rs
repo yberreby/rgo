@@ -39,9 +39,9 @@ pub enum Token {
     /// *=
     StarAssign,
     /// /=
-    DivideAssign,
+    SlashAssign,
     /// %=
-    ModuloAssign,
+    PercentAssign,
     /// &=
     AndAssign,
     /// |=
