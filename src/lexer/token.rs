@@ -33,27 +33,27 @@ pub enum Token {
     BitClear,
     // Compound operators.
     /// +=
-    PlusEquals,
+    PlusAssign,
     /// -=
-    MinusEquals,
+    MinusAssign,
     /// *=
-    TimesEquals,
+    TimesAssign,
     /// /=
-    DivideEquals,
+    DivideAssign,
     /// %=
-    ModuloEquals,
+    ModuloAssign,
     /// &=
-    AndEquals,
+    AndAssign,
     /// |=
-    PipeEquals,
+    PipeAssign,
     /// ^=
-    XorEquals,
+    XorAssign,
     /// <<=
-    LshiftEquals,
+    LshiftAssign,
     /// >>=
-    RshiftEquals,
+    RshiftAssign,
     /// &^=
-    BitClearEquals,
+    BitClearAssign,
     /// &&
     AndAnd,
     /// ||

@@ -192,7 +192,7 @@ impl<'src> Iterator for Lexer<'src> {
                     }
                     Some('=') => {
                         self.bump();
-                        Token::PlusEquals
+                        Token::PlusAssign
                     }
                     _ => Token::Plus,
                 }
@@ -207,9 +207,26 @@ impl<'src> Iterator for Lexer<'src> {
                     }
                     Some('=') => {
                         self.bump();
-                        Token::MinusEquals
+                        Token::MinusAssign
                     }
                     _ => Token::Minus,
+                }
+            }
+            '<' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('<') => {
+                        self.bump();
+                        match self.current_char {
+                            Some('=') => {
+                                self.bump();
+                                Token::LshiftAssign
+                            }
+                            _ => Token::Lshift,
+                        }
+                    }
+                    _ => Token::LessThan,
                 }
             }
             '|' => {
@@ -222,7 +239,7 @@ impl<'src> Iterator for Lexer<'src> {
                     }
                     Some('=') => {
                         self.bump();
-                        Token::PipeEquals
+                        Token::PipeAssign
                     }
                     _ => Token::Pipe,
                 }

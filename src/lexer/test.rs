@@ -49,21 +49,21 @@ fn tokenize_dot_variants() {
 fn tokenize_pipe_variants() {
     tok_cmp(tokenize("|"), vec![Token::Pipe]);
     tok_cmp(tokenize("||"), vec![Token::PipePipe]);
-    tok_cmp(tokenize("|="), vec![Token::PipeEquals]);
+    tok_cmp(tokenize("|="), vec![Token::PipeAssign]);
 }
 
 #[test]
 fn tokenize_plus_variants() {
     tok_cmp(tokenize("+"), vec![Token::Plus]);
     tok_cmp(tokenize("++"), vec![Token::Increment]);
-    tok_cmp(tokenize("+="), vec![Token::PlusEquals]);
+    tok_cmp(tokenize("+="), vec![Token::PlusAssign]);
 }
 
 #[test]
 fn tokenize_minus_variants() {
     tok_cmp(tokenize("-"), vec![Token::Minus]);
     tok_cmp(tokenize("--"), vec![Token::Decrement]);
-    tok_cmp(tokenize("-="), vec![Token::MinusEquals]);
+    tok_cmp(tokenize("-="), vec![Token::MinusAssign]);
 }
 
 
@@ -71,6 +71,13 @@ fn tokenize_minus_variants() {
 fn tokenize_colon_variants() {
     tok_cmp(tokenize(":"), vec![Token::Colon]);
     tok_cmp(tokenize(":="), vec![Token::ColonAssign]);
+}
+
+#[test]
+fn tokenize_lt_variants() {
+    tok_cmp(tokenize("<"), vec![Token::LessThan]);
+    tok_cmp(tokenize("<<"), vec![Token::Lshift]);
+    tok_cmp(tokenize("<<="), vec![Token::LshiftAssign]);
 }
 
 #[test]
