@@ -347,7 +347,28 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Not,
                 }
             }
+            '^' => {
+                self.bump();
 
+                match self.current_char {
+                    Some('=') => {
+                        self.bump();
+                        Token::CaretAssign
+                    }
+                    _ => Token::Caret,
+                }
+            }
+            '%' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('=') => {
+                        self.bump();
+                        Token::PercentAssign
+                    }
+                    _ => Token::Percent,
+                }
+            }
             // Scan integer.
             c if c.is_digit(10) => Token::Literal(self.scan_number(c)),
             c if can_start_identifier(c) => {
