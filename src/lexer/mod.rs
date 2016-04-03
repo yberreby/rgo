@@ -70,6 +70,10 @@ impl<'src> Lexer<'src> {
     fn scan_identifier(&mut self) -> String {
         unimplemented!()
     }
+
+    fn scan_number(&mut self) -> Literal {
+        unimplemented!()
+    }
 }
 
 impl<'src> Iterator for Lexer<'src> {
@@ -197,6 +201,8 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Pipe,
                 }
             }
+            // Scan integer.
+            c if c.is_digit(10) => Token::Literal(self.scan_number()),
             c if can_start_identifier(c) => {
                 let start = self.pos;
                 println!("c: {}", c);
@@ -317,6 +323,10 @@ fn can_start_identifier(c: char) -> bool {
 
 fn can_continue_identifier(c: char) -> bool {
     c.is_alphabetic() || c.is_numeric()
+}
+
+fn is_ascii_digit(c: char) -> bool {
+    '0' <= c && c <= '9'
 }
 
 pub fn char_at(s: &str, byte: usize) -> char {
