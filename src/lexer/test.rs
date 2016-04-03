@@ -76,8 +76,17 @@ fn tokenize_colon_variants() {
 #[test]
 fn tokenize_lt_variants() {
     tok_cmp(tokenize("<"), vec![Token::LessThan]);
+    tok_cmp(tokenize("<="), vec![Token::LessThanOrEqual]);
     tok_cmp(tokenize("<<"), vec![Token::Lshift]);
     tok_cmp(tokenize("<<="), vec![Token::LshiftAssign]);
+}
+
+#[test]
+fn tokenize_gt_variants() {
+    tok_cmp(tokenize(">"), vec![Token::GreaterThan]);
+    tok_cmp(tokenize(">="), vec![Token::GreaterThanOrEqual]);
+    tok_cmp(tokenize(">>"), vec![Token::Rshift]);
+    tok_cmp(tokenize(">>="), vec![Token::RshiftAssign]);
 }
 
 #[test]

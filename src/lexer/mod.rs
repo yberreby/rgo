@@ -226,7 +226,32 @@ impl<'src> Iterator for Lexer<'src> {
                             _ => Token::Lshift,
                         }
                     }
+                    Some('=') => {
+                        self.bump();
+                        Token::LessThanOrEqual
+                    }
                     _ => Token::LessThan,
+                }
+            }
+            '>' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('>') => {
+                        self.bump();
+                        match self.current_char {
+                            Some('=') => {
+                                self.bump();
+                                Token::RshiftAssign
+                            }
+                            _ => Token::Rshift,
+                        }
+                    }
+                    Some('=') => {
+                        self.bump();
+                        Token::GreaterThanOrEqual
+                    }
+                    _ => Token::GreaterThan,
                 }
             }
             '|' => {
