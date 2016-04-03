@@ -66,3 +66,17 @@ Next steps: integer literals (very easy); semicolon; various compound tokens.
 
 I'm going to have to set this project aside for a few months because of my
 studies.
+
+## Sun Apr 3 12:12 - Whitespace
+
+When I started writing the lexer, I've made the decision to tokenize *all*
+whitespace, in order to decouple lexing from semicolon insertion. Unfortunately,
+this led to an unnecessarily verbose token string (e.g. `PACKAGE, WHITESPACE,
+IDENT("main")` - the `WHITESPACE` token is 100% useless AFAICT), as well as the
+unability to distinguish insignificant whitespace, such as ten spaces one after
+the other, from significant whitespace (newlines).
+
+I've just changed that: insignificant whitespace is now ignored, and contiguous
+blocks of significant whitespace are tokenized as a single `WHITESPACE` token.
+We'll see how well this works out in practice, but I feel good about this
+change.
