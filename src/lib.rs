@@ -7,6 +7,9 @@
 //! Each part should be loosely coupled with the others, only relying on a somewhat stable public
 //! API.
 
+#[macro_use]
+extern crate log;
+
 // pub mod ast;
 
 pub mod lexer;

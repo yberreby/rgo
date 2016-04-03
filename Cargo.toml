@@ -5,3 +5,4 @@ version = "0.1.0"
 
 [dependencies]
 convenience = "0.1.0"
+log = "0.3.6"
