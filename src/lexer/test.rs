@@ -53,6 +53,24 @@ fn tokenize_pipe_variants() {
 }
 
 #[test]
+fn tokenize_not_variants() {
+    tok_cmp(tokenize("!"), vec![Token::Not]);
+    tok_cmp(tokenize("!="), vec![Token::NotEqual]);
+}
+
+#[test]
+fn tokenize_caret_variants() {
+    tok_cmp(tokenize("^"), vec![Token::Caret]);
+    tok_cmp(tokenize("^="), vec![Token::CaretAssign]);
+}
+
+#[test]
+fn tokenize_percent_variants() {
+    tok_cmp(tokenize("%"), vec![Token::Percent]);
+    tok_cmp(tokenize("%="), vec![Token::PercentAssign]);
+}
+
+#[test]
 fn tokenize_and_variants() {
     tok_cmp(tokenize("&"), vec![Token::And]);
     tok_cmp(tokenize("&&"), vec![Token::AndAnd]);

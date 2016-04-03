@@ -48,7 +48,7 @@ pub enum Token {
     /// |=
     PipeAssign,
     /// ^=
-    XorAssign,
+    CaretAssign,
     /// <<=
     LshiftAssign,
     /// >>=
