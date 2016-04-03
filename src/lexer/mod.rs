@@ -336,6 +336,17 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::And,
                 }
             }
+            '!' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('=') => {
+                        self.bump();
+                        Token::NotEqual
+                    }
+                    _ => Token::Not,
+                }
+            }
 
             // Scan integer.
             c if c.is_digit(10) => Token::Literal(self.scan_number(c)),
