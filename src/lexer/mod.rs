@@ -71,8 +71,30 @@ impl<'src> Lexer<'src> {
         unimplemented!()
     }
 
-    fn scan_number(&mut self) -> Literal {
-        unimplemented!()
+    /// Scan a number literal (integer or float).
+    // FIXME: ONLY supports integers in base 10 for now.
+    fn scan_number(&mut self, first_char: char) -> Literal {
+        // Integer literal grammar:
+        //
+        // int_lit     = decimal_lit | octal_lit | hex_lit .
+        // decimal_lit = ( "1" … "9" ) { decimal_digit } .
+        // octal_lit   = "0" { octal_digit } .
+        // hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
+
+        let start = self.pos;
+
+        while let Some(c) = self.current_char {
+            // Base 10.
+            if c.is_digit(10) {
+                self.bump();
+            } else {
+                break;
+            }
+        }
+
+        let s = &self.src[start..self.pos];
+
+        Literal::Integer(s.into())
     }
 }
 
@@ -202,7 +224,7 @@ impl<'src> Iterator for Lexer<'src> {
                 }
             }
             // Scan integer.
-            c if c.is_digit(10) => Token::Literal(self.scan_number()),
+            c if c.is_digit(10) => Token::Literal(self.scan_number(c)),
             c if can_start_identifier(c) => {
                 let start = self.pos;
                 println!("c: {}", c);

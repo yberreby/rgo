@@ -173,6 +173,7 @@ fn tokenize_simple_assignment() {
                Token::Literal(Literal::Integer("23".into())),
                Token::Whitespace,
                Token::Plus,
+               Token::Whitespace,
                Token::Literal(Literal::Integer("45".into())),
     ]);
 }
