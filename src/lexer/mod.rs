@@ -458,7 +458,6 @@ impl<'src> Iterator for Lexer<'src> {
                     "switch" => Token::Keyword(Keyword::Switch),
                     "type" => Token::Keyword(Keyword::Type),
                     "var" => Token::Keyword(Keyword::Var),
-
                     // `ident` is not a keyword.
                     // XXX(perf): unnecessary alloc.
                     _ => Token::Ident(ident.into()),
@@ -518,11 +517,11 @@ pub fn tokenize(s: &str) -> Vec<Token> {
 // XXX(perf): expensive check on Unicode chars.
 
 fn can_start_identifier(c: char) -> bool {
-    c.is_alphabetic()
+    c.is_alphabetic() || c == '_'
 }
 
 fn can_continue_identifier(c: char) -> bool {
-    c.is_alphabetic() || c.is_numeric()
+    c.is_alphabetic() || c.is_numeric() || c == '_'
 }
 
 pub fn char_at(s: &str, byte: usize) -> char {
