@@ -21,7 +21,7 @@ pub enum Token {
     /// %
     Percent,
     /// &
-    Ampersand,
+    And,
     /// |
     Pipe,
     /// ^

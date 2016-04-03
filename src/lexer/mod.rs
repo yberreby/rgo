@@ -311,6 +311,32 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Pipe,
                 }
             }
+            '&' => {
+                self.bump();
+
+                match self.current_char {
+                    Some('&') => {
+                        self.bump();
+                        Token::AndAnd
+                    }
+                    Some('=') => {
+                        self.bump();
+                        Token::AndAssign
+                    }
+                    Some('^') => {
+                        self.bump();
+                        match self.current_char {
+                            Some('=') => {
+                                self.bump();
+                                Token::BitClearAssign
+                            }
+                            _ => Token::BitClear,
+                        }
+                    }
+                    _ => Token::And,
+                }
+            }
+
             // Scan integer.
             c if c.is_digit(10) => Token::Literal(self.scan_number(c)),
             c if can_start_identifier(c) => {

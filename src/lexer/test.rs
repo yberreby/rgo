@@ -53,6 +53,15 @@ fn tokenize_pipe_variants() {
 }
 
 #[test]
+fn tokenize_and_variants() {
+    tok_cmp(tokenize("&"), vec![Token::And]);
+    tok_cmp(tokenize("&&"), vec![Token::AndAnd]);
+    tok_cmp(tokenize("&="), vec![Token::AndAssign]);
+    tok_cmp(tokenize("&^"), vec![Token::BitClear]);
+    tok_cmp(tokenize("&^="), vec![Token::BitClearAssign]);
+}
+
+#[test]
 fn tokenize_plus_variants() {
     tok_cmp(tokenize("+"), vec![Token::Plus]);
     tok_cmp(tokenize("++"), vec![Token::Increment]);
