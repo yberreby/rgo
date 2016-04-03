@@ -104,22 +104,38 @@ impl<'src> Iterator for Lexer<'src> {
     /// Return the next token, if any.
     ///
     /// A fundamental property of this function is that **the next token does not depend on the
-    /// previous one**.
-    /// This means many syntactically incorrect inputs, such as `, , ,` or `;+m/^`, can pass
-    /// tokenization, even though they would fail parsing.
-    /// This also means testing whether a single token is tokenized properly does not require
-    /// scaffolding (i.e. building an entire test program), which is a good thing.
+    /// previous one**.  This means many syntactically incorrect inputs, such as `, , ,` or
+    /// `;+m/^`, can pass tokenization, even though they would fail parsing.  This also means
+    /// testing whether a single token is tokenized properly does not require scaffolding (i.e.
+    /// building an entire test program), which is a good thing.
     ///
     /// # Example
     ///
-    /// ```
-    /// use rgo::lexer::{Lexer, Token, DelimToken};
+    /// ``` use rgo::lexer::{Lexer, Token, DelimToken};
     ///
-    /// let mut lexer = Lexer::new(")");
-    /// assert_eq!(lexer.next(), Some(Token::CloseDelim(DelimToken::Paren)));
-    /// ```
+    /// let mut lexer = Lexer::new(")"); assert_eq!(lexer.next(),
+    /// Some(Token::CloseDelim(DelimToken::Paren))); ```
     fn next(&mut self) -> Option<Token> {
-        // Stop tokenizing on EOF.
+        // Whitespace handling.
+        let mut contains_newline = false;
+
+        while let Some(c) = self.current_char {
+            if c == '\n' {
+                contains_newline = true;
+            }
+
+            if c.is_whitespace() {
+                self.bump();
+            } else {
+                break;
+            }
+        }
+
+        if contains_newline {
+            return Some(Token::Whitespace);
+        }
+
+        // Check for EOF after whitespace handling.
         let c = match self.current_char {
             Some(c) => c,
             None => return None,
@@ -343,20 +359,6 @@ impl<'src> Iterator for Lexer<'src> {
                     // XXX(perf): unnecessary alloc.
                     _ => Token::Ident(ident.into()),
                 }
-            }
-            c if c.is_whitespace() => {
-                println!("ws start c: {}", c);
-                // XXX: this loop pattern is not pretty.
-                while let Some(c) = self.current_char {
-                    println!("ws c: {}", c);
-                    if c.is_whitespace() {
-                        self.bump();
-                    } else {
-                        break;
-                    }
-                }
-                Token::Whitespace
-
             }
             '"' => {
                 self.bump();

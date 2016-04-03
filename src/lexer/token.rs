@@ -7,6 +7,7 @@ pub enum Token {
     CloseDelim(DelimToken),
     // XXX: not sure whether it's a good think to tokenize _all_ whitespace.
     // I'm doing it because I don't want to tie tokenization to automatic semicolon insertion.
+    /// Significant whitespace, containing one or more newlines.
     Whitespace,
     // Various operators.
     /// +

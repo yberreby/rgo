@@ -96,6 +96,20 @@ fn tokenize_star_variants() {
     tok_cmp(tokenize("*="), vec![Token::StarAssign]);
 }
 
+// From the Go spec:
+// "A general comment containing no newlines acts like a space. Any other comment acts like a
+// newline."
+#[ignore]
+#[test]
+fn tokenize_comments() {
+    tok_cmp(tokenize("// Hello, this is a comment"),
+            vec![Token::Whitespace]);
+    tok_cmp(tokenize("foo /* this is a general comment */ := 2"),
+            vec![Token::Ident("foo".into()),
+                 Token::ColonAssign,
+                 Token::Literal(Literal::Integer("2".into()))]);
+}
+
 #[test]
 fn tokenize_slash_variants() {
     tok_cmp(tokenize("/"), vec![Token::Slash]);
@@ -144,18 +158,18 @@ fn tokenize_keywords() {
     test_keyword("var", Keyword::Var);
 }
 
-#[test]
-fn tokenize_mixed_whitespace() {
-    tok_cmp(tokenize(" \t
-                        
-                        \t  "),
-            vec![Token::Whitespace]);
-}
+// #[test]
+// fn tokenize_mixed_whitespace() {
+//     tok_cmp(tokenize(" \t
+//
+//                         \t  "),
+//             vec![Token::Whitespace]);
+// }
 
 #[test]
 fn tokenize_package_declaration() {
     tok_cmp(tokenize("package main"),
-            vec![Token::Keyword(Keyword::Package), Token::Whitespace, Token::Ident("main".into())]);
+            vec![Token::Keyword(Keyword::Package), Token::Ident("main".into())]);
 }
 
 #[test]
@@ -167,9 +181,7 @@ fn tokenize_plain_interpreted_str() {
 #[test]
 fn tokenize_simple_import() {
     tok_cmp(tokenize("import \"fmt\""),
-            vec![Token::Keyword(Keyword::Import),
-                 Token::Whitespace,
-                 Token::Literal(Literal::Str("fmt".into()))]);
+            vec![Token::Keyword(Keyword::Import), Token::Literal(Literal::Str("fmt".into()))]);
 }
 
 #[test]
@@ -184,19 +196,15 @@ func main() {
 "#;
 
     let expected = [Token::Keyword(Keyword::Package),
-                    Token::Whitespace,
                     Token::Ident("main".into()),
                     Token::Whitespace,
                     Token::Keyword(Keyword::Import),
-                    Token::Whitespace,
                     Token::Literal(Literal::Str("fmt".into())),
                     Token::Whitespace,
                     Token::Keyword(Keyword::Func),
-                    Token::Whitespace,
                     Token::Ident("main".into()),
                     Token::OpenDelim(DelimToken::Paren),
                     Token::CloseDelim(DelimToken::Paren),
-                    Token::Whitespace,
                     Token::OpenDelim(DelimToken::Brace),
                     Token::Whitespace,
                     Token::Ident("fmt".into()),
@@ -218,13 +226,9 @@ fn tokenize_simple_assignment() {
     tok_cmp(tokenize("someVar := 23 + 45"),
             vec![
                Token::Ident("someVar".into()),
-               Token::Whitespace,
                Token::ColonAssign,
-               Token::Whitespace,
                Token::Literal(Literal::Integer("23".into())),
-               Token::Whitespace,
                Token::Plus,
-               Token::Whitespace,
                Token::Literal(Literal::Integer("45".into())),
     ]);
 }
