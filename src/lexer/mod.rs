@@ -463,13 +463,18 @@ impl<'src> Iterator for Lexer<'src> {
                     _ => Token::Ident(ident.into()),
                 }
             }
+            // Start of string literal.
             '"' => {
                 self.bump();
                 let start = self.pos;
 
                 while let Some(c) = self.current_char {
-                    // FIXME: backslash
-                    if c != '"' {
+                    // Handle \" escape.
+                    // XXX/FIXME: \\"
+                    if c == '\\' {
+                        self.bump();
+                        self.bump();
+                    } else if c != '"' {
                         self.bump();
                     } else {
                         break;
