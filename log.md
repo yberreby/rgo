@@ -80,3 +80,14 @@ I've just changed that: insignificant whitespace is now ignored, and contiguous
 blocks of significant whitespace are tokenized as a single `WHITESPACE` token.
 We'll see how well this works out in practice, but I feel good about this
 change.
+
+## Sun Apr 3 15:23 - Done & Next steps
+
+`test-data/viper.go` can now be tokenized without panicking!
+
+Next steps: 
+
+In lexer: float, complex/imaginary, raw string and rune literals.
+Then, the parser. First goal: parsing a "Hello, rgo" program.
+Then write unit tests for various constructs.
+Then integration tests using complex source files from big Go projects.
