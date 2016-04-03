@@ -129,10 +129,6 @@ fn tokenize_equal_variants() {
     tok_cmp(tokenize("=="), vec![Token::Equals]);
 }
 
-// From the Go spec:
-// "A general comment containing no newlines acts like a space. Any other comment acts like a
-// newline."
-#[ignore]
 #[test]
 fn tokenize_comments() {
     tok_cmp(tokenize("// Hello, this is a comment"),
