@@ -158,13 +158,13 @@ fn tokenize_keywords() {
     test_keyword("var", Keyword::Var);
 }
 
-// #[test]
-// fn tokenize_mixed_whitespace() {
-//     tok_cmp(tokenize(" \t
-//
-//                         \t  "),
-//             vec![Token::Whitespace]);
-// }
+#[test]
+fn tokenize_mixed_whitespace() {
+    tok_cmp(tokenize(" \t
+
+                        \t  "),
+            vec![Token::Whitespace]);
+}
 
 #[test]
 fn tokenize_package_declaration() {
