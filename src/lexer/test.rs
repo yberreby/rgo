@@ -275,3 +275,47 @@ fn tokenize_simple_assignment_with_inline_comment() {
                Token::Literal(Literal::Integer("45".into())),
     ]);
 }
+
+#[test]
+fn tokenize_hello_with_comments() {
+    let src = r#"// This is a line comment.
+// And another!
+// All of these should be treated as a single contiguous whitespace block.
+
+// Even this one!
+
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, rgo")
+}
+"#;
+
+    let expected = [Token::Whitespace,
+                    Token::Keyword(Keyword::Package),
+                    Token::Ident("main".into()),
+                    Token::Whitespace,
+                    Token::Keyword(Keyword::Import),
+                    Token::Literal(Literal::Str("fmt".into())),
+                    Token::Whitespace,
+                    Token::Keyword(Keyword::Func),
+                    Token::Ident("main".into()),
+                    Token::OpenDelim(DelimToken::Paren),
+                    Token::CloseDelim(DelimToken::Paren),
+                    Token::OpenDelim(DelimToken::Brace),
+                    Token::Whitespace,
+                    Token::Ident("fmt".into()),
+                    Token::Dot,
+                    Token::Ident("Println".into()),
+                    Token::OpenDelim(DelimToken::Paren),
+                    Token::Literal(Literal::Str("Hello, rgo".into())),
+                    Token::CloseDelim(DelimToken::Paren),
+                    Token::Whitespace,
+                    Token::CloseDelim(DelimToken::Brace),
+                    // There's a newline after the closing curly bracket.
+                    Token::Whitespace];
+
+    tok_cmp(tokenize(src), expected);
+}
