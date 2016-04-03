@@ -83,8 +83,8 @@ pub enum Expression {
 }
 
 pub enum UnaryExpr {
-    PrimaryExpr(PrimaryExpr),
-    UnaryOperation(UnaryOperator, UnaryExpr),
+    PrimaryExpr(Box<PrimaryExpr>),
+    UnaryOperation(UnaryOperator, Box<UnaryExpr>),
 }
 
 // pub enum
@@ -113,11 +113,11 @@ pub enum UnaryExpr {
 pub enum PrimaryExpr {
     Operand(Operand),
     Conversion(Conversion),
-    Selection(PrimaryExpr, String),
-    Indexing(PrimaryExpr, Expression),
-    Slicing(PrimaryExpr, Slice),
-    TypeAssertion(PrimaryExpr, String),
-    FunctionCall(PrimaryExpr, Arguments),
+    Selection(Box<PrimaryExpr>, String),
+    Indexing(Box<PrimaryExpr>, Expression),
+    Slicing(Box<PrimaryExpr>, Slice),
+    TypeAssertion(Box<PrimaryExpr>, String),
+    FunctionCall(Box<PrimaryExpr>, Vec<Argument>),
 }
 
 pub fn parse_primary_expr(s: &str) -> PrimaryExpr {
@@ -136,5 +136,13 @@ pub enum Slice {
 ///
 /// Example: `const Pi float64 = 3.14159265358979323846`
 pub struct ConstDecl;
+pub struct FunctionDecl;
+pub struct MethodDecl;
+pub struct Identifier;
+pub struct Typ;
 pub struct TypeDecl;
 pub struct VarDecl;
+pub struct Operand;
+pub struct Conversion;
+pub struct Argument;
+pub enum UnaryOperator {}
