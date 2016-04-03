@@ -3,6 +3,7 @@
 // SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
 
 /// A complete source file.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
     package: String,
     import_decls: Vec<ImportDecl>,
@@ -24,6 +25,7 @@ pub struct SourceFile {
 ///     "io/ioutil"
 /// )
 /// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
     specs: Vec<ImportSpec>,
 }
@@ -33,6 +35,7 @@ pub struct ImportDecl {
 ///
 /// Example: `m "lib/math"`
 /// This imports lib/math as m.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSpec {
     alias: Option<String>,
     path: String,
@@ -40,6 +43,7 @@ pub struct ImportSpec {
 
 // Declaration   = ConstDecl | TypeDecl | VarDecl .
 /// A regular (i.e. not top-level) declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Declaration {
     Const(ConstDecl),
     TypeDecl,
@@ -49,6 +53,7 @@ pub enum Declaration {
 
 
 // TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TopLevelDecl {
     Declaration(Declaration),
     FunctionDecl(FunctionDecl),
@@ -61,6 +66,7 @@ pub enum TopLevelDecl {
 // IdentifierList = identifier { "," identifier } .
 // ExpressionList = Expression { "," Expression } .
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstSpec {
     identifiers: Vec<Identifier>,
     typ: Option<Typ>,
@@ -78,10 +84,12 @@ pub struct ConstSpec {
 //
 // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     UnaryExpr(UnaryExpr),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryExpr {
     PrimaryExpr(Box<PrimaryExpr>),
     UnaryOperation(UnaryOperator, Box<UnaryExpr>),
@@ -107,9 +115,10 @@ pub enum UnaryExpr {
 //                      ( [ Expression ] ":" Expression ":" Expression )
 //                  "]" .
 // TypeAssertion  = "." "(" Type ")" .
-// Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
+// Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")".
 
 /// Primary expressions are the operands for unary and binary expressions. 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrimaryExpr {
     Operand(Operand),
     Conversion(Conversion),
@@ -125,6 +134,7 @@ pub fn parse_primary_expr(s: &str) -> PrimaryExpr {
 }
 
 // Represents a slicing operating... [1:54] for ex
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Slice {
 
 }
@@ -135,14 +145,25 @@ pub enum Slice {
 /// A constant declaration.
 ///
 /// Example: `const Pi float64 = 3.14159265358979323846`
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstDecl;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MethodDecl;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Typ;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDecl;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarDecl;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operand;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Conversion;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Argument;
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryOperator {}

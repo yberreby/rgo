@@ -1,7 +1,7 @@
 use lexer::Token;
 use ast::*;
 
-pub fn parse_tokens(tokens: Vec<Token>) -> SourceFile {
+pub fn parse(tokens: Vec<Token>) -> SourceFile {
     unimplemented!()
 }
 

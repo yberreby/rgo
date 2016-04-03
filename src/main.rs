@@ -11,4 +11,7 @@ fn main() {
     let s = read_file(&src_file).expect("failed to read file");
     let tokens = rgo::lexer::tokenize(&s);
     println!("Token stream:\n{:?}", tokens);
+
+    let ast: rgo::ast::SourceFile = rgo::parser::parse(tokens);
+    println!("Abstract Syntax Tree:\n{:?}", ast);
 }
