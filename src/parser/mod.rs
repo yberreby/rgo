@@ -39,43 +39,44 @@ impl Parser {
         }
     }
 
-    /// Peek at the next token.
-    fn current(&self) -> Option<&Token> {
-        self.tokens.get(self.pos)
-    }
+    // /// Peek at the next token.
+    // fn current(&self) -> Option<&Token> {
+    //     self.tokens.get(self.pos)
+    // }
 
-    /// Peek at the next token.
-    fn next_token(&self) -> Option<&Token> {
-        self.tokens.get(self.pos + 1)
-    }
+    // /// Peek at the next token.
+    // fn next_token(&self) -> Option<&Token> {
+    //     self.tokens.get(self.pos + 1)
+    // }
 
-    /// Move the parser one token forward, returning the token that was consumed.
-    fn bump(&mut self) -> Option<Token> {
-        self.pos += 1;
-        self.tokens.pop()
-    }
+    // /// Move the parser one token forward, returning the token that was consumed.
+    // fn bump(&mut self) -> Option<Token> {
+    //     self.pos += 1;
+    //     self.tokens.pop()
+    // }
 
-    fn skip_ws(&mut self) {
-        while let Some(&Token::Whitespace) = self.current() {
-            self.bump();
-        }
-    }
+    // fn skip_ws(&mut self) {
+    //     while let Some(&Token::Whitespace) = self.current() {
+    //         self.bump();
+    //     }
+    // }
 
-    /// Consume the next token, asserting it is equal to `expected`.
-    fn expect(&mut self, expected: &Token) {
-        assert_eq!(self.current(), Some(expected));
-        self.bump();
-    }
+    // /// Consume the next token, asserting it is equal to `expected`.
+    // fn expect(&mut self, expected: &Token) {
+    //     assert_eq!(self.current(), Some(expected));
+    //     self.bump();
+    // }
 
     /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> String {
         // Whitespace at the top of the file is irrelevant.
-        self.skip_ws();
-        self.expect(&Token::Keyword(Keyword::Package));
+        while let Some(&Token::Whitespace) = self.tokens.last() {
+            self.tokens.pop();
+        }
+        assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Package)));
 
-        let t = self.current().unwrap();
-        match t {
-            &Token::Ident(ref s) => s.clone(),
+        match self.tokens.pop() {
+            Some(Token::Ident(s)) => s,
             _ => panic!("expected identifier"),
         }
     }
