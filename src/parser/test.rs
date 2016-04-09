@@ -33,6 +33,7 @@ fn parse_simplest() {
     assert_eq!(parse(tokens), expected);
 }
 
+#[ignore]
 #[test]
 fn parse_hello() {
     let tokens = vec![Token::Keyword(Keyword::Package),
