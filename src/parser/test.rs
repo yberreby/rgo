@@ -9,8 +9,22 @@ fn parse_package_clause() {
     assert_eq!(parser.parse_package_clause(), "main".to_owned());
 }
 
+#[test]
+fn parse_package_clause_whitespace() {
+    let tokens = vec![Token::Whitespace,
+                      Token::Whitespace,
+                      Token::Whitespace,
+                      Token::Whitespace,
+                      Token::Whitespace,
+                      Token::Keyword(Keyword::Package),
+                      Token::Ident("main".into())];
+    let mut parser = Parser::new(tokens);
+    assert_eq!(parser.parse_package_clause(), "main".to_owned());
+}
+
 // Simplest possible Go program (AFAIK).
 #[test]
+#[ignore]
 fn parse_simplest() {
     let tokens = vec![Token::Keyword(Keyword::Package),
                       Token::Ident("main".into()),
