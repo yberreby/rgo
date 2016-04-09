@@ -25,8 +25,8 @@ fn parse_simplest() {
                                       return_types: vec![],
                                       argument_types: vec![],
                                   },
-                                  // FIXME: unit struct.
-                                  body: Block,
+                                  // empty body: no statements.
+                                  body: vec![],
                               })],
     };
 

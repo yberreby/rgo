@@ -152,7 +152,7 @@ pub struct FuncDecl {
     // XXX: functions with same name but different origins, how do we handle them?
     pub name: String,
     pub signature: FuncSignature,
-    pub body: Block,
+    pub body: Vec<Stmt>,
 }
 
 
@@ -191,5 +191,6 @@ pub struct FuncSignature {
     /// Argument types.
     pub argument_types: Vec<Type>,
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block;
+pub struct Stmt;
