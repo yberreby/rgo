@@ -5,9 +5,9 @@
 /// A complete source file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
-    package: String,
-    import_decls: Vec<ImportDecl>,
-    top_level_decls: Vec<TopLevelDecl>,
+    pub package: String,
+    pub import_decls: Vec<ImportDecl>,
+    pub top_level_decls: Vec<TopLevelDecl>,
 }
 
 // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
@@ -27,7 +27,7 @@ pub struct SourceFile {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
-    specs: Vec<ImportSpec>,
+    pub specs: Vec<ImportSpec>,
 }
 
 /// An import spec.
@@ -37,8 +37,8 @@ pub struct ImportDecl {
 /// This imports lib/math as m.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSpec {
-    alias: Option<String>,
-    path: String,
+    pub alias: Option<String>,
+    pub path: String,
 }
 
 // Declaration   = ConstDecl | TypeDecl | VarDecl .
@@ -68,9 +68,9 @@ pub enum TopLevelDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstSpec {
-    identifiers: Vec<Identifier>,
-    typ: Option<Typ>,
-    expressions: Vec<Expression>,
+    pub identifiers: Vec<Identifier>,
+    pub typ: Option<Typ>,
+    pub expressions: Vec<Expression>,
 }
 
 
@@ -150,9 +150,9 @@ pub enum Slice {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDecl {
     // XXX: functions with same name but different origins, how do we handle them?
-    name: String,
-    signature: Signature,
-    body: Block,
+    pub name: String,
+    pub signature: Signature,
+    pub body: Block,
 }
 
 
