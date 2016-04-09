@@ -56,7 +56,7 @@ pub enum Declaration {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TopLevelDecl {
     Declaration(Declaration),
-    FunctionDecl(FunctionDecl),
+    FuncDecl(FuncDecl),
     MethodDecl(MethodDecl),
 }
 
@@ -69,7 +69,7 @@ pub enum TopLevelDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstSpec {
     pub identifiers: Vec<Identifier>,
-    pub typ: Option<Typ>,
+    pub typ: Option<Type>,
     pub expressions: Vec<Expression>,
 }
 
@@ -148,10 +148,10 @@ pub enum Slice {
 // Function     = Signature FunctionBody .
 // FunctionBody = Block .
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FunctionDecl {
+pub struct FuncDecl {
     // XXX: functions with same name but different origins, how do we handle them?
     pub name: String,
-    pub signature: Signature,
+    pub signature: FuncSignature,
     pub body: Block,
 }
 
@@ -169,7 +169,7 @@ pub struct MethodDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier;
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Typ;
+pub struct Type;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -182,7 +182,14 @@ pub struct Conversion;
 pub struct Argument;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryOperator {}
+
+/// A function signature: return type(s) and argument types.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Signature;
+pub struct FuncSignature {
+    /// Return types (a `Vec` because a function may return multiple values).
+    pub return_types: Vec<Type>,
+    /// Argument types.
+    pub argument_types: Vec<Type>,
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Block;
