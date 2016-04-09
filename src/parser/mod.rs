@@ -6,15 +6,24 @@ use std::iter::Iterator;
 mod test;
 
 pub struct Parser {
+    /// A list of tokens, **in reverse order**.
+    /// This allows efficient push and pop operations (appending or popping from the beginning of a
+    /// vector is horribly inefficient, AFAIK).
     tokens: Vec<Token>,
+    pos: usize,
 }
 
 // unresolved question: whitespace and semicolon insertion.
 
 impl Parser {
     /// Create a new `Parser` from a list of tokens.
-    pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser { tokens: tokens }
+    pub fn new(mut tokens: Vec<Token>) -> Parser {
+        // See doc comment on `tokens` field.
+        tokens.reverse();
+        Parser {
+            tokens: tokens,
+            pos: 0,
+        }
     }
 
     /// Parse the tokens into a SourceFile (AST).
@@ -30,8 +39,9 @@ impl Parser {
         }
     }
 
-    fn bump(&mut self) -> Token {
-        unimplemented!()
+    /// Move the parser one token forward, returning the token that was consumed.
+    fn bump(&mut self) -> Option<Token> {
+        self.tokens.pop()
     }
 
     fn skip_ws(&mut self) {
@@ -40,15 +50,17 @@ impl Parser {
 
     /// Consume the next token, asserting it is equal to `expected`.
     fn expect(&mut self, expected: Token) {
-        unimplemented!()
+        let t = self.bump();
+        assert_eq!(t, Some(expected));
     }
 
+    /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> String {
         // Whitespace at the top of the file is irrelevant.
-        self.skip_ws();
+        // self.skip_ws();
         self.expect(Token::Keyword(Keyword::Package));
 
-        let t = self.bump();
+        let t = self.bump().unwrap();
         match t {
             Token::Ident(s) => s,
             _ => panic!("expected identifier"),
