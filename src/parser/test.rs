@@ -1,3 +1,4 @@
+use ast;
 use lexer::{Token, Keyword, DelimToken, Literal};
 use ast::*;
 use super::{Parser, parse};
@@ -12,14 +13,27 @@ fn parse_package_clause() {
 #[test]
 fn parse_package_clause_whitespace() {
     let tokens = vec![Token::Whitespace,
-                      Token::Whitespace,
-                      Token::Whitespace,
-                      Token::Whitespace,
-                      Token::Whitespace,
                       Token::Keyword(Keyword::Package),
                       Token::Ident("main".into())];
     let mut parser = Parser::new(tokens);
     assert_eq!(parser.parse_package_clause(), "main".to_owned());
+}
+
+#[test]
+fn parse_single_import() {
+    let tokens = vec![Token::Whitespace,
+                      Token::Keyword(Keyword::Import),
+                      Token::Literal(Literal::Str("fmt".into()))];
+
+    let expected = vec![ast::ImportDecl {
+                            specs: vec![ast::ImportSpec {
+                                            alias: None,
+                                            path: "fmt".into(),
+                                        }],
+                        }];
+
+    let mut parser = Parser::new(tokens);
+    assert_eq!(parser.parse_import_decls(), expected);
 }
 
 // Simplest possible Go program (AFAIK).
