@@ -37,8 +37,19 @@ pub struct ImportDecl {
 /// This imports lib/math as m.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSpec {
-    pub alias: Option<String>,
+    pub kind: ImportKind,
     pub path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportKind {
+    /// Regular import: the kind you encounter most often.
+    Normal,
+    /// Aliased import: defines an alias for the imported package.
+    Alias(String),
+    /// Glob import: all the package's exported identifiers will be declared in the importing
+    /// source file.
+    Glob,
 }
 
 // Declaration   = ConstDecl | TypeDecl | VarDecl .

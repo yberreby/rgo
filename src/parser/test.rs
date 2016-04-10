@@ -27,7 +27,7 @@ fn parse_short_import() {
 
     let expected = vec![ast::ImportDecl {
                             specs: vec![ast::ImportSpec {
-                                            alias: None,
+                                            kind: ast::ImportKind::Normal,
                                             path: "fmt".into(),
                                         }],
                         }];
@@ -46,7 +46,7 @@ fn parse_long_import() {
 
     let expected = vec![ast::ImportDecl {
                             specs: vec![ast::ImportSpec {
-                                            alias: None,
+                                            kind: ast::ImportKind::Normal,
                                             path: "github.com/user/stringutil".into(),
                                         }],
                         }];
@@ -115,7 +115,7 @@ fn parse_hello() {
         package: "main".into(),
         import_decls: vec![ImportDecl {
                                specs: vec![ImportSpec {
-                                               alias: None,
+                                               kind: ast::ImportKind::Normal,
                                                path: "fmt".into(),
                                            }],
                            }],

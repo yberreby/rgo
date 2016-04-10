@@ -1,4 +1,5 @@
 use lexer::{Token, Keyword, DelimToken, Literal};
+use ast;
 use ast::*;
 use std::iter::Iterator;
 
@@ -88,6 +89,16 @@ impl Parser {
         }
     }
 
+    // === Import parsing ===
+    //
+    // Syntax:
+    //
+    // ```
+    // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
+    // ImportSpec       = [ "." | PackageName ] ImportPath .
+    // ImportPath       = string_lit .
+    // ```
+
     fn parse_import_decls(&mut self) -> Vec<ImportDecl> {
         let mut decls = Vec::new();
 
@@ -102,17 +113,16 @@ impl Parser {
         }
     }
 
-    /// Parse an import declaration (simple example: `import "fmt"`).
-    /// 
+    /// Parse an import declaration made up of one or more import specs.
+    /// Simple example with a single spec: `import "fmt"`.
+    ///
     /// # Syntax
     ///
     /// ```
     /// ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
-    /// ImportSpec       = [ "." | PackageName ] ImportPath .
-    /// ImportPath       = string_lit .
     /// ```
     fn parse_import_decl(&mut self) -> ImportDecl {
-        assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Package)));
+        assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Import)));
         let mut specs = Vec::new();
 
         match self.tokens.pop() {
@@ -121,19 +131,21 @@ impl Parser {
                 // There may be multiple `ImportSpec`s in a single "long" import declaration.
                 loop {
                     match self.tokens.last() {
-                        Some(&Token::Ident(_)) => {
-                            specs.push(self.parse_import_spec());
-                        }
+                        // XXX: Should we _know_ that import specs always start with a string
+                        // literal? I'm not sure.
                         Some(&Token::CloseDelim(DelimToken::Paren)) => {
                             break;
                         }
-                        _ => panic!("unexpected token"),
+                        Some(_) => {
+                            specs.push(self.parse_import_spec());
+                        }
+                        _ => panic!("unexpected end of input"),
                     }
                 }
             }
             // Short import (single ImportSpec).
-            Some(Token::Ident(id)) => specs.push(self.parse_import_spec()),
-            _ => panic!(),
+            Some(_) => specs.push(self.parse_import_spec()),
+            _ => panic!("unexpected end of input"),
         }
 
         ImportDecl { specs: specs }
@@ -143,16 +155,50 @@ impl Parser {
     ///
     /// # Syntax
     ///
-    /// ```
+    /// ````
     /// ImportSpec       = [ "." | PackageName ] ImportPath .
-    /// ImportPath       = string_lit .
     /// ```
     fn parse_import_spec(&mut self) -> ImportSpec {
-        unimplemented!()
+        let path: String;
+
+        // Does this package spec define an alias?
+        let kind = match self.tokens.pop().expect("unexpected end of input") {
+            // Glob import.
+            Token::Dot => ImportKind::Glob,
+            Token::Ident(alias) => ImportKind::Alias(alias),
+            t => {
+                // Let's put this token back.
+                self.tokens.push(t);
+                ImportKind::Normal
+            }
+        };
+
+        // The next token MUST be a string literal (interpreted or raw).
+        let path = self.parse_string();
+
+        ImportSpec {
+            path: path,
+            kind: kind,
+        }
     }
 
 
     fn parse_top_level_decls(&mut self) -> Vec<TopLevelDecl> {
+        unimplemented!()
+    }
+
+    /// Parse a string literal, whether interpreted or raw.
+    /// This is useful because one will often expect a string literal without caring about its
+    /// kind.
+    ///
+    /// # Syntax
+    ///
+    /// ```
+    /// string_lit             = raw_string_lit | interpreted_string_lit .
+    /// raw_string_lit         = "`" { unicode_char | newline } "`" .
+    /// interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
+    /// ```
+    fn parse_string(&mut self) -> String {
         unimplemented!()
     }
 }
