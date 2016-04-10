@@ -20,7 +20,7 @@ fn parse_package_clause_whitespace() {
 }
 
 #[test]
-fn parse_single_import() {
+fn parse_short_import() {
     let tokens = vec![Token::Whitespace,
                       Token::Keyword(Keyword::Import),
                       Token::Literal(Literal::Str("fmt".into()))];
@@ -29,6 +29,25 @@ fn parse_single_import() {
                             specs: vec![ast::ImportSpec {
                                             alias: None,
                                             path: "fmt".into(),
+                                        }],
+                        }];
+
+    let mut parser = Parser::new(tokens);
+    assert_eq!(parser.parse_import_decls(), expected);
+}
+
+#[test]
+fn parse_long_import() {
+    let tokens = vec![Token::Whitespace,
+                      Token::Keyword(Keyword::Import),
+                      Token::OpenDelim(DelimToken::Paren),
+                      Token::Literal(Literal::Str("github.com/user/stringutil".into())),
+                      Token::CloseDelim(DelimToken::Paren)];
+
+    let expected = vec![ast::ImportDecl {
+                            specs: vec![ast::ImportSpec {
+                                            alias: None,
+                                            path: "github.com/user/stringutil".into(),
                                         }],
                         }];
 

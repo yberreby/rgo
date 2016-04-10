@@ -89,12 +89,65 @@ impl Parser {
     }
 
     fn parse_import_decls(&mut self) -> Vec<ImportDecl> {
-        // self.skip_whitespace();
+        let mut decls = Vec::new();
 
-        // match self.tokens.last() {
-        //
-        // }
+        loop {
+            self.skip_whitespace();
+            match self.tokens.last() {
+                Some(&Token::Keyword(Keyword::Import)) => {
+                    decls.push(self.parse_import_decl());
+                }
+                _ => return decls,
+            }
+        }
+    }
 
+    /// Parse an import declaration (simple example: `import "fmt"`).
+    /// 
+    /// # Syntax
+    ///
+    /// ```
+    /// ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
+    /// ImportSpec       = [ "." | PackageName ] ImportPath .
+    /// ImportPath       = string_lit .
+    /// ```
+    fn parse_import_decl(&mut self) -> ImportDecl {
+        assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Package)));
+        let mut specs = Vec::new();
+
+        match self.tokens.pop() {
+            // Long import declaration.
+            Some(Token::OpenDelim(DelimToken::Paren)) => {
+                // There may be multiple `ImportSpec`s in a single "long" import declaration.
+                loop {
+                    match self.tokens.last() {
+                        Some(&Token::Ident(_)) => {
+                            specs.push(self.parse_import_spec());
+                        }
+                        Some(&Token::CloseDelim(DelimToken::Paren)) => {
+                            break;
+                        }
+                        _ => panic!("unexpected token"),
+                    }
+                }
+            }
+            // Short import (single ImportSpec).
+            Some(Token::Ident(id)) => specs.push(self.parse_import_spec()),
+            _ => panic!(),
+        }
+
+        ImportDecl { specs: specs }
+    }
+
+    /// Parse an "import spec".
+    ///
+    /// # Syntax
+    ///
+    /// ```
+    /// ImportSpec       = [ "." | PackageName ] ImportPath .
+    /// ImportPath       = string_lit .
+    /// ```
+    fn parse_import_spec(&mut self) -> ImportSpec {
         unimplemented!()
     }
 
