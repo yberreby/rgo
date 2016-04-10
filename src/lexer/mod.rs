@@ -422,10 +422,8 @@ impl<'src> Lexer<'src> {
             c if c.is_digit(10) => Token::Literal(self.scan_number()),
             c if can_start_identifier(c) => {
                 let start = self.pos;
-                println!("c: {}", c);
 
                 while let Some(c) = self.current_char {
-                    println!("ident c: {}", c);
                     if can_continue_identifier(c) {
                         self.bump();
                     } else {

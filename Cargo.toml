@@ -5,4 +5,6 @@ version = "0.1.0"
 
 [dependencies]
 convenience = "0.1.0"
+env_logger = "0.3.3"
 log = "0.3.6"
+time = "0.1.35"
