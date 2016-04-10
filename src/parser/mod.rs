@@ -115,13 +115,13 @@ impl Parser {
 
     /// Parse an import declaration made up of one or more import specs.
     /// Simple example with a single spec: `import "fmt"`.
-    ///
-    /// # Syntax
-    ///
-    /// ```
-    /// ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
-    /// ```
     fn parse_import_decl(&mut self) -> ImportDecl {
+        // Syntax:
+        //
+        // ```
+        // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
+        // ```
+
         assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Import)));
         let mut specs = Vec::new();
 
@@ -144,7 +144,11 @@ impl Parser {
                 }
             }
             // Short import (single ImportSpec).
-            Some(_) => specs.push(self.parse_import_spec()),
+            Some(t) => {
+                // XXX: Put it back...
+                self.tokens.push(t);
+                specs.push(self.parse_import_spec());
+            }
             _ => panic!("unexpected end of input"),
         }
 
@@ -152,13 +156,13 @@ impl Parser {
     }
 
     /// Parse an "import spec".
-    ///
-    /// # Syntax
-    ///
-    /// ````
-    /// ImportSpec       = [ "." | PackageName ] ImportPath .
-    /// ```
     fn parse_import_spec(&mut self) -> ImportSpec {
+        // Syntax:
+        //
+        // ```
+        // ImportSpec       = [ "." | PackageName ] ImportPath .
+        // ```
+
         let path: String;
 
         // Does this package spec define an alias?
@@ -190,16 +194,30 @@ impl Parser {
     /// Parse a string literal, whether interpreted or raw.
     /// This is useful because one will often expect a string literal without caring about its
     /// kind.
-    ///
-    /// # Syntax
-    ///
-    /// ```
-    /// string_lit             = raw_string_lit | interpreted_string_lit .
-    /// raw_string_lit         = "`" { unicode_char | newline } "`" .
-    /// interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
-    /// ```
     fn parse_string(&mut self) -> String {
-        unimplemented!()
+        // Syntax:
+        //
+        // ```
+        // string_lit             = raw_string_lit | interpreted_string_lit .
+        // raw_string_lit         = "`" { unicode_char | newline } "`" .
+        // interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
+        // ```
+
+        match self.tokens.pop().expect("unexpected end of input") {
+            Token::Literal(lit) => {
+                match lit {
+                    // Nothing to interpret, move along.
+                    Literal::StrRaw(s) => s,
+                    Literal::Str(s) => {
+                        // XXX TODO FIXME: we HAVE to interpret escape sequences!
+                        // For now, do nothing.
+                        s
+                    }
+                    _ => panic!("unexpected literal token"),
+                }
+            }
+            _ => panic!("unexpected token"),
+        }
     }
 }
 
