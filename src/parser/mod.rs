@@ -14,8 +14,6 @@ pub struct Parser {
     pos: usize,
 }
 
-// unresolved question: whitespace and semicolon insertion.
-
 impl Parser {
     /// Create a new `Parser` from a list of tokens.
     pub fn new(mut tokens: Vec<Token>) -> Parser {
@@ -39,19 +37,9 @@ impl Parser {
             top_level_decls: top_level_decls,
         }
     }
-    /// For when whitespace is unimportant.
-    fn skip_whitespace(&mut self) {
-        // XXX: we may not need a while loop, since blocks of contiguous whitespace
-        // are treated as a single token.
-        while let Some(&Token::Whitespace) = self.tokens.last() {
-            self.tokens.pop();
-        }
-    }
 
     /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> String {
-        // Whitespace at the top of the file is irrelevant.
-        self.skip_whitespace();
         assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Package)));
 
         match self.tokens.pop() {
@@ -64,7 +52,6 @@ impl Parser {
         let mut decls = Vec::new();
 
         loop {
-            self.skip_whitespace();
             match self.tokens.last() {
                 Some(&Token::Keyword(Keyword::Import)) => {
                     decls.push(self.parse_import_decl());

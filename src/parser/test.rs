@@ -12,18 +12,14 @@ fn parse_package_clause() {
 
 #[test]
 fn parse_package_clause_whitespace() {
-    let tokens = vec![Token::Whitespace,
-                      Token::Keyword(Keyword::Package),
-                      Token::Ident("main".into())];
+    let tokens = vec![Token::Keyword(Keyword::Package), Token::Ident("main".into())];
     let mut parser = Parser::new(tokens);
     assert_eq!(parser.parse_package_clause(), "main".to_owned());
 }
 
 #[test]
 fn parse_short_import() {
-    let tokens = vec![Token::Whitespace,
-                      Token::Keyword(Keyword::Import),
-                      Token::Literal(Literal::Str("fmt".into()))];
+    let tokens = vec![Token::Keyword(Keyword::Import), Token::Literal(Literal::Str("fmt".into()))];
 
     let expected = vec![ast::ImportDecl {
                             specs: vec![ast::ImportSpec {
@@ -38,8 +34,7 @@ fn parse_short_import() {
 
 #[test]
 fn parse_long_import() {
-    let tokens = vec![Token::Whitespace,
-                      Token::Keyword(Keyword::Import),
+    let tokens = vec![Token::Keyword(Keyword::Import),
                       Token::OpenDelim(DelimToken::Paren),
                       Token::Literal(Literal::Str("github.com/user/stringutil".into())),
                       Token::CloseDelim(DelimToken::Paren)];
@@ -60,14 +55,12 @@ fn parse_long_import() {
 fn parse_simplest() {
     let tokens = vec![Token::Keyword(Keyword::Package),
                       Token::Ident("main".into()),
-                      Token::Whitespace,
                       Token::Keyword(Keyword::Func),
                       Token::Ident("main".into()),
                       Token::OpenDelim(DelimToken::Bracket),
                       Token::CloseDelim(DelimToken::Bracket),
                       Token::OpenDelim(DelimToken::Brace),
-                      Token::CloseDelim(DelimToken::Brace),
-                      Token::Whitespace];
+                      Token::CloseDelim(DelimToken::Brace)];
     let expected = SourceFile {
         package: "main".into(),
         import_decls: vec![],
@@ -91,23 +84,20 @@ fn parse_simplest() {
 fn parse_hello() {
     let tokens = vec![Token::Keyword(Keyword::Package),
                       Token::Ident("main".into()),
-                      Token::Whitespace,
                       Token::Keyword(Keyword::Import),
                       Token::Literal(Literal::Str("fmt".into())),
-                      Token::Whitespace,
                       Token::Keyword(Keyword::Func),
                       Token::Ident("main".into()),
                       Token::OpenDelim(DelimToken::Bracket),
                       Token::CloseDelim(DelimToken::Bracket),
                       Token::OpenDelim(DelimToken::Brace),
-                      Token::Whitespace,
                       Token::Ident("fmt".into()),
                       Token::Dot,
                       Token::Ident("Println".into()),
                       Token::OpenDelim(DelimToken::Paren),
                       Token::Literal(Literal::Str("Hello, rgo".into())),
                       Token::CloseDelim(DelimToken::Paren),
-                      Token::Whitespace,
+
                       Token::CloseDelim(DelimToken::Brace)];
 
     let expected = SourceFile {

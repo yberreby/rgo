@@ -5,8 +5,6 @@ pub enum Token {
     Keyword(Keyword),
     OpenDelim(DelimToken),
     CloseDelim(DelimToken),
-    /// Significant whitespace, containing one or more newlines.
-    Whitespace,
     // Binary operators.
     /// +
     Plus,

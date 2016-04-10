@@ -27,6 +27,8 @@ pub struct Lexer<'src> {
     src: &'src str,
     /// The last character to be read.
     current_char: Option<char>,
+    /// The last token to be read. Used for automatic semicolon insertion.
+    last_token: Option<Token>,
 }
 
 impl<'src> Lexer<'src> {
@@ -39,6 +41,7 @@ impl<'src> Lexer<'src> {
             src: s,
             pos: 0,
             current_char: first_char,
+            last_token: None,
         }
     }
 
@@ -91,10 +94,6 @@ impl<'src> Lexer<'src> {
 
         Literal::Integer(s.into())
     }
-}
-
-impl<'src> Iterator for Lexer<'src> {
-    type Item = Token;
 
     /// Return the next token, if any.
     ///
@@ -110,7 +109,7 @@ impl<'src> Iterator for Lexer<'src> {
     ///
     /// let mut lexer = Lexer::new(")"); assert_eq!(lexer.next(),
     /// Some(Token::CloseDelim(DelimToken::Paren))); ```
-    fn next(&mut self) -> Option<Token> {
+    fn next_token_inner(&mut self) -> Option<Token> {
         // Whitespace and comment handling.
         let mut contains_newline = false;
 
@@ -165,10 +164,14 @@ impl<'src> Iterator for Lexer<'src> {
             }
         }
 
-        // If a body of whitespace contains one or more newlines, it is considered significant
-        // and must therefore be tokenized.
-        if contains_newline {
-            return Some(Token::Whitespace);
+        // Automatic semicolon insertion in the simplest case (newline + token that may terminate a
+        // statement).
+        //
+        // The Go Spec also says that a semicolon may be omitted before a closing ")" or "}".
+        // This case is _not_ handled by the lexer, but by the parser, as it requires too much
+        // context.
+        if contains_newline && may_terminate_statement(self.last_token.as_ref()) {
+            return Some(Token::Semicolon);
         }
 
         // Check for EOF after whitespace handling.
@@ -495,6 +498,18 @@ impl<'src> Iterator for Lexer<'src> {
     }
 }
 
+impl<'src> Iterator for Lexer<'src> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Token> {
+        let t = self.next_token_inner();
+        // XXX(perf): do we need to clone?
+        // If we do - can we make cloning tokens cheap?
+        self.last_token = t.clone();
+        t
+    }
+}
+
 /// Convenience function to collect all the tokens from a string.
 ///
 /// # Example
@@ -531,4 +546,36 @@ fn can_continue_identifier(c: char) -> bool {
 
 fn char_at(s: &str, byte: usize) -> char {
     s[byte..].chars().next().unwrap()
+}
+
+// For automatic semicolon insertion.
+fn may_terminate_statement(t: Option<&Token>) -> bool {
+    // A non-existent token may not terminate a line.
+    let t = match t {
+        Some(t) => t,
+        None => return false,
+    };
+
+    // From the Go spec:
+    //
+    // When the input is broken into tokens, a semicolon is automatically inserted into the
+    // token stream immediately after a line's final token if that token is:
+    // - an identifier
+    // - an integer, floating-point, imaginary, rune, or string literal
+    // - one of the keywords break, continue, fallthrough, or return
+    // - one of the operators and delimiters ++, --, ), ], or }
+    match *t {
+        Token::Ident(_) |
+        Token::Literal(_) |
+        Token::Keyword(Keyword::Break) |
+        Token::Keyword(Keyword::Continue) |
+        Token::Keyword(Keyword::Fallthrough) |
+        Token::Keyword(Keyword::Return) |
+        Token::Increment |
+        Token::Decrement |
+        Token::CloseDelim(DelimToken::Paren) |
+        Token::CloseDelim(DelimToken::Bracket) |
+        Token::CloseDelim(DelimToken::Brace) => true,
+        _ => false,
+    }
 }
