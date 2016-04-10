@@ -91,3 +91,12 @@ In lexer: float, complex/imaginary, raw string and rune literals.
 Then, the parser. First goal: parsing a "Hello, rgo" program.
 Then write unit tests for various constructs.
 Then integration tests using complex source files from big Go projects.
+
+## Sun Apr 10 10:59:15 - Done & Next steps
+
+Package clauses and import declarations can now be parsed. String literal
+parsing is _very_ hackish, though: interpreted strings are not actually
+interpreted, but treated like raw strings. This is bad.
+
+Added a "progress.md" file that will help me keep track of what I need to do
+next.
