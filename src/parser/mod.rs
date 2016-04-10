@@ -67,12 +67,19 @@ impl Parser {
     //     self.bump();
     // }
 
-    /// Parse a package clause (e.g. `package main`).
-    fn parse_package_clause(&mut self) -> String {
-        // Whitespace at the top of the file is irrelevant.
+    /// For when whitespace is unimportant.
+    fn skip_whitespace(&mut self) {
+        // XXX: we may not need a while loop, since blocks of contiguous whitespace
+        // are treated as a single token.
         while let Some(&Token::Whitespace) = self.tokens.last() {
             self.tokens.pop();
         }
+    }
+
+    /// Parse a package clause (e.g. `package main`).
+    fn parse_package_clause(&mut self) -> String {
+        // Whitespace at the top of the file is irrelevant.
+        self.skip_whitespace();
         assert_eq!(self.tokens.pop(), Some(Token::Keyword(Keyword::Package)));
 
         match self.tokens.pop() {
@@ -82,6 +89,12 @@ impl Parser {
     }
 
     fn parse_import_decls(&mut self) -> Vec<ImportDecl> {
+        // self.skip_whitespace();
+
+        // match self.tokens.last() {
+        //
+        // }
+
         unimplemented!()
     }
 
