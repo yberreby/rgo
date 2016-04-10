@@ -53,22 +53,21 @@ pub enum ImportKind {
 }
 
 // Declaration   = ConstDecl | TypeDecl | VarDecl .
-/// A regular (i.e. not top-level) declaration.
+/// A statement declaration.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Declaration {
+pub enum DeclStmt {
     Const(ConstDecl),
-    TypeDecl,
-    VarDecl,
+    TypeDecl(TypeDecl),
+    VarDecl(VarDecl),
 }
 
-
-
-// TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// A top-level declaration - i.e. a declaration that may appear immediately after import
+/// declarations.
 pub enum TopLevelDecl {
-    Declaration(Declaration),
-    FuncDecl(FuncDecl),
-    MethodDecl(MethodDecl),
+    Stmt(DeclStmt),
+    Func(FuncDecl),
+    Method(MethodDecl),
 }
 
 // ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .

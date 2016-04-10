@@ -57,7 +57,6 @@ fn parse_long_import() {
 
 // Simplest possible Go program (AFAIK).
 #[test]
-#[ignore]
 fn parse_simplest() {
     let tokens = vec![Token::Keyword(Keyword::Package),
                       Token::Ident("main".into()),
@@ -72,7 +71,7 @@ fn parse_simplest() {
     let expected = SourceFile {
         package: "main".into(),
         import_decls: vec![],
-        top_level_decls: vec![TopLevelDecl::FuncDecl(FuncDecl {
+        top_level_decls: vec![TopLevelDecl::Func(FuncDecl {
                                   name: "main".into(),
                                   // `main` takes no arguments and returns nothing.
                                   signature: FuncSignature {

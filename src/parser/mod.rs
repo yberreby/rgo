@@ -39,35 +39,6 @@ impl Parser {
             top_level_decls: top_level_decls,
         }
     }
-
-    // /// Peek at the next token.
-    // fn current(&self) -> Option<&Token> {
-    //     self.tokens.get(self.pos)
-    // }
-
-    // /// Peek at the next token.
-    // fn next_token(&self) -> Option<&Token> {
-    //     self.tokens.get(self.pos + 1)
-    // }
-
-    // /// Move the parser one token forward, returning the token that was consumed.
-    // fn bump(&mut self) -> Option<Token> {
-    //     self.pos += 1;
-    //     self.tokens.pop()
-    // }
-
-    // fn skip_ws(&mut self) {
-    //     while let Some(&Token::Whitespace) = self.current() {
-    //         self.bump();
-    //     }
-    // }
-
-    // /// Consume the next token, asserting it is equal to `expected`.
-    // fn expect(&mut self, expected: &Token) {
-    //     assert_eq!(self.current(), Some(expected));
-    //     self.bump();
-    // }
-
     /// For when whitespace is unimportant.
     fn skip_whitespace(&mut self) {
         // XXX: we may not need a while loop, since blocks of contiguous whitespace
@@ -89,16 +60,6 @@ impl Parser {
         }
     }
 
-    // === Import parsing ===
-    //
-    // Syntax:
-    //
-    // ```
-    // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
-    // ImportSpec       = [ "." | PackageName ] ImportPath .
-    // ImportPath       = string_lit .
-    // ```
-
     fn parse_import_decls(&mut self) -> Vec<ImportDecl> {
         let mut decls = Vec::new();
 
@@ -116,7 +77,7 @@ impl Parser {
     /// Parse an import declaration made up of one or more import specs.
     /// Simple example with a single spec: `import "fmt"`.
     fn parse_import_decl(&mut self) -> ImportDecl {
-        // Syntax:
+        // Grammar:
         //
         // ```
         // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
@@ -157,7 +118,7 @@ impl Parser {
 
     /// Parse an "import spec".
     fn parse_import_spec(&mut self) -> ImportSpec {
-        // Syntax:
+        // Grammar:
         //
         // ```
         // ImportSpec       = [ "." | PackageName ] ImportPath .
@@ -186,7 +147,10 @@ impl Parser {
         }
     }
 
-
+    /// Parse a top-level declaration (see TopLevelDecl docs).
+    // Grammar:
+    //
+    // TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
     fn parse_top_level_decls(&mut self) -> Vec<TopLevelDecl> {
         unimplemented!()
     }
