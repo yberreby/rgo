@@ -105,7 +105,7 @@ pub enum DelimToken {
 }
 
 /// Reserved keywords.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keyword {
     Break,
     Case,

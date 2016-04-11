@@ -55,7 +55,7 @@ pub enum ImportKind {
 // Declaration   = ConstDecl | TypeDecl | VarDecl .
 /// A statement declaration.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DeclStmt {
+pub enum DeclStatement {
     Const(ConstDecl),
     TypeDecl(TypeDecl),
     VarDecl(VarDecl),
@@ -65,7 +65,7 @@ pub enum DeclStmt {
 /// A top-level declaration - i.e. a declaration that may appear immediately after import
 /// declarations.
 pub enum TopLevelDecl {
-    Stmt(DeclStmt),
+    Statement(DeclStatement),
     Func(FuncDecl),
     Method(MethodDecl),
 }
@@ -162,9 +162,31 @@ pub struct FuncDecl {
     // XXX: functions with same name but different origins, how do we handle them?
     pub name: String,
     pub signature: FuncSignature,
-    pub body: Vec<Stmt>,
+    pub body: Vec<Statement>,
 }
 
+
+/// A function signature: return type(s) and argument types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FuncSignature {
+    pub parameters: Parameters,
+    // Yes, the result of a function is a `Parameters` struct.
+    pub result: Parameters,
+}
+
+
+pub struct Parameters {
+    lists: Vec<ParameterDecl>,
+}
+
+// XXX: variadic functions.
+
+pub struct ParameterDecl {
+    identifiers: Vec<String>,
+}
+
+// XXX - typedef, newtype or something else?
+pub type Type = String;
 
 // == Unimplemented types ==
 
@@ -179,8 +201,6 @@ pub struct MethodDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier;
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Type;
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarDecl;
@@ -193,14 +213,9 @@ pub struct Argument;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryOperator {}
 
-/// A function signature: return type(s) and argument types.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FuncSignature {
-    /// Return types (a `Vec` because a function may return multiple values).
-    pub return_types: Vec<Type>,
-    /// Argument types.
-    pub argument_types: Vec<Type>,
-}
+
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// pub struct Type;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Stmt;
+pub struct Statement;
