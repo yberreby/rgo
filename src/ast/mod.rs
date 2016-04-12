@@ -175,12 +175,14 @@ pub struct FuncSignature {
 }
 
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parameters {
     lists: Vec<ParameterDecl>,
 }
 
 // XXX: variadic functions.
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParameterDecl {
     identifiers: Vec<String>,
 }
