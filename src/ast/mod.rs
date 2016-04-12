@@ -197,7 +197,7 @@ impl Parameters {
     }
 }
 
-// XXX: variadic functions.
+// TODO: variadic functions.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParameterDecl {

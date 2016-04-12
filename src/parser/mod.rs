@@ -4,11 +4,13 @@
 //!
 //! ## Unresolved questions
 //!
-//! Is the pattern of inspecting the last element by reference, then popping it inside a
-//! function and asserting it is equal to something bad?
+//! - Is the pattern of inspecting the last element by reference, then popping it inside a function
+//! and asserting it is equal to something, bad? It lets smaller functions not worry about what
+//! came before them, **but** it also duplicates knowledge of what a construct may start with and
+//! may hurt performance.
 //!
-//! It lets smaller functions not worry about what came before them, **but** it also duplicates
-//! knowledge of what a construct may start with and may hurt performance.
+//! - Should we pop/push from a vector, or use a slice and an index? Popping frees up memory as we
+//! go, but is most likely slower.
 
 use lexer::{Token, Keyword, DelimToken, Literal};
 use ast;
@@ -81,7 +83,7 @@ impl Parser {
         }
     }
 
-    /// Parse an import declaration made up of one or more import specs.
+    /// Parse an import declaration, which is made up of one or more import specs.
     /// Simple example with a single spec: `import "fmt"`.
     fn parse_import_decl(&mut self) -> ImportDecl {
         // Grammar:
@@ -154,7 +156,7 @@ impl Parser {
         }
     }
 
-    /// Parse a top-level declaration (see TopLevelDecl docs).
+    /// Parse any number of top-level declarations (see TopLevelDecl docs).
     // Grammar:
     //
     // TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
@@ -197,7 +199,6 @@ impl Parser {
         }
     }
 
-    /// Parse a function signature.
     fn parse_func_signature(&mut self) -> ast::FuncSignature {
         // Grammar:
         //
@@ -228,11 +229,11 @@ impl Parser {
         }
     }
 
-    /// Parse function parameters 
     fn parse_func_params(&mut self) -> ast::Parameters {
         unimplemented!()
     }
 
+    /// Parse a single type (e.g. `string`).
     fn parse_type(&mut self) -> String {
         unimplemented!()
     }
@@ -279,7 +280,6 @@ impl Parser {
         }
     }
 }
-
 
 pub fn parse(tokens: Vec<Token>) -> SourceFile {
     let mut parser = Parser::new(tokens);
