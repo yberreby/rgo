@@ -262,10 +262,10 @@ impl Parser {
             // A Type may be surrounded in parentheses, in which case we simply eat the
             // parentheses and recurse.
             Token::OpenDelim(DelimToken::Paren) => {
-                self.eat(Token::OpenDelim(DelimToken::Paren));
+                self.eat(&Token::OpenDelim(DelimToken::Paren));
                 let typ = self.parse_type();
-                self.eat(Token::CloseDelim(DelimToken::Paren));
-                typ;
+                self.eat(&Token::CloseDelim(DelimToken::Paren));
+                typ
             }
             // If a Type starts with an identifier, it can only be a TypeName.
             Token::Ident(_) => {
@@ -273,7 +273,7 @@ impl Parser {
 
                 let name;
                 let package;
-                match self.tokens.last().expect("EOF") {
+                match *self.tokens.last().expect("EOF") {
                     // This is a qualified identifier.
                     // XXX: should we move that to a new function?
                     // Qualified idents can only appear in:
@@ -281,7 +281,7 @@ impl Parser {
                     // - operands.
                     Token::Colon => {
                         // XXX: I don't like this pattern.
-                        self.eat(Token::Colon);
+                        self.eat(&Token::Colon);
                         let part2 = self.parse_ident();
 
                         package = Some(part1);
@@ -301,53 +301,53 @@ impl Parser {
             }
             _ => unimplemented!(),
         }
+    }
 
 
-        fn parse_block() -> Vec<ast::Statement> {
-            unimplemented!()
-        }
+    fn parse_block(&mut self) -> Vec<ast::Statement> {
+        unimplemented!()
+    }
 
-        /// Parse an identifier.
-        // XXX: come back later. String interning and all that.
-        fn parse_ident() -> String {
-            match self.tokens.pop().expect("EOF") {
-                Token::Ident(s) => s,
-                _ => panic!("unexpected token"),
-            }
-        }
-
-        /// Parse a string literal, whether interpreted or raw.
-        /// This is useful because one will often expect a string literal without caring about its
-        /// kind.
-        fn parse_string_lit() -> String {
-            // Grammar:
-            //
-            // ```
-            // string_lit             = raw_string_lit | interpreted_string_lit .
-            // raw_string_lit         = "`" { unicode_char | newline } "`" .
-            // interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
-            // ```
-
-            match self.tokens.pop().expect("unexpected end of input") {
-                Token::Literal(lit) => {
-                    match lit {
-                        // Nothing to interpret, move along.
-                        Literal::StrRaw(s) => s,
-                        Literal::Str(s) => {
-                            // XXX TODO FIXME: we HAVE to interpret escape sequences!
-                            // For now, do nothing.
-                            s
-                        }
-                        _ => panic!("unexpected literal token"),
-                    }
-                }
-                _ => panic!("unexpected token"),
-            }
-        }
-
-        pub fn parse(tokens: Vec<Token>) -> SourceFile {
-            let mut parser = Parser::new(tokens);
-            parser.parse()
+    /// Parse an identifier.
+    // XXX: come back later. String interning and all that.
+    fn parse_ident(&mut self) -> String {
+        match self.tokens.pop().expect("EOF") {
+            Token::Ident(s) => s,
+            _ => panic!("unexpected token"),
         }
     }
+
+    /// Parse a string literal, whether interpreted or raw.
+    /// This is useful because one will often expect a string literal without caring about its
+    /// kind.
+    fn parse_string_lit(&mut self) -> String {
+        // Grammar:
+        //
+        // ```
+        // string_lit             = raw_string_lit | interpreted_string_lit .
+        // raw_string_lit         = "`" { unicode_char | newline } "`" .
+        // interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
+        // ```
+
+        match self.tokens.pop().expect("unexpected end of input") {
+            Token::Literal(lit) => {
+                match lit {
+                    // Nothing to interpret, move along.
+                    Literal::StrRaw(s) => s,
+                    Literal::Str(s) => {
+                        // XXX TODO FIXME: we HAVE to interpret escape sequences!
+                        // For now, do nothing.
+                        s
+                    }
+                    _ => panic!("unexpected literal token"),
+                }
+            }
+            _ => panic!("unexpected token"),
+        }
+    }
+}
+
+pub fn parse(tokens: Vec<Token>) -> SourceFile {
+    let mut parser = Parser::new(tokens);
+    parser.parse()
 }

@@ -187,7 +187,7 @@ impl Parameters {
     }
 
     /// Create a parameter list containing a single, unnamed type.
-    pub fn from_single_type(t: String) -> Parameters {
+    pub fn from_single_type(t: Type) -> Parameters {
         Parameters {
             decls: vec![ParameterDecl {
                             identifiers: vec![],
@@ -203,21 +203,23 @@ impl Parameters {
 pub struct ParameterDecl {
     identifiers: Vec<String>,
     /// The type assigned to every identifier in this declaration.
-    typ: String,
+    typ: Type,
 }
 
 // XXX: types need attention.
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Plain(MaybeQualifiedIdent),
     Literal(TypeLiteral),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeLiteral {
     Array(ArrayType),
     Struct(StructType),
     Pointer(PointerType),
-    Function(FunctionType),
+    Function(FuncType),
     Interface(InterfaceType),
     Slice(SliceType),
     Map(MapType),
@@ -230,6 +232,7 @@ pub enum TypeLiteral {
 /// A _potentially_ qualified identifier (e.g. `math.Sin`).
 ///
 /// "A qualified identifier is an identifier qualified with a package name prefix."
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MaybeQualifiedIdent {
     pub package: Option<String>,
     pub name: String,
@@ -260,6 +263,22 @@ pub struct Argument;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryOperator {}
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArrayType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PointerType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FuncType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterfaceType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SliceType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MapType;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChanType;
 
 // #[derive(Debug, Clone, PartialEq, Eq)]
 // pub struct Type;
