@@ -177,7 +177,7 @@ pub struct FuncSignature {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parameters {
-    decls: Vec<ParameterDecl>,
+    pub decls: Vec<ParameterDecl>,
 }
 
 impl Parameters {
@@ -201,9 +201,9 @@ impl Parameters {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParameterDecl {
-    identifiers: Vec<String>,
+    pub identifiers: Vec<String>,
     /// The type assigned to every identifier in this declaration.
-    typ: Type,
+    pub typ: Type,
 }
 
 // XXX: types need attention.
@@ -229,7 +229,7 @@ pub enum TypeLiteral {
 // XXX: dubious pattern. "Maybe<Something>" does not _feel_ completely right, but it doesn't feel
 // _wrong_ either. I just don't see a better solution.
 
-/// A _potentially_ qualified identifier (e.g. `math.Sin`).
+/// A _potentially_ qualified identifier (e.g. `math.Sin`, but also `someUnqualifiedIdent`).
 ///
 /// "A qualified identifier is an identifier qualified with a package name prefix."
 #[derive(Debug, Clone, PartialEq, Eq)]

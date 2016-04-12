@@ -236,13 +236,50 @@ impl Parser {
     ///
     /// This may be used to parse the return types of a function if they are prefixed with a
     /// parenthesis.
+    /// Parameters may be named or unnamed.
     fn parse_func_params(&mut self) -> ast::Parameters {
         // Grammar:
         //
         // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
         // ParameterList  = ParameterDecl { "," ParameterDecl } .
         // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
-        unimplemented!()
+        self.eat(&Token::OpenDelim(DelimToken::Paren));
+
+        let mut decls = Vec::new();
+        loop {
+            let mut idents = Vec::new();
+            let mut variadic = false;
+
+            // The identifier list is optional.
+            if let &Token::Ident(_) = self.tokens.last().expect("EOF") {
+                // Grammar:
+                // IdentifierList = identifier { "," identifier } .
+                idents.push(self.parse_ident());
+
+                while let &Token::Comma = self.tokens.last().expect("EOF") {
+                    self.eat(&Token::Comma);
+                    idents.push(self.parse_ident());
+                }
+            }
+
+            if let &Token::Ellipsis = self.tokens.last().expect("EOF") {
+                // self.eat(&Token::Ellipsis);
+                // variadic = true;
+                // TODO: variadic funcs
+                unimplemented!()
+            }
+
+            // The type is mandatory.
+            let typ = self.parse_type();
+
+            decls.push(ast::ParameterDecl {
+                identifiers: idents,
+                typ: typ,
+            });
+        }
+
+        // XXX: do we _need_ Parameters to be a type by itself?
+        Parameters { decls: decls }
     }
 
     /// Parse a single type (e.g. `[]string`).
