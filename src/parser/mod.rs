@@ -221,7 +221,8 @@ impl Parser {
 
         let result = match self.tokens.last().expect("EOF") {
             // An opening parenthesis! We can parse an output parameter list
-            &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
+            &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(), 
+            // FIXME: there may be NO return type. We are not handling this case!
             // No paren? It must be a single, unnamed return type.
             _ => Parameters::from_single_type(self.parse_type()),
         };

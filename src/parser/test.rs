@@ -57,8 +57,8 @@ fn parse_simplest() {
                       Token::Ident("main".into()),
                       Token::Keyword(Keyword::Func),
                       Token::Ident("main".into()),
-                      Token::OpenDelim(DelimToken::Bracket),
-                      Token::CloseDelim(DelimToken::Bracket),
+                      Token::OpenDelim(DelimToken::Paren),
+                      Token::CloseDelim(DelimToken::Paren),
                       Token::OpenDelim(DelimToken::Brace),
                       Token::CloseDelim(DelimToken::Brace)];
     let expected = SourceFile {
