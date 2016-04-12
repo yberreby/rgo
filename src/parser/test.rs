@@ -68,8 +68,8 @@ fn parse_simplest() {
                                   name: "main".into(),
                                   // `main` takes no arguments and returns nothing.
                                   signature: FuncSignature {
-                                      return_types: vec![],
-                                      argument_types: vec![],
+                                      parameters: ast::Parameters::empty(),
+                                      result: ast::Parameters::empty(),
                                   },
                                   // empty body: no statements.
                                   body: vec![],

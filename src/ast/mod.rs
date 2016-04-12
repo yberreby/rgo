@@ -177,7 +177,24 @@ pub struct FuncSignature {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parameters {
-    lists: Vec<ParameterDecl>,
+    decls: Vec<ParameterDecl>,
+}
+
+impl Parameters {
+    /// Create an empty parameter list.
+    pub fn empty() -> Parameters {
+        Parameters { decls: Vec::new() }
+    }
+
+    /// Create a parameter list containing a single, unnamed type.
+    pub fn from_single_type(t: String) -> Parameters {
+        Parameters {
+            decls: vec![ParameterDecl {
+                            identifiers: vec![],
+                            typ: t,
+                        }],
+        }
+    }
 }
 
 // XXX: variadic functions.
@@ -185,6 +202,8 @@ pub struct Parameters {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParameterDecl {
     identifiers: Vec<String>,
+    /// The type assigned to every identifier in this declaration.
+    typ: String,
 }
 
 // XXX - typedef, newtype or something else?

@@ -215,7 +215,12 @@ impl Parser {
         // Strangely enough, the parameters and the result of a function have the same grammar,
         // so we do the same thing twice.
         let parameters = self.parse_func_params();
-        let result = self.parse_func_params();
+
+        let result = match self.tokens.last().expect("EOF") {
+            // An opening parenthesis! We can parse an output parameter list
+            &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
+            _ => Parameters::from_single_type(self.parse_type()),
+        };
 
         ast::FuncSignature {
             parameters: parameters,
@@ -223,6 +228,14 @@ impl Parser {
         }
     }
 
+    /// Parse function parameters 
+    fn parse_func_params(&mut self) -> ast::Parameters {
+        unimplemented!()
+    }
+
+    fn parse_type(&mut self) -> String {
+        unimplemented!()
+    }
 
     fn parse_block(&mut self) -> Vec<ast::Statement> {
         unimplemented!()
