@@ -206,8 +206,34 @@ pub struct ParameterDecl {
     typ: String,
 }
 
-// XXX - typedef, newtype or something else?
-pub type Type = String;
+// XXX: types need attention.
+
+pub enum Type {
+    Plain(MaybeQualifiedIdent),
+    Literal(TypeLiteral),
+}
+
+pub enum TypeLiteral {
+    Array(ArrayType),
+    Struct(StructType),
+    Pointer(PointerType),
+    Function(FunctionType),
+    Interface(InterfaceType),
+    Slice(SliceType),
+    Map(MapType),
+    Chan(ChanType),
+}
+
+// XXX: dubious pattern. "Maybe<Something>" does not _feel_ completely right, but it doesn't feel
+// _wrong_ either. I just don't see a better solution.
+
+/// A _potentially_ qualified identifier (e.g. `math.Sin`).
+///
+/// "A qualified identifier is an identifier qualified with a package name prefix."
+pub struct MaybeQualifiedIdent {
+    pub package: Option<String>,
+    pub name: String,
+}
 
 // == Unimplemented types ==
 
