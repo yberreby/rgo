@@ -176,11 +176,13 @@ impl Parser {
     }
 
     /// Parse a full function declaration (including signature, name, and block).
-    // FunctionDecl = "func" FunctionName ( Function | Signature ) .
-    // FunctionName = identifier .
-    // Function     = Signature FunctionBody .
-    // FunctionBody = Block .
     fn parse_func_decl(&mut self) -> ast::FuncDecl {
+        // Grammar:
+        // FunctionDecl = "func" FunctionName ( Function | Signature ) .
+        // FunctionName = identifier .
+        // Function     = Signature FunctionBody .
+        // FunctionBody = Block .
+
         self.eat_keyword(Keyword::Func);
         let name = self.parse_ident();
         let signature = self.parse_func_signature();
@@ -199,27 +201,28 @@ impl Parser {
         }
     }
 
+    /// Parse a function _signature_ - i.e., just the parameter and result types of a func.
     fn parse_func_signature(&mut self) -> ast::FuncSignature {
         // Grammar:
         //
-        // FunctionType   = "func" Signature .
         // Signature      = Parameters [ Result ] .
         // Result         = Parameters | Type .
-        // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
-        // ParameterList  = ParameterDecl { "," ParameterDecl } .
-        // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
         //
         // Example signature:
         //
         // (int, int, float64) (float64, *[]int)
-
-        // Strangely enough, the parameters and the result of a function have the same grammar,
-        // so we do the same thing twice.
+        //
+        // The parameters and the result of a function have a similar grammar,
+        // however there's a small difference. The Go spec says:
+        //
+        // "Parameter and result lists are always parenthesized except that if there is exactly one
+        // unnamed result it may be written as an unparenthesized type."
         let parameters = self.parse_func_params();
 
         let result = match self.tokens.last().expect("EOF") {
             // An opening parenthesis! We can parse an output parameter list
             &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
+            // No paren? It must be a single, unnamed return type.
             _ => Parameters::from_single_type(self.parse_type()),
         };
 
@@ -229,7 +232,16 @@ impl Parser {
         }
     }
 
+    /// Parse function parameters, as defined by the Go grammar.
+    ///
+    /// This may be used to parse the return types of a function if they are prefixed with a
+    /// parenthesis.
     fn parse_func_params(&mut self) -> ast::Parameters {
+        // Grammar:
+        //
+        // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
+        // ParameterList  = ParameterDecl { "," ParameterDecl } .
+        // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
         unimplemented!()
     }
 
