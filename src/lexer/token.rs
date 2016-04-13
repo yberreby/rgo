@@ -256,15 +256,18 @@ impl Token {
     }
 
     pub fn can_start_func_type(&self) -> bool {
-        unimplemented!()
+        // FunctionType   = "func" Signature .
+        self.is_keyword(Keyword::Func)
     }
 
     pub fn can_start_interface_type(&self) -> bool {
-        unimplemented!()
+        // InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
+        self.is_keyword(Keyword::Interface)
     }
 
     pub fn can_start_chan_type(&self) -> bool {
-        unimplemented!()
+        // ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
+        self.is_keyword(Keyword::Chan) || *self == Token::ChanReceive
     }
 
     pub fn can_start_lit(&self) -> bool {
