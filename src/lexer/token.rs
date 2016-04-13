@@ -148,6 +148,28 @@ impl Token {
     }
 
     pub fn can_start_simple_stmt(&self) -> bool {
+        *self == Token::Semicolon || self.can_start_expr() || self.can_start_send_stmt() ||
+        self.can_start_inc_dec_stmt() || self.can_start_assignment() ||
+        self.can_start_short_var_decl()
+    }
+
+    pub fn can_start_expr(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_send_stmt(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_inc_dec_stmt(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_assignment(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_short_var_decl(&self) -> bool {
         unimplemented!()
     }
 }
