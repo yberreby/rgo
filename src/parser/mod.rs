@@ -367,11 +367,15 @@ impl Parser {
         // Grammar:
         // Block = "{" StatementList "}" .
         // StatementList = { Statement ";" } .
+        self.eat(&Token::OpenDelim(DelimToken::Brace));
+
         let mut statements = Vec::new();
         while self.tokens.last().expect("EOF").can_start_statement() {
             statements.push(self.parse_statement());
             self.eat(&Token::Semicolon);
         }
+
+        self.eat(&Token::CloseDelim(DelimToken::Brace));
         statements
     }
 
