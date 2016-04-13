@@ -206,6 +206,8 @@ impl Token {
         // Literal     = BasicLit | CompositeLit | FunctionLit .
         // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
         // OperandName = identifier | QualifiedIdent.
+        //
+        // Conversion = Type "(" Expression [ "," ] ")" .
 
         // XXX/TODO: review this code - critical.
         self.can_start_unary_expr() || self.can_start_expr()
@@ -216,6 +218,18 @@ impl Token {
     }
 
     pub fn can_start_primary_expr(&self) -> bool {
+        self.can_start_operand() || self.can_start_conversion()
+    }
+
+    pub fn can_start_operand(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_conversion(&self) -> bool {
+        self.can_start_type()
+    }
+
+    pub fn can_start_type(&self) -> bool {
         unimplemented!()
     }
 
