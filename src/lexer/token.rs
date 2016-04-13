@@ -127,6 +127,7 @@ impl Token {
 
     #[inline]
     pub fn can_start_statement(&self) -> bool {
+        trace!("statement");
         // Grammar:
         // Statement =
         //      Declaration | LabeledStmt | SimpleStmt |
@@ -162,6 +163,7 @@ impl Token {
     }
 
     pub fn can_start_decl(&self) -> bool {
+        trace!("can_start_decl");
         // Declaration   = ConstDecl | TypeDecl | VarDecl .
         self.is_keyword(Keyword::Const) || self.is_keyword(Keyword::Type) ||
         self.is_keyword(Keyword::Var)
@@ -208,7 +210,7 @@ impl Token {
         // ReceiverType  = TypeName | "(" "*" TypeName ")" | "(" ReceiverType ")" .
 
         // XXX/TODO: review this code - critical.
-        self.can_start_unary_expr() || self.can_start_expr()
+        self.can_start_unary_expr()
     }
 
     pub fn can_start_unary_expr(&self) -> bool {
