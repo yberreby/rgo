@@ -93,6 +93,12 @@ pub enum Token {
     Colon,
 }
 
+impl Token {
+    pub fn can_start_statement(&self) -> bool {
+        unimplemented!()
+    }
+}
+
 /// Opening or closing delimiter.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DelimToken {

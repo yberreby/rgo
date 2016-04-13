@@ -364,9 +364,19 @@ impl Parser {
     }
 
     fn parse_block(&mut self) -> Vec<ast::Statement> {
-        // unimplemented!()
-        // FIXME: dummy implementation
-        vec![]
+        // Grammar:
+        // Block = "{" StatementList "}" .
+        // StatementList = { Statement ";" } .
+        let mut statements = Vec::new();
+        while self.tokens.last().expect("EOF").can_start_statement() {
+            statements.push(self.parse_statement());
+            self.eat(&Token::Semicolon);
+        }
+        statements
+    }
+
+    fn parse_statement(&mut self) -> ast::Statement {
+        unimplemented!()
     }
 
     /// Parse an identifier.
