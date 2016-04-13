@@ -266,7 +266,8 @@ impl Token {
     }
 
     pub fn can_start_func_lit(&self) -> bool {
-        unimplemented!()
+        // FunctionLit = "func" Function .
+        self.is_keyword(Keyword::Func)
     }
 
     pub fn can_start_struct_type(&self) -> bool {
