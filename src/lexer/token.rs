@@ -235,7 +235,20 @@ impl Token {
     }
 
     pub fn can_start_type(&self) -> bool {
-        unimplemented!()
+        // Type      = TypeName | TypeLit | "(" Type ")" .
+        // TypeName  = identifier | QualifiedIdent .
+        // TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
+        //      SliceType | MapType | ChannelType .
+        self.is_ident() || self.can_start_type_lit() || *self == Token::OpenDelim(DelimToken::Paren)
+    }
+
+    pub fn can_start_type_lit(&self) -> bool {
+        // TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
+        //             SliceType | MapType | ChannelType .
+        self.can_start_array_type() || self.can_start_struct_type() ||
+        self.can_start_pointer_type() || self.can_start_func_type() ||
+        self.can_start_interface_type() || self.can_start_slice_type() ||
+        self.can_start_map_type() || self.can_start_chan_type()
     }
 
     pub fn can_start_lit(&self) -> bool {
