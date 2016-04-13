@@ -115,8 +115,10 @@ fn parse_hello() {
                                       result: ast::Parameters::empty(),
                                   },
                                   body: vec![
-                    ast::Statement::Simple(ast::SimpleStmt::Expression(ast::ExpressionStmt))
-                ],
+                ast::Statement::Simple(
+                    ast::SimpleStmt::Expression(ast::ExpressionStmt)
+                )
+            ],
                               })],
     };
     assert_eq!(parse(tokens), expected);
