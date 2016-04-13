@@ -96,14 +96,18 @@ pub struct ConstSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
-    UnaryExpr(UnaryExpr),
+    Unary(UnaryExpr),
+    Binary(Box<Expression>, BinaryOperator, Box<Expression>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryExpr {
-    PrimaryExpr(Box<PrimaryExpr>),
+    Primary(Box<PrimaryExpr>),
     UnaryOperation(UnaryOperator, Box<UnaryExpr>),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BinaryOperator {}
 
 // pub enum
 
@@ -127,7 +131,7 @@ pub enum UnaryExpr {
 // TypeAssertion  = "." "(" Type ")" .
 // Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")".
 
-/// Primary expressions are the operands for unary and binary expressions. 
+/// Primary expressions are the operands for unary and binary expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrimaryExpr {
     Operand(Operand),
@@ -310,13 +314,12 @@ pub enum Statement {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimpleStmt {
     EmptyStmt,
-    Expression(ExpressionStmt),
+    Expression(Expression),
     Send(SendStmt),
     IncDec(IncDecStmt),
     Assignment(Assignment),
     ShortVarDecl(ShortVarDecl),
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclStmt;
@@ -346,8 +349,6 @@ pub struct SelectStmt;
 pub struct ForStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeferStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExpressionStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SendStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
