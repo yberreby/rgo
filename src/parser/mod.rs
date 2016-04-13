@@ -364,7 +364,9 @@ impl Parser {
     }
 
     fn parse_block(&mut self) -> Vec<ast::Statement> {
-        unimplemented!()
+        // unimplemented!()
+        // FIXME: dummy implementation
+        vec![]
     }
 
     /// Parse an identifier.
