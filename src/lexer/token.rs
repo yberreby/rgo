@@ -202,12 +202,13 @@ impl Token {
         // TypeAssertion  = "." "(" Type ")" .
         // Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
         //
-        // Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
         // Literal     = BasicLit | CompositeLit | FunctionLit .
         // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
-        // OperandName = identifier | QualifiedIdent.
         //
         // Conversion = Type "(" Expression [ "," ] ")" .
+        //
+        // MethodExpr    = ReceiverType "." MethodName .
+        // ReceiverType  = TypeName | "(" "*" TypeName ")" | "(" ReceiverType ")" .
 
         // XXX/TODO: review this code - critical.
         self.can_start_unary_expr() || self.can_start_expr()
@@ -222,7 +223,14 @@ impl Token {
     }
 
     pub fn can_start_operand(&self) -> bool {
-        unimplemented!()
+        // Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
+        // OperandName = identifier | QualifiedIdent.
+        // MethodExpr    = ReceiverType "." MethodName .
+        // ReceiverType  = TypeName | "(" "*" TypeName ")" | "(" ReceiverType ")" .
+        //
+        // QualifiedIdent starts with an identifier.
+        // So does MethodExpr.
+        self.can_start_lit() || self.is_ident() || *self == Token::OpenDelim(DelimToken::Paren)
     }
 
     pub fn can_start_conversion(&self) -> bool {
@@ -230,6 +238,10 @@ impl Token {
     }
 
     pub fn can_start_type(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_lit(&self) -> bool {
         unimplemented!()
     }
 
