@@ -111,6 +111,21 @@ impl Token {
     }
 
     #[inline]
+    pub fn is_unary_op(&self) -> bool {
+        // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
+        match *self {
+            Token::Plus |
+            Token::Minus |
+            Token::Not |
+            Token::Caret |
+            Token::Star |
+            Token::And |
+            Token::ChanReceive => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
     pub fn can_start_statement(&self) -> bool {
         // Grammar:
         // Statement =
@@ -159,6 +174,48 @@ impl Token {
     }
 
     pub fn can_start_expr(&self) -> bool {
+        // Expression = UnaryExpr | Expression binary_op Expression .
+        // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+        //
+        // binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+        // rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+        // add_op     = "+" | "-" | "|" | "^" .
+        // mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+        //
+        // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
+        //
+        //
+        // PrimaryExpr =
+        // 	Operand |
+        // 	Conversion |
+        // 	PrimaryExpr Selector |
+        // 	PrimaryExpr Index |
+        // 	PrimaryExpr Slice |
+        // 	PrimaryExpr TypeAssertion |
+        // 	PrimaryExpr Arguments .
+        //
+        // Selector       = "." identifier .
+        // Index          = "[" Expression "]" .
+        // Slice          = "[" ( [ Expression ] ":" [ Expression ] ) |
+        //                      ( [ Expression ] ":" Expression ":" Expression )
+        //                  "]" .
+        // TypeAssertion  = "." "(" Type ")" .
+        // Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
+        //
+        // Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
+        // Literal     = BasicLit | CompositeLit | FunctionLit .
+        // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+        // OperandName = identifier | QualifiedIdent.
+
+        // XXX/TODO: review this code - critical.
+        self.can_start_unary_expr() || self.can_start_expr()
+    }
+
+    pub fn can_start_unary_expr(&self) -> bool {
+        self.can_start_primary_expr() || self.is_unary_op()
+    }
+
+    pub fn can_start_primary_expr(&self) -> bool {
         unimplemented!()
     }
 
