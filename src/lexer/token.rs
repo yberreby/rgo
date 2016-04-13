@@ -102,6 +102,15 @@ impl Token {
     }
 
     #[inline]
+    pub fn is_ident(&self) -> bool {
+        if let Token::Ident(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    #[inline]
     pub fn can_start_statement(&self) -> bool {
         // Grammar:
         // Statement =
@@ -130,11 +139,7 @@ impl Token {
     pub fn can_start_labeled_stmt(&self) -> bool {
         // LabeledStmt = Label ":" Statement .
         // Label       = identifier .
-        if let Token::Ident(_) = *self {
-            true
-        } else {
-            false
-        }
+        self.is_ident()
     }
 
     pub fn can_start_go_stmt(&self) -> bool {
@@ -158,19 +163,26 @@ impl Token {
     }
 
     pub fn can_start_send_stmt(&self) -> bool {
-        unimplemented!()
+        // SendStmt = Channel "<-" Expression .
+        // Channel  = Expression .
+        self.can_start_expr()
     }
 
     pub fn can_start_inc_dec_stmt(&self) -> bool {
-        unimplemented!()
+        // IncDecStmt = Expression ( "++" | "--" ) .
+        self.can_start_expr()
     }
 
     pub fn can_start_assignment(&self) -> bool {
-        unimplemented!()
+        // Assignment = ExpressionList assign_op ExpressionList .
+        // ExpressionList = Expression { "," Expression } .
+        self.can_start_expr()
     }
 
     pub fn can_start_short_var_decl(&self) -> bool {
-        unimplemented!()
+        // ShortVarDecl = IdentifierList ":=" ExpressionList .
+        // IdentifierList = identifier { "," identifier } .
+        self.is_ident()
     }
 }
 
