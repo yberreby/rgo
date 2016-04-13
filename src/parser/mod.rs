@@ -220,10 +220,12 @@ impl Parser {
         let parameters = self.parse_func_params();
 
         let result = match self.tokens.last().expect("EOF") {
-            // An opening parenthesis! We can parse an output parameter list
+            // An opening parenthesis! We can parse an output parameter list.
             &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
-            // FIXME: there may be NO return type. We are not handling this case!
-            // No paren? It must be a single, unnamed return type.
+            // Brace = no return type, but a body. We don't care about the body in this function.
+            // Semicolon = no return type and no body.
+            &Token::OpenDelim(DelimToken::Brace) | &Token::Semicolon => Parameters::empty(),
+            // Otherwise, a single, unnamed return type.
             _ => Parameters::from_single_type(self.parse_type()),
         };
 
@@ -236,7 +238,7 @@ impl Parser {
     /// Parse function parameters, as defined by the Go grammar.
     ///
     /// This may be used to parse the return types of a function if they are prefixed with a
-    /// parenthesis.
+    /// parenthesis, and follow the same grammar as input parameters.
     /// Parameters may be named or unnamed.
     fn parse_func_params(&mut self) -> ast::Parameters {
         // Grammar:
@@ -247,40 +249,60 @@ impl Parser {
         self.eat(&Token::OpenDelim(DelimToken::Paren));
 
         let mut decls = Vec::new();
-        loop {
-            let mut idents = Vec::new();
-            let mut variadic = false;
 
-            // The identifier list is optional.
-            if let &Token::Ident(_) = self.tokens.last().expect("EOF") {
-                // Grammar:
-                // IdentifierList = identifier { "," identifier } .
-                idents.push(self.parse_ident());
+        // The parameter list is optional.
+        match self.tokens.last().expect("EOF") {
+            &Token::Ident(_) | &Token::Ellipsis => {
+                decls.push(self.parse_parameter_decl());
 
                 while let &Token::Comma = self.tokens.last().expect("EOF") {
                     self.eat(&Token::Comma);
-                    idents.push(self.parse_ident());
+                    decls.push(self.parse_parameter_decl());
                 }
             }
-
-            if let &Token::Ellipsis = self.tokens.last().expect("EOF") {
-                // self.eat(&Token::Ellipsis);
-                // variadic = true;
-                // TODO: variadic funcs
-                unimplemented!()
-            }
-
-            // The type is mandatory.
-            let typ = self.parse_type();
-
-            decls.push(ast::ParameterDecl {
-                identifiers: idents,
-                typ: typ,
-            });
+            _ => {}
         }
+        self.eat(&Token::CloseDelim(DelimToken::Paren));
 
         // XXX: do we _need_ Parameters to be a type by itself?
         Parameters { decls: decls }
+    }
+
+    /// Parse a "parameter decl".
+    fn parse_parameter_decl(&mut self) -> ast::ParameterDecl {
+        // Grammar:
+        // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
+
+        let mut idents = Vec::new();
+        let mut variadic = false;
+
+        // The identifier list is optional.
+        if let &Token::Ident(_) = self.tokens.last().expect("EOF") {
+            // Grammar:
+            // IdentifierList = identifier { "," identifier } .
+            idents.push(self.parse_ident());
+
+            while let &Token::Comma = self.tokens.last().expect("EOF") {
+                self.eat(&Token::Comma);
+                idents.push(self.parse_ident());
+            }
+        }
+
+        // So is the ellipsis that indicates a variadic func.
+        if let &Token::Ellipsis = self.tokens.last().expect("EOF") {
+            self.eat(&Token::Ellipsis);
+            variadic = true;
+            // TODO: variadic funcs
+            unimplemented!()
+        }
+
+        // The type is mandatory.
+        let typ = self.parse_type();
+
+        ast::ParameterDecl {
+            identifiers: idents,
+            typ: typ,
+        }
     }
 
     /// Parse a single type (e.g. `[]string`).
@@ -340,7 +362,6 @@ impl Parser {
             _ => unimplemented!(),
         }
     }
-
 
     fn parse_block(&mut self) -> Vec<ast::Statement> {
         unimplemented!()
