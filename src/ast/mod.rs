@@ -280,8 +280,79 @@ pub struct MapType;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChanType;
 
-// #[derive(Debug, Clone, PartialEq, Eq)]
-// pub struct Type;
+// Statement =
+// 	Declaration | LabeledStmt | SimpleStmt |
+// 	GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
+// 	FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
+// 	DeferStmt .
+//
+// SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment | ShortVarDecl .
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Statement;
+pub enum Statement {
+    Decl(DeclStmt),
+    Labeled(LabeledStmt),
+    Simple(SimpleStmt),
+    Go(GoStmt),
+    Return(ReturnStmt),
+    Break(BreakStmt),
+    Continue(ContinueStmt),
+    Goto(GotoStmt),
+    Fallthrough(FallthroughStmt),
+    Block(Block),
+    If(IfStmt),
+    Switch(SwitchStmt),
+    Select(SelectStmt),
+    For(ForStmt),
+    Defer(DeferStmt),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SimpleStmt {
+    EmptyStmt,
+    Expression(ExpressionStmt),
+    Send(SendStmt),
+    IncDec(IncDecStmt),
+    Assignment(Assignment),
+    ShortVarDecl(ShortVarDecl),
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LabeledStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GoStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReturnStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BreakStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContinueStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GotoStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FallthroughStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IfStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SwitchStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeferStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpressionStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SendStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncDecStmt;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Assignment;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShortVarDecl;

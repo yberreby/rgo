@@ -108,7 +108,16 @@ fn parse_hello() {
                                                path: "fmt".into(),
                                            }],
                            }],
-        top_level_decls: vec![unimplemented!()],
+        top_level_decls: vec![TopLevelDecl::Func(FuncDecl {
+                                  name: "main".into(),
+                                  signature: FuncSignature {
+                                      parameters: ast::Parameters::empty(),
+                                      result: ast::Parameters::empty(),
+                                  },
+                                  body: vec![
+                    ast::Statement::Simple(ast::SimpleStmt::Expression(ast::ExpressionStmt))
+                ],
+                              })],
     };
     assert_eq!(parse(tokens), expected);
 }
