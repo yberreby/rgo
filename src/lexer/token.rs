@@ -202,9 +202,6 @@ impl Token {
         // TypeAssertion  = "." "(" Type ")" .
         // Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
         //
-        // Literal     = BasicLit | CompositeLit | FunctionLit .
-        // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
-        //
         // Conversion = Type "(" Expression [ "," ] ")" .
         //
         // MethodExpr    = ReceiverType "." MethodName .
@@ -242,7 +239,50 @@ impl Token {
     }
 
     pub fn can_start_lit(&self) -> bool {
+        // Literal     = BasicLit | CompositeLit | FunctionLit .
+        // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+        self.can_start_basic_lit() || self.can_start_composite_lit() || self.can_start_func_lit()
+    }
+
+    pub fn can_start_basic_lit(&self) -> bool {
+        if let Token::Literal(_) = *self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn can_start_composite_lit(&self) -> bool {
+        // CompositeLit  = LiteralType LiteralValue .
+        self.can_start_lit_type()
+    }
+
+    pub fn can_start_lit_type(&self) -> bool {
+        // LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
+        //                 SliceType | MapType | TypeName .
+        self.can_start_struct_type() || self.can_start_array_type() ||
+        *self == Token::OpenDelim(DelimToken::Bracket) || self.can_start_slice_type() ||
+        self.can_start_map_type() || self.is_ident()
+    }
+
+    pub fn can_start_func_lit(&self) -> bool {
         unimplemented!()
+    }
+
+    pub fn can_start_struct_type(&self) -> bool {
+        self.is_keyword(Keyword::Struct)
+    }
+
+    pub fn can_start_array_type(&self) -> bool {
+        *self == Token::OpenDelim(DelimToken::Bracket)
+    }
+
+    pub fn can_start_slice_type(&self) -> bool {
+        *self == Token::OpenDelim(DelimToken::Bracket)
+    }
+
+    pub fn can_start_map_type(&self) -> bool {
+        self.is_keyword(Keyword::Map)
     }
 
     pub fn can_start_send_stmt(&self) -> bool {
