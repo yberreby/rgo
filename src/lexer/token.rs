@@ -251,6 +251,22 @@ impl Token {
         self.can_start_map_type() || self.can_start_chan_type()
     }
 
+    pub fn can_start_pointer_type(&self) -> bool {
+        *self == Token::Star
+    }
+
+    pub fn can_start_func_type(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_interface_type(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn can_start_chan_type(&self) -> bool {
+        unimplemented!()
+    }
+
     pub fn can_start_lit(&self) -> bool {
         // Literal     = BasicLit | CompositeLit | FunctionLit .
         // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
