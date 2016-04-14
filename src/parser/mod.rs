@@ -395,7 +395,12 @@ impl Parser {
         //  ShortVarDecl .
         let t = self.tokens.last().unwrap();
 
-        // match t
+        match *t {
+            Token::Keyword(Keyword::Type) |
+            Token::Keyword(Keyword::Var) |
+            Token::Keyword(Keyword::Const) => {}
+            _ => unimplemented!(),
+        }
         unimplemented!()
     }
 
