@@ -7,6 +7,9 @@
 //! Each part should be loosely coupled with the others, only relying on a somewhat stable public
 //! API.
 
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+
 #[macro_use]
 extern crate log;
 

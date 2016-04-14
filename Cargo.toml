@@ -4,7 +4,11 @@ name = "rgo"
 version = "0.1.0"
 
 [dependencies]
+clippy = { version = "0.0.63", optional = true }
 convenience = "0.1.0"
 env_logger = "0.3.3"
 log = "0.3.6"
 time = "0.1.35"
+
+[features]
+default=[]
