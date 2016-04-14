@@ -468,36 +468,41 @@ impl<'src> Lexer<'src> {
             // Scan integer.
             c if c.is_digit(10) => Token::Literal(self.scan_number()),
             c if can_start_identifier(c) => self.scan_ident_or_keyword(),
-            // Start of string literal.
+            // Start of _interpreted_ string literal.
             '"' => {
-                self.bump();
-                let start = self.pos;
-
-                while let Some(c) = self.current_char {
-                    // If we encounter a backslash escape, we just skip past the '\' and the
-                    // following character.
-                    if c == '\\' {
-                        self.bump();
-                        self.bump();
-                    } else if c == '"' {
-                        break;
-                    } else {
-                        self.bump();
-                    }
-                }
-
-                let s = &self.src[start..self.pos];
-
-                // Skip the quote _after_ slicing so that it isn't included
-                // in the slice.
-                self.bump();
-                // XXX(perf): alloc.
-                Token::Literal(Literal::Str(s.into()))
+                let lit = self.scan_interpreted_str_lit();
+                Token::Literal(Literal::Str(lit))
             }
             c => panic!("unexpected start of token: '{}'", c),
         };
 
         Some(tok)
+    }
+
+    fn scan_interpreted_str_lit(&mut self) -> String {
+        self.bump();
+        let start = self.pos;
+
+        while let Some(c) = self.current_char {
+            // If we encounter a backslash escape, we just skip past the '\' and the
+            // following character.
+            if c == '\\' {
+                self.bump();
+                self.bump();
+            } else if c == '"' {
+                break;
+            } else {
+                self.bump();
+            }
+        }
+
+        let s = &self.src[start..self.pos];
+
+        // Skip the quote _after_ slicing so that it isn't included
+        // in the slice.
+        self.bump();
+        // XXX(perf): alloc.
+        s.into()
     }
 }
 
