@@ -2,6 +2,11 @@
 //!
 //! Turn a list of tokens into an AST.
 //!
+//! ## To do
+//!
+//! - Use `Result`s for error handling, potentially with the question mark operator if we don't
+//! mind using nightlies only.
+//!
 //! ## Unresolved questions
 //!
 //! - Is the pattern of inspecting the last element by reference, then popping it inside a function
@@ -378,7 +383,19 @@ impl Parser {
         statements
     }
 
+    // XXX: needs review.
     fn parse_statement(&mut self) -> ast::Statement {
+        // Statement =
+        // 	Declaration | LabeledStmt | SimpleStmt |
+        // 	GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
+        // 	FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
+        // 	DeferStmt .
+        //
+        // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
+        //  ShortVarDecl .
+        let t = self.tokens.last().unwrap();
+
+        // match t
         unimplemented!()
     }
 
