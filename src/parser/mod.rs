@@ -137,8 +137,6 @@ impl Parser {
         // ImportSpec       = [ "." | PackageName ] ImportPath .
         // ```
 
-        let path: String;
-
         // Does this package spec define an alias?
         let kind = match self.tokens.pop().expect("unexpected end of input") {
             // Glob import.
@@ -167,9 +165,9 @@ impl Parser {
     fn parse_top_level_decls(&mut self) -> Vec<ast::TopLevelDecl> {
         let mut decls = Vec::new();
 
-        match self.tokens.last().expect("EOF") {
+        match *self.tokens.last().expect("EOF") {
             // FunctionDecl
-            &Token::Keyword(Keyword::Func) => {
+            Token::Keyword(Keyword::Func) => {
                 let fd = self.parse_func_decl();
                 decls.push(ast::TopLevelDecl::Func(fd));
             }
@@ -223,12 +221,12 @@ impl Parser {
         // unnamed result it may be written as an unparenthesized type."
         let parameters = self.parse_func_params();
 
-        let result = match self.tokens.last().expect("EOF") {
+        let result = match *self.tokens.last().expect("EOF") {
             // An opening parenthesis! We can parse an output parameter list.
-            &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
+            Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
             // Brace = no return type, but a body. We don't care about the body in this function.
             // Semicolon = no return type and no body.
-            &Token::OpenDelim(DelimToken::Brace) | &Token::Semicolon => ast::Parameters::empty(),
+            Token::OpenDelim(DelimToken::Brace) | Token::Semicolon => ast::Parameters::empty(),
             // Otherwise, a single, unnamed return type.
             _ => ast::Parameters::from_single_type(self.parse_type()),
         };
@@ -255,11 +253,11 @@ impl Parser {
         let mut decls = Vec::new();
 
         // The parameter list is optional.
-        match self.tokens.last().expect("EOF") {
-            &Token::Ident(_) | &Token::Ellipsis => {
+        match *self.tokens.last().expect("EOF") {
+            Token::Ident(_) | Token::Ellipsis => {
                 decls.push(self.parse_parameter_decl());
 
-                while let &Token::Comma = self.tokens.last().expect("EOF") {
+                while let Token::Comma = *self.tokens.last().expect("EOF") {
                     self.eat(&Token::Comma);
                     decls.push(self.parse_parameter_decl());
                 }
@@ -281,19 +279,19 @@ impl Parser {
         let mut variadic = false;
 
         // The identifier list is optional.
-        if let &Token::Ident(_) = self.tokens.last().expect("EOF") {
+        if let Token::Ident(_) = *self.tokens.last().expect("EOF") {
             // Grammar:
             // IdentifierList = identifier { "," identifier } .
             idents.push(self.parse_ident());
 
-            while let &Token::Comma = self.tokens.last().expect("EOF") {
+            while let Token::Comma = *self.tokens.last().expect("EOF") {
                 self.eat(&Token::Comma);
                 idents.push(self.parse_ident());
             }
         }
 
         // So is the ellipsis that indicates a variadic func.
-        if let &Token::Ellipsis = self.tokens.last().expect("EOF") {
+        if let Token::Ellipsis = *self.tokens.last().expect("EOF") {
             self.eat(&Token::Ellipsis);
             variadic = true;
             // TODO: variadic funcs

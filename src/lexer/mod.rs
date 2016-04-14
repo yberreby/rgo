@@ -466,10 +466,10 @@ impl<'src> Lexer<'src> {
                     if c == '\\' {
                         self.bump();
                         self.bump();
-                    } else if c != '"' {
-                        self.bump();
-                    } else {
+                    } else if c == '"' {
                         break;
+                    } else {
+                        self.bump();
                     }
                 }
 
@@ -514,9 +514,7 @@ impl<'src> Iterator for Lexer<'src> {
 /// ```
 pub fn tokenize(s: &str) -> Vec<Token> {
     let lexer = Lexer::new(s);
-    let tokens: Vec<Token> = lexer.collect();
-
-    tokens
+    lexer.collect()
 }
 
 
