@@ -5,12 +5,15 @@
 //!
 //! ## Notes
 //!
-//! We want meaningful errors from the start. That means printing the line and column number on
+//! - We want meaningful errors from the start. That means printing the line and column number on
 //! error, returning `Result`s instead of panicking (later on, we may use unwinding to speed up
 //! lexical analysis in non-erroneous cases).
 //!
-//! It is unclear whether we should operator on Unicode `char`, or plain bytes `u8`. `char`s are
+//! - It is unclear whether we should operator on Unicode `char`, or plain bytes `u8`. `char`s are
 //! more convenient to display and offer a clean API; bytes are (most likely) faster to work with.
+//!
+//! - I'm not sure what the best way to store tokens is. A slice into the original source, an
+//! interned string...?
 
 use std::iter::Iterator;
 pub use token::*;
