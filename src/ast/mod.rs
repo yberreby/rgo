@@ -142,7 +142,9 @@ pub enum PrimaryExpr {
     Indexing(Box<PrimaryExpr>, Expression),
     Slicing(Box<PrimaryExpr>, Slice),
     TypeAssertion(Box<PrimaryExpr>, String),
-    FuncCall(Box<PrimaryExpr>, Vec<Argument>),
+    /// The first field is an expression of function type.
+    /// The second is the arguments to that function.
+    FuncCall(Box<PrimaryExpr>, Arguments),
 }
 
 pub fn parse_primary_expr(s: &str) -> PrimaryExpr {
@@ -267,12 +269,20 @@ pub struct Identifier;
 pub struct TypeDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarDecl;
+
+/// Operands denote the elementary values in an expression. An operand may be a literal, a
+/// (possibly qualified) non-blank identifier denoting a constant, variable, or function, a method
+/// expression yielding a function, or a parenthesized expression.
+// XXX/FIXME/TODO: not finished.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Operand;
+pub enum Operand {
+    Lit(Literal),
+    /// A constant, a variable or a function.
+    Ident(MaybeQualifiedIdent),
+    __Todo,
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Conversion;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Argument;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryOperator {}
 
@@ -368,9 +378,31 @@ pub struct Assignment;
 pub struct ShortVarDecl;
 
 
+// XXX/FIXME: review and fix this.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BasicLit;
+pub enum BasicLit {
+    Int,
+    Float,
+    Imaginary,
+    Rune,
+    // XXX: interpreted/raw strings?
+    // Possible solution: all strings are interpreted by the time they are put into the AST.
+    Str(String),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositeLit;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncLit;
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// A list of arguments being passed to a function.
+///
+/// Arguments can't just be a list of expressions, because Go has a built-in generic generic
+/// functions: `make` and `new`, and these functions take a **type** instead of an expression
+/// as their first argument.
+pub struct Arguments {
+    pub typ: Option<Type>,
+    pub expressions: Vec<Expression>,
+}

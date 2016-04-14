@@ -78,7 +78,6 @@ fn parse_simplest() {
     assert_eq!(parse(tokens), expected);
 }
 
-#[ignore]
 #[test]
 fn parse_hello() {
     let tokens = vec![Token::Keyword(Keyword::Package),
@@ -96,7 +95,6 @@ fn parse_hello() {
                       Token::OpenDelim(DelimToken::Paren),
                       Token::Literal(Literal::Str("Hello, rgo".into())),
                       Token::CloseDelim(DelimToken::Paren),
-
                       Token::CloseDelim(DelimToken::Brace)];
 
     let expected = ast::SourceFile {
@@ -118,10 +116,34 @@ fn parse_hello() {
                     ast::SimpleStmt::Expression(ast::Expression::Unary(
                             ast::UnaryExpr::Primary(
                                 Box::new(ast::PrimaryExpr::FuncCall(
-                                    Box::new(unimplemented!()),
-                                    vec![
-                                    unimplemented!()
-                                    ]
+                                    Box::new(
+                                        ast::PrimaryExpr::Operand(
+                                            ast::Operand::Ident(
+                                                ast::MaybeQualifiedIdent {
+                                                    package: Some("fmt".into()),
+                                                    name: "Println".into()
+                                                }
+                                            )
+                                        )
+                                        ),
+                                    ast::Arguments {
+                                        typ: None,
+                                        expressions: vec![
+                                            ast::Expression::Unary(
+                                                ast::UnaryExpr::Primary(
+                                                    Box::new(ast::PrimaryExpr::Operand(
+                                                        ast::Operand::Lit(
+                                                            ast::Literal::Basic(
+                                                                ast::BasicLit::Str(
+                                                                    "Hello, rgo".into()
+                                                                )
+                                                            )
+                                                        )
+                                                    ))
+                                                )
+                                            )
+                                        ]
+                                    }
                                 ))
                             )
                             ))
