@@ -151,6 +151,54 @@ impl<'src> Lexer<'src> {
         contains_newline
     }
 
+    fn scan_ident(&mut self) -> &str {
+        let start = self.pos;
+
+        while let Some(c) = self.current_char {
+            if can_continue_identifier(c) {
+                self.bump();
+            } else {
+                break;
+            }
+        }
+
+        &self.src[start..self.pos]
+    }
+
+    fn scan_ident_or_keyword(&mut self) -> Token {
+        let ident = self.scan_ident();
+
+        match &*ident {
+            "break" => Token::Keyword(Keyword::Break),
+            "case" => Token::Keyword(Keyword::Case),
+            "chan" => Token::Keyword(Keyword::Chan),
+            "const" => Token::Keyword(Keyword::Const),
+            "continue" => Token::Keyword(Keyword::Continue),
+            "default" => Token::Keyword(Keyword::Default),
+            "defer" => Token::Keyword(Keyword::Defer),
+            "else" => Token::Keyword(Keyword::Else),
+            "fallthrough" => Token::Keyword(Keyword::Fallthrough),
+            "for" => Token::Keyword(Keyword::For),
+            "func" => Token::Keyword(Keyword::Func),
+            "go" => Token::Keyword(Keyword::Go),
+            "goto" => Token::Keyword(Keyword::Goto),
+            "if" => Token::Keyword(Keyword::If),
+            "import" => Token::Keyword(Keyword::Import),
+            "interface" => Token::Keyword(Keyword::Interface),
+            "map" => Token::Keyword(Keyword::Map),
+            "package" => Token::Keyword(Keyword::Package),
+            "range" => Token::Keyword(Keyword::Range),
+            "return" => Token::Keyword(Keyword::Return),
+            "select" => Token::Keyword(Keyword::Select),
+            "struct" => Token::Keyword(Keyword::Struct),
+            "switch" => Token::Keyword(Keyword::Switch),
+            "type" => Token::Keyword(Keyword::Type),
+            "var" => Token::Keyword(Keyword::Var),
+            // XXX(perf): unnecessary alloc.
+            _ => Token::Ident(ident.into()),
+        }
+    }
+
     /// Return the next token, if any.
     ///
     /// # Example
@@ -419,49 +467,7 @@ impl<'src> Lexer<'src> {
             }
             // Scan integer.
             c if c.is_digit(10) => Token::Literal(self.scan_number()),
-            c if can_start_identifier(c) => {
-                let start = self.pos;
-
-                while let Some(c) = self.current_char {
-                    if can_continue_identifier(c) {
-                        self.bump();
-                    } else {
-                        break;
-                    }
-                }
-
-                let ident = &self.src[start..self.pos];
-
-                match &*ident {
-                    "break" => Token::Keyword(Keyword::Break),
-                    "case" => Token::Keyword(Keyword::Case),
-                    "chan" => Token::Keyword(Keyword::Chan),
-                    "const" => Token::Keyword(Keyword::Const),
-                    "continue" => Token::Keyword(Keyword::Continue),
-                    "default" => Token::Keyword(Keyword::Default),
-                    "defer" => Token::Keyword(Keyword::Defer),
-                    "else" => Token::Keyword(Keyword::Else),
-                    "fallthrough" => Token::Keyword(Keyword::Fallthrough),
-                    "for" => Token::Keyword(Keyword::For),
-                    "func" => Token::Keyword(Keyword::Func),
-                    "go" => Token::Keyword(Keyword::Go),
-                    "goto" => Token::Keyword(Keyword::Goto),
-                    "if" => Token::Keyword(Keyword::If),
-                    "import" => Token::Keyword(Keyword::Import),
-                    "interface" => Token::Keyword(Keyword::Interface),
-                    "map" => Token::Keyword(Keyword::Map),
-                    "package" => Token::Keyword(Keyword::Package),
-                    "range" => Token::Keyword(Keyword::Range),
-                    "return" => Token::Keyword(Keyword::Return),
-                    "select" => Token::Keyword(Keyword::Select),
-                    "struct" => Token::Keyword(Keyword::Struct),
-                    "switch" => Token::Keyword(Keyword::Switch),
-                    "type" => Token::Keyword(Keyword::Type),
-                    "var" => Token::Keyword(Keyword::Var),
-                    // XXX(perf): unnecessary alloc.
-                    _ => Token::Ident(ident.into()),
-                }
-            }
+            c if can_start_identifier(c) => self.scan_ident_or_keyword(),
             // Start of string literal.
             '"' => {
                 self.bump();
