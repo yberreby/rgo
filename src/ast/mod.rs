@@ -328,8 +328,38 @@ pub enum Statement {
     Select(SelectStmt),
     For(ForStmt),
     Defer(DeferStmt),
+    Empty(EmptyStmt),
 }
 
+macro_rules! enum_from_impl {
+    ($enum_type:ident, $enum_variant:ident, $inner_type:ty) => {
+        impl From<$inner_type> for $enum_type {
+            fn from(x: $inner_type) -> $enum_type {
+                $enum_type::$enum_variant(x)
+            }
+        }
+    }
+}
+
+enum_from_impl!(Statement, Decl, DeclStmt);
+enum_from_impl!(Statement, Labeled, LabeledStmt);
+enum_from_impl!(Statement, Simple, SimpleStmt);
+enum_from_impl!(Statement, Go, GoStmt);
+enum_from_impl!(Statement, Return, ReturnStmt);
+enum_from_impl!(Statement, Break, BreakStmt);
+enum_from_impl!(Statement, Continue, ContinueStmt);
+enum_from_impl!(Statement, Goto, GotoStmt);
+enum_from_impl!(Statement, Fallthrough, FallthroughStmt);
+enum_from_impl!(Statement, Block, Block);
+enum_from_impl!(Statement, If, IfStmt);
+enum_from_impl!(Statement, Switch, SwitchStmt);
+enum_from_impl!(Statement, Select, SelectStmt);
+enum_from_impl!(Statement, For, ForStmt);
+enum_from_impl!(Statement, Defer, DeferStmt);
+enum_from_impl!(Statement, Empty, EmptyStmt);
+
+
+/// A simple statement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimpleStmt {
     EmptyStmt,
@@ -357,8 +387,6 @@ pub struct GotoStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FallthroughStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block;
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SwitchStmt;
@@ -376,6 +404,11 @@ pub struct IncDecStmt;
 pub struct Assignment;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShortVarDecl;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmptyStmt;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block(pub Vec<Statement>);
 
 
 // XXX/FIXME: review and fix this.

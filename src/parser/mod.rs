@@ -381,7 +381,7 @@ impl Parser {
         statements
     }
 
-    // XXX: needs review.
+    // XXX: needs thorough review.
     fn parse_statement(&mut self) -> ast::Statement {
         // Statement =
         // 	Declaration | LabeledStmt | SimpleStmt |
@@ -391,14 +391,57 @@ impl Parser {
         //
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
-        let t = self.tokens.last().unwrap();
+        use ast::Statement;
+        // XXX: cloning.
+        let t = self.tokens.last().unwrap().clone();
 
-        match *t {
+        match t {
             Token::Keyword(Keyword::Type) |
             Token::Keyword(Keyword::Var) |
-            Token::Keyword(Keyword::Const) => {}
-            _ => unimplemented!(),
+            Token::Keyword(Keyword::Const) => self.parse_decl_stmt().into(),
+            Token::Keyword(Keyword::Go) => self.parse_go_stmt().into(),
+            Token::Keyword(Keyword::Defer) => self.parse_defer_stmt().into(),
+            Token::Keyword(Keyword::Return) => self.parse_return_stmt().into(),
+            Token::Keyword(Keyword::If) => self.parse_if_stmt().into(),
+            Token::Keyword(Keyword::Switch) => self.parse_switch_stmt().into(),
+            Token::Keyword(Keyword::Select) => self.parse_select_stmt().into(),
+            Token::Keyword(Keyword::For) => self.parse_for_stmt().into(),
+            // All simple statements start with something expression-like.
+            ref t if t.can_start_expr() => self.parse_simple_stmt().into(),
+            Token::OpenDelim(DelimToken::Brace) => ast::Block(self.parse_block()).into(),
+            Token::CloseDelim(DelimToken::Brace) => {
+                // a semicolon may be omitted before a closing "}"
+                ast::EmptyStmt.into()
+            }
+            _ => panic!("unexpected token"),
         }
+    }
+
+    fn parse_go_stmt(&mut self) -> ast::GoStmt {
+        unimplemented!()
+    }
+    fn parse_defer_stmt(&mut self) -> ast::DeferStmt {
+        unimplemented!()
+    }
+    fn parse_return_stmt(&mut self) -> ast::ReturnStmt {
+        unimplemented!()
+    }
+    fn parse_if_stmt(&mut self) -> ast::IfStmt {
+        unimplemented!()
+    }
+    fn parse_switch_stmt(&mut self) -> ast::SwitchStmt {
+        unimplemented!()
+    }
+    fn parse_select_stmt(&mut self) -> ast::SelectStmt {
+        unimplemented!()
+    }
+    fn parse_for_stmt(&mut self) -> ast::ForStmt {
+        unimplemented!()
+    }
+    fn parse_simple_stmt(&mut self) -> ast::SimpleStmt {
+        unimplemented!()
+    }
+    fn parse_decl_stmt(&mut self) -> ast::SimpleStmt {
         unimplemented!()
     }
 
