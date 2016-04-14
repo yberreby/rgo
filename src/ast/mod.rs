@@ -107,7 +107,9 @@ pub enum UnaryExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BinaryOperator {}
+pub enum BinaryOperator {
+
+}
 
 // pub enum
 
@@ -140,7 +142,7 @@ pub enum PrimaryExpr {
     Indexing(Box<PrimaryExpr>, Expression),
     Slicing(Box<PrimaryExpr>, Slice),
     TypeAssertion(Box<PrimaryExpr>, String),
-    FunctionCall(Box<PrimaryExpr>, Vec<Argument>),
+    FuncCall(Box<PrimaryExpr>, Vec<Argument>),
 }
 
 pub fn parse_primary_expr(s: &str) -> PrimaryExpr {
@@ -223,11 +225,18 @@ pub enum TypeLiteral {
     Array(ArrayType),
     Struct(StructType),
     Pointer(PointerType),
-    Function(FuncType),
+    Func(FuncType),
     Interface(InterfaceType),
     Slice(SliceType),
     Map(MapType),
     Chan(ChanType),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Literal {
+    Basic(BasicLit),
+    Composite(CompositeLit),
+    Func(FuncLit),
 }
 
 // XXX: dubious pattern. "Maybe<Something>" does not _feel_ completely right, but it doesn't feel
@@ -357,3 +366,11 @@ pub struct IncDecStmt;
 pub struct Assignment;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShortVarDecl;
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BasicLit;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompositeLit;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FuncLit;

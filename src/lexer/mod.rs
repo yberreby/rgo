@@ -13,9 +13,7 @@
 //! more convenient to display and offer a clean API; bytes are (most likely) faster to work with.
 
 use std::iter::Iterator;
-
-mod token;
-pub use self::token::*;
+pub use token::*;
 
 #[cfg(test)]
 mod test;

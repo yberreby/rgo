@@ -14,7 +14,6 @@
 
 use lexer::{Token, Keyword, DelimToken, Literal};
 use ast;
-use ast::*;
 use std::iter::Iterator;
 
 #[cfg(test)]
@@ -36,12 +35,12 @@ impl Parser {
     }
 
     /// Parse the tokens into a SourceFile (AST).
-    pub fn parse(mut self) -> SourceFile {
+    pub fn parse(mut self) -> ast::SourceFile {
         let package_name = self.parse_package_clause();
         let import_decls = self.parse_import_decls();
         let top_level_decls = self.parse_top_level_decls();
 
-        SourceFile {
+        ast::SourceFile {
             package: package_name,
             import_decls: import_decls,
             top_level_decls: top_level_decls,
@@ -70,7 +69,7 @@ impl Parser {
     }
 
     /// Parse any number of import declarations.
-    fn parse_import_decls(&mut self) -> Vec<ImportDecl> {
+    fn parse_import_decls(&mut self) -> Vec<ast::ImportDecl> {
         let mut decls = Vec::new();
 
         loop {
@@ -85,7 +84,7 @@ impl Parser {
 
     /// Parse an import declaration, which is made up of one or more import specs.
     /// Simple example with a single spec: `import "fmt"`.
-    fn parse_import_decl(&mut self) -> ImportDecl {
+    fn parse_import_decl(&mut self) -> ast::ImportDecl {
         // Grammar:
         //
         // ```
@@ -122,11 +121,11 @@ impl Parser {
             _ => panic!("unexpected end of input"),
         }
 
-        ImportDecl { specs: specs }
+        ast::ImportDecl { specs: specs }
     }
 
     /// Parse an "import spec".
-    fn parse_import_spec(&mut self) -> ImportSpec {
+    fn parse_import_spec(&mut self) -> ast::ImportSpec {
         // Grammar:
         //
         // ```
@@ -138,19 +137,19 @@ impl Parser {
         // Does this package spec define an alias?
         let kind = match self.tokens.pop().expect("unexpected end of input") {
             // Glob import.
-            Token::Dot => ImportKind::Glob,
-            Token::Ident(alias) => ImportKind::Alias(alias),
+            Token::Dot => ast::ImportKind::Glob,
+            Token::Ident(alias) => ast::ImportKind::Alias(alias),
             t => {
                 // Let's put this token back.
                 self.tokens.push(t);
-                ImportKind::Normal
+                ast::ImportKind::Normal
             }
         };
 
         // The next token MUST be a string literal (interpreted or raw).
         let path = self.parse_string_lit();
 
-        ImportSpec {
+        ast::ImportSpec {
             path: path,
             kind: kind,
         }
@@ -160,14 +159,14 @@ impl Parser {
     // Grammar:
     //
     // TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
-    fn parse_top_level_decls(&mut self) -> Vec<TopLevelDecl> {
+    fn parse_top_level_decls(&mut self) -> Vec<ast::TopLevelDecl> {
         let mut decls = Vec::new();
 
         match self.tokens.last().expect("EOF") {
             // FunctionDecl
             &Token::Keyword(Keyword::Func) => {
                 let fd = self.parse_func_decl();
-                decls.push(TopLevelDecl::Func(fd));
+                decls.push(ast::TopLevelDecl::Func(fd));
             }
             _ => panic!("unexpected token"),
         }
@@ -224,9 +223,9 @@ impl Parser {
             &Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
             // Brace = no return type, but a body. We don't care about the body in this function.
             // Semicolon = no return type and no body.
-            &Token::OpenDelim(DelimToken::Brace) | &Token::Semicolon => Parameters::empty(),
+            &Token::OpenDelim(DelimToken::Brace) | &Token::Semicolon => ast::Parameters::empty(),
             // Otherwise, a single, unnamed return type.
-            _ => Parameters::from_single_type(self.parse_type()),
+            _ => ast::Parameters::from_single_type(self.parse_type()),
         };
 
         ast::FuncSignature {
@@ -265,7 +264,7 @@ impl Parser {
         self.eat(&Token::CloseDelim(DelimToken::Paren));
 
         // XXX: do we _need_ Parameters to be a type by itself?
-        Parameters { decls: decls }
+        ast::Parameters { decls: decls }
     }
 
     /// Parse a "parameter decl".
@@ -307,7 +306,7 @@ impl Parser {
 
     /// Parse a single type (e.g. `[]string`).
     // XXX: type declarations can be very complex; this function needs attention.
-    fn parse_type(&mut self) -> Type {
+    fn parse_type(&mut self) -> ast::Type {
         // Grammar:
         //
         // Type      = TypeName | TypeLit | "(" Type ")" .
@@ -354,7 +353,7 @@ impl Parser {
                     }
                 }
 
-                ast::Type::Plain(MaybeQualifiedIdent {
+                ast::Type::Plain(ast::MaybeQualifiedIdent {
                     package: package,
                     name: name,
                 })
@@ -422,7 +421,7 @@ impl Parser {
     }
 }
 
-pub fn parse(tokens: Vec<Token>) -> SourceFile {
+pub fn parse(tokens: Vec<Token>) -> ast::SourceFile {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }

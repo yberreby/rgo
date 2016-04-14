@@ -135,7 +135,8 @@ impl Token {
         //      FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
         //      DeferStmt .
         //
-        // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment | ShortVarDecl .
+        // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
+        // ShortVarDecl .
         self.can_start_decl() || self.can_start_labeled_stmt() || self.can_start_simple_stmt() ||
         self.can_start_go_stmt() ||
         self.can_start_block() || self.is_keyword(Keyword::If) ||
@@ -202,7 +203,8 @@ impl Token {
         //                      ( [ Expression ] ":" Expression ":" Expression )
         //                  "]" .
         // TypeAssertion  = "." "(" Type ")" .
-        // Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
+        // Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ ","
+        // ] ] ")" .
         //
         // Conversion = Type "(" Expression [ "," ] ")" .
         //

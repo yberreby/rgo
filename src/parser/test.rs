@@ -1,6 +1,5 @@
 use ast;
 use lexer::{Token, Keyword, DelimToken, Literal};
-use ast::*;
 use super::{Parser, parse};
 
 #[test]
@@ -61,13 +60,13 @@ fn parse_simplest() {
                       Token::CloseDelim(DelimToken::Paren),
                       Token::OpenDelim(DelimToken::Brace),
                       Token::CloseDelim(DelimToken::Brace)];
-    let expected = SourceFile {
+    let expected = ast::SourceFile {
         package: "main".into(),
         import_decls: vec![],
-        top_level_decls: vec![TopLevelDecl::Func(FuncDecl {
+        top_level_decls: vec![ast::TopLevelDecl::Func(ast::FuncDecl {
                                   name: "main".into(),
                                   // `main` takes no arguments and returns nothing.
-                                  signature: FuncSignature {
+                                  signature: ast::FuncSignature {
                                       parameters: ast::Parameters::empty(),
                                       result: ast::Parameters::empty(),
                                   },
@@ -100,17 +99,17 @@ fn parse_hello() {
 
                       Token::CloseDelim(DelimToken::Brace)];
 
-    let expected = SourceFile {
+    let expected = ast::SourceFile {
         package: "main".into(),
-        import_decls: vec![ImportDecl {
-                               specs: vec![ImportSpec {
+        import_decls: vec![ast::ImportDecl {
+                               specs: vec![ast::ImportSpec {
                                                kind: ast::ImportKind::Normal,
                                                path: "fmt".into(),
                                            }],
                            }],
-        top_level_decls: vec![TopLevelDecl::Func(FuncDecl {
+        top_level_decls: vec![ast::TopLevelDecl::Func(ast::FuncDecl {
                                   name: "main".into(),
-                                  signature: FuncSignature {
+                                  signature: ast::FuncSignature {
                                       parameters: ast::Parameters::empty(),
                                       result: ast::Parameters::empty(),
                                   },
@@ -118,7 +117,7 @@ fn parse_hello() {
                 ast::Statement::Simple(
                     ast::SimpleStmt::Expression(ast::Expression::Unary(
                             ast::UnaryExpr::Primary(
-                                Box::new(ast::PrimaryExpr::FunctionCall(
+                                Box::new(ast::PrimaryExpr::FuncCall(
                                     Box::new(unimplemented!()),
                                     vec![
                                     unimplemented!()
