@@ -95,12 +95,6 @@ impl<'src> Lexer<'src> {
 
     /// Return the next token, if any.
     ///
-    /// A fundamental property of this function is that **the next token does not depend on the
-    /// previous one**.  This means many syntactically incorrect inputs, such as `, , ,` or
-    /// `;+m/^`, can pass tokenization, even though they would fail parsing.  This also means
-    /// testing whether a single token is tokenized properly does not require scaffolding (i.e.
-    /// building an entire test program), which is a good thing.
-    ///
     /// # Example
     ///
     /// ``` use rgo::lexer::{Lexer, Token, DelimToken};
