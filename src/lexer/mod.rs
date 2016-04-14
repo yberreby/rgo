@@ -93,16 +93,8 @@ impl<'src> Lexer<'src> {
         Literal::Integer(s.into())
     }
 
-    /// Return the next token, if any.
-    ///
-    /// # Example
-    ///
-    /// ``` use rgo::lexer::{Lexer, Token, DelimToken};
-    ///
-    /// let mut lexer = Lexer::new(")"); assert_eq!(lexer.next(),
-    /// Some(Token::CloseDelim(DelimToken::Paren))); ```
-    fn next_token_inner(&mut self) -> Option<Token> {
-        // Whitespace and comment handling.
+    /// Skip whitespace and comments, returning whether at least one newline was encountered.
+    fn skip_whitespace_and_comments(&mut self) -> bool {
         let mut contains_newline = false;
 
         while let Some(c) = self.current_char {
@@ -155,6 +147,21 @@ impl<'src> Lexer<'src> {
                 break;
             }
         }
+
+        contains_newline
+    }
+
+    /// Return the next token, if any.
+    ///
+    /// # Example
+    ///
+    /// ``` use rgo::lexer::{Lexer, Token, DelimToken};
+    ///
+    /// let mut lexer = Lexer::new(")"); assert_eq!(lexer.next(),
+    /// Some(Token::CloseDelim(DelimToken::Paren))); ```
+    fn next_token_inner(&mut self) -> Option<Token> {
+        // Whitespace and comment handling.
+        let contains_newline = self.skip_whitespace_and_comments();
 
         // Automatic semicolon insertion in the simplest case (newline + token that may terminate a
         // statement).
