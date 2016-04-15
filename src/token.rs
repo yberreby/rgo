@@ -91,6 +91,8 @@ pub enum Token {
     Semicolon,
     /// :
     Colon,
+    /// End of file
+    Eof,
 }
 
 // XXX/TODO: come back here and review this code.

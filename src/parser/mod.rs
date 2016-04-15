@@ -29,6 +29,8 @@ pub struct Parser {
     /// This allows efficient push and pop operations (appending or popping from the beginning of a
     /// vector is horribly inefficient, AFAIK).
     tokens: Vec<Token>,
+    /// The current token.
+    token: Token,
 }
 
 impl Parser {
@@ -36,7 +38,10 @@ impl Parser {
     pub fn new(mut tokens: Vec<Token>) -> Parser {
         // See doc comment on `tokens` field.
         tokens.reverse();
-        Parser { tokens: tokens }
+        Parser {
+            token: tokens.pop().unwrap(),
+            tokens: tokens,
+        }
     }
 
     /// Parse the tokens into a SourceFile (AST).
@@ -54,21 +59,31 @@ impl Parser {
 
     // === Utility functions ===
 
+    /// Advance the parser by one token.
+    fn bump(&mut self) {
+        let next = self.tokens.pop().unwrap_or(Token::Eof);
+        self.token = next;
+    }
+
     /// Consume the next token, asserting it is equal to `expected`.
     fn eat(&mut self, expected: &Token) {
-        assert_eq!(self.tokens.pop().as_ref(), Some(expected));
+        assert_eq!(&self.token, expected);
+        self.bump();
     }
 
     fn eat_keyword(&mut self, kw: Keyword) {
-        assert_eq!(self.tokens.pop(), Some(Token::Keyword(kw)))
+        self.eat(&Token::Keyword(kw));
     }
 
     /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> String {
         self.eat_keyword(Keyword::Package);
 
-        match self.tokens.pop() {
-            Some(Token::Ident(s)) => s,
+        match self.token.clone() {
+            Token::Ident(s) => {
+                self.bump();
+                s
+            }
             _ => panic!("expected identifier"),
         }
     }
@@ -78,8 +93,8 @@ impl Parser {
         let mut decls = Vec::new();
 
         loop {
-            match self.tokens.last() {
-                Some(&Token::Keyword(Keyword::Import)) => {
+            match self.token {
+                Token::Keyword(Keyword::Import) => {
                     decls.push(self.parse_import_decl());
                 }
                 _ => return decls,
@@ -99,31 +114,27 @@ impl Parser {
         self.eat_keyword(Keyword::Import);
         let mut specs = Vec::new();
 
-        match self.tokens.pop() {
+        match self.token.clone() {
             // Long import declaration.
-            Some(Token::OpenDelim(DelimToken::Paren)) => {
+            Token::OpenDelim(DelimToken::Paren) => {
+                self.bump();
+
                 // There may be multiple `ImportSpec`s in a single "long" import declaration.
                 loop {
-                    match self.tokens.last() {
+                    match self.token {
                         // XXX: Should we _know_ that import specs always start with a string
                         // literal? I'm not sure.
-                        Some(&Token::CloseDelim(DelimToken::Paren)) => {
+                        Token::CloseDelim(DelimToken::Paren) => {
                             break;
                         }
-                        Some(_) => {
+                        _ => {
                             specs.push(self.parse_import_spec());
                         }
-                        _ => panic!("unexpected end of input"),
                     }
                 }
             }
             // Short import (single ImportSpec).
-            Some(t) => {
-                // XXX: Put it back...
-                self.tokens.push(t);
-                specs.push(self.parse_import_spec());
-            }
-            _ => panic!("unexpected end of input"),
+            ref t => specs.push(self.parse_import_spec()),
         }
 
         ast::ImportDecl { specs: specs }
@@ -138,15 +149,17 @@ impl Parser {
         // ```
 
         // Does this package spec define an alias?
-        let kind = match self.tokens.pop().expect("unexpected end of input") {
+        let kind = match self.token.clone() {
             // Glob import.
-            Token::Dot => ast::ImportKind::Glob,
-            Token::Ident(alias) => ast::ImportKind::Alias(alias),
-            t => {
-                // Let's put this token back.
-                self.tokens.push(t);
-                ast::ImportKind::Normal
+            Token::Dot => {
+                self.bump();
+                ast::ImportKind::Glob
             }
+            Token::Ident(alias) => {
+                self.bump();
+                ast::ImportKind::Alias(alias)
+            }
+            ref t => ast::ImportKind::Normal,
         };
 
         // The next token MUST be a string literal (interpreted or raw).
@@ -165,7 +178,7 @@ impl Parser {
     fn parse_top_level_decls(&mut self) -> Vec<ast::TopLevelDecl> {
         let mut decls = Vec::new();
 
-        match *self.tokens.last().expect("EOF") {
+        match self.token {
             // FunctionDecl
             Token::Keyword(Keyword::Func) => {
                 let fd = self.parse_func_decl();
@@ -189,9 +202,9 @@ impl Parser {
         let name = self.parse_ident();
         let signature = self.parse_func_signature();
 
-        let body = match self.tokens.last() {
+        let body = match self.token {
             // This function has a body, parse it.
-            Some(&Token::OpenDelim(DelimToken::Brace)) => self.parse_block(),
+            Token::OpenDelim(DelimToken::Brace) => self.parse_block(),
             // Empty body.
             _ => vec![],
         };
@@ -221,7 +234,7 @@ impl Parser {
         // unnamed result it may be written as an unparenthesized type."
         let parameters = self.parse_func_params();
 
-        let result = match *self.tokens.last().expect("EOF") {
+        let result = match self.token {
             // An opening parenthesis! We can parse an output parameter list.
             Token::OpenDelim(DelimToken::Paren) => self.parse_func_params(),
             // Brace = no return type, but a body. We don't care about the body in this function.
@@ -253,7 +266,7 @@ impl Parser {
         let mut decls = Vec::new();
 
         // The parameter list is optional.
-        match *self.tokens.last().expect("EOF") {
+        match self.token {
             Token::Ident(_) | Token::Ellipsis => {
                 decls.push(self.parse_parameter_decl());
 
@@ -279,19 +292,19 @@ impl Parser {
         let mut variadic = false;
 
         // The identifier list is optional.
-        if let Token::Ident(_) = *self.tokens.last().expect("EOF") {
+        if let Token::Ident(_) = self.token {
             // Grammar:
             // IdentifierList = identifier { "," identifier } .
             idents.push(self.parse_ident());
 
-            while let Token::Comma = *self.tokens.last().expect("EOF") {
+            while let Token::Comma = self.token {
                 self.eat(&Token::Comma);
                 idents.push(self.parse_ident());
             }
         }
 
         // So is the ellipsis that indicates a variadic func.
-        if let Token::Ellipsis = *self.tokens.last().expect("EOF") {
+        if let Token::Ellipsis = self.token {
             self.eat(&Token::Ellipsis);
             variadic = true;
             // TODO: variadic funcs
@@ -320,7 +333,7 @@ impl Parser {
         // TypeName = a (potentially qualified with a module path) identifier
         // TypeLit = more complex type, this is where it gets interesting
 
-        match *self.tokens.last().expect("EOF") {
+        match self.token {
             // A Type may be surrounded in parentheses, in which case we simply eat the
             // parentheses and recurse.
             Token::OpenDelim(DelimToken::Paren) => {
@@ -335,7 +348,7 @@ impl Parser {
 
                 let name;
                 let package;
-                match *self.tokens.last().expect("EOF") {
+                match self.token {
                     // This is a qualified identifier.
                     // XXX: should we move that to a new function?
                     // Qualified idents can only appear in:
@@ -372,7 +385,7 @@ impl Parser {
         self.eat(&Token::OpenDelim(DelimToken::Brace));
 
         let mut statements = Vec::new();
-        while self.tokens.last().expect("EOF").can_start_statement() {
+        while self.token.can_start_statement() {
             statements.push(self.parse_statement());
             self.eat(&Token::Semicolon);
         }
@@ -392,10 +405,9 @@ impl Parser {
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
         use ast::Statement;
-        // XXX: cloning.
-        let t = self.tokens.last().unwrap().clone();
 
-        match t {
+        // XXX: cloning.
+        match self.token.clone() {
             Token::Keyword(Keyword::Type) |
             Token::Keyword(Keyword::Var) |
             Token::Keyword(Keyword::Const) => self.parse_decl_stmt().into(),
@@ -448,8 +460,11 @@ impl Parser {
     /// Parse an identifier.
     // XXX: come back later. String interning and all that.
     fn parse_ident(&mut self) -> String {
-        match self.tokens.pop().expect("EOF") {
-            Token::Ident(s) => s,
+        match self.token.clone() {
+            Token::Ident(s) => {
+                self.bump();
+                s
+            }
             _ => panic!("unexpected token"),
         }
     }
@@ -466,8 +481,9 @@ impl Parser {
         // interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
         // ```
 
-        match self.tokens.pop().expect("unexpected end of input") {
+        match self.token.clone() {
             Token::Literal(lit) => {
+                self.bump();
                 match lit {
                     // Nothing to interpret, move along.
                     Literal::StrRaw(s) => s,
