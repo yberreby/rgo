@@ -64,9 +64,6 @@ The lexer can now tokenize a "Hello, rgo" program properly!
 
 Next steps: integer literals (very easy); semicolon; various compound tokens.
 
-I'm going to have to set this project aside for a few months because of my
-studies.
-
 ## Sun Apr 3 12:12 - Whitespace
 
 When I started writing the lexer, I've made the decision to tokenize *all*
@@ -85,7 +82,7 @@ change.
 
 `test-data/viper.go` can now be tokenized without panicking!
 
-Next steps: 
+Next steps:
 
 In lexer: float, complex/imaginary, raw string and rune literals.
 Then, the parser. First goal: parsing a "Hello, rgo" program.
@@ -100,3 +97,20 @@ interpreted, but treated like raw strings. This is bad.
 
 Added a "progress.md" file that will help me keep track of what I need to do
 next.
+
+## Fri Apr 15 13:45 - Progress report and some notes
+
+- we need a _lot_ of tests, that make sure to trigger every corner case under
+  the sun. A good idea may be to reuse Go's test suite, but I'm not sure how
+  hard that would be. What _is_ certain is that correctness is a priority.
+- the lexer does not handle complex numbers, runes, floats, hexadecimal
+  integers... but kind-of works for simple programs.
+- the parser has been substantially improved but I dislike the complexity of
+  token pattern matching. Ideally we'd have a nice, float hierachy of tokens,
+  but then we lose some type safety...
+- I still have no idea how I'll go about generating LLVM IR. I'm also not sure
+  whether the visitor pattern will be useful, and if it is, how to implement it
+  since my AST is basically a deeply nested hierarchy of structs and enums.
+- Writing a compiler is fun! I don't know how far I'll take this, but so far, it
+  has been an extremely valuable experience. I encourage anyone who's reading
+  this and still hesitating to try, if only for the experience they will gain.
