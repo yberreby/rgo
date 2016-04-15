@@ -13,7 +13,9 @@
 //! more convenient to display and offer a clean API; bytes are (most likely) faster to work with.
 //!
 //! - I'm not sure what the best way to store tokens is. A slice into the original source, an
-//! interned string...?
+//! interned string...? Probably an interned string, this is what rustc uses and it speeds up
+//! comparisons, which are going to be very frequent. Probably reduces allocations, too - and we're
+//! allocating a _lot_. We'd have to benchmark to be sure.
 
 use std::iter::Iterator;
 pub use token::*;
