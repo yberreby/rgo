@@ -476,6 +476,10 @@ impl<'src> Lexer<'src> {
                 let lit = self.scan_interpreted_str_lit();
                 Token::Literal(Literal::Str(lit))
             }
+            '`' => {
+                let l = self.scan_raw_str_lit();
+                Token::Literal(Literal::StrRaw(l))
+            }
             c => panic!("unexpected start of token: '{}'", c),
         };
 
@@ -502,6 +506,30 @@ impl<'src> Lexer<'src> {
         let s = &self.src[start..self.pos];
 
         // Skip the quote _after_ slicing so that it isn't included
+        // in the slice.
+        self.bump();
+        // XXX(perf): alloc.
+        s.into()
+    }
+
+    // XXX: review and test.
+    fn scan_raw_str_lit(&mut self) -> String {
+        // Bump past the opening backtrick.
+        self.bump();
+        let start = self.pos;
+
+        while let Some(c) = self.current_char {
+            // Raw strings are pretty simple, because we don't have to handle escapes.
+            if c == '`' {
+                break;
+            } else {
+                self.bump();
+            }
+        }
+
+        let s = &self.src[start..self.pos];
+
+        // Skip the backtick _after_ slicing so that it isn't included
         // in the slice.
         self.bump();
         // XXX(perf): alloc.
