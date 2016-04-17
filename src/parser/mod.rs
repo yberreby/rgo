@@ -20,9 +20,6 @@
 use token::{Token, TokenKind};
 use ast;
 
-#[cfg(test)]
-mod test;
-
 pub struct Parser {
     /// A list of tokens, **in reverse order**.
     /// This allows efficient push and pop operations (appending or popping from the beginning of a

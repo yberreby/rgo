@@ -20,9 +20,6 @@
 use std::iter::Iterator;
 pub use token::*;
 
-#[cfg(test)]
-mod test;
-
 pub struct Lexer<'src> {
     /// Byte offset from the start of the source string.
     pos: usize,
