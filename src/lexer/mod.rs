@@ -30,8 +30,8 @@ pub struct Lexer<'src> {
     src: &'src str,
     /// The last character to be read.
     current_char: Option<char>,
-    /// The last token to be read. Used for automatic semicolon insertion.
-    last_token: Option<Token>,
+    /// The kind of token we read last. Used for automatic semicolon insertion.
+    last_token_kind: Option<TokenKind>,
 }
 
 impl<'src> Lexer<'src> {
@@ -44,7 +44,7 @@ impl<'src> Lexer<'src> {
             src: s,
             pos: 0,
             current_char: first_char,
-            last_token: None,
+            last_token_kind: None,
         }
     }
 
@@ -222,7 +222,7 @@ impl<'src> Lexer<'src> {
         // The Go Spec also says that a semicolon may be omitted before a closing ")" or "}".
         // This case is _not_ handled by the lexer, but by the parser, as it requires too much
         // context.
-        if contains_newline && may_terminate_statement(self.last_token.as_ref()) {
+        if contains_newline && may_terminate_statement(self.last_token_kind) {
             return Some(Token::Semicolon);
         }
 
@@ -546,7 +546,7 @@ impl<'src> Iterator for Lexer<'src> {
         let t = self.next_token_inner();
         // XXX(perf): do we need to clone?
         // If we do - can we make cloning tokens cheap?
-        self.last_token = t.clone();
+        self.last_token_kind = t.as_ref().map(|t| t.kind());
         t
     }
 }
@@ -588,7 +588,7 @@ fn char_at(s: &str, byte: usize) -> char {
 }
 
 // For automatic semicolon insertion.
-fn may_terminate_statement(t: Option<&Token>) -> bool {
+fn may_terminate_statement(t: Option<TokenKind>) -> bool {
     // A non-existent token may not terminate a line.
     let t = match t {
         Some(t) => t,
@@ -603,18 +603,18 @@ fn may_terminate_statement(t: Option<&Token>) -> bool {
     // - an integer, floating-point, imaginary, rune, or string literal
     // - one of the keywords break, continue, fallthrough, or return
     // - one of the operators and delimiters ++, --, ), ], or }
-    match *t {
-        Token::Ident(_) |
-        Token::Literal(_) |
-        Token::Keyword(Keyword::Break) |
-        Token::Keyword(Keyword::Continue) |
-        Token::Keyword(Keyword::Fallthrough) |
-        Token::Keyword(Keyword::Return) |
-        Token::Increment |
-        Token::Decrement |
-        Token::CloseDelim(DelimToken::Paren) |
-        Token::CloseDelim(DelimToken::Bracket) |
-        Token::CloseDelim(DelimToken::Brace) => true,
+    match t {
+        TokenKind::Ident |
+        TokenKind::Break |
+        TokenKind::Continue |
+        TokenKind::Fallthrough |
+        TokenKind::Return |
+        TokenKind::Increment |
+        TokenKind::Decrement |
+        TokenKind::RParen |
+        TokenKind::RBracket |
+        TokenKind::RBrace => true,
+        t if t.is_literal() => true,
         _ => false,
     }
 }
