@@ -23,6 +23,7 @@ pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
 impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     pub fn new(mut it: R) -> Parser<R> {
         let first_tok_and_pos = it.next().unwrap();
+        debug!("first_tok_and_pos: {:?}", first_tok_and_pos);
         Parser {
             token: first_tok_and_pos.token,
             offset: first_tok_and_pos.offset,
@@ -59,7 +60,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         let next = self.reader.next();
 
         if let Some(ref tap) = next {
-            self.offset += tap.offset;
+            self.offset = tap.offset;
         }
 
         let next_tok = next.map(|x| x.token).unwrap_or(Token {
@@ -493,8 +494,10 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     fn parse_ident(&mut self) -> PResult<String> {
         match self.token.kind {
             TokenKind::Ident => {
-                self.bump();
-                Ok(self.token.value.clone().unwrap())
+                Ok(self.bump_and_get()
+                       .value
+                       .clone()
+                       .expect("BUG: missing value in identifier token"))
             }
             _ => {
                 Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Ident],

@@ -28,6 +28,7 @@ fn main() {
     env::set_var("RUST_LOG", "trace");
     env::set_var("RUST_BACKTRACE", "1");
     env_logger::init().unwrap();
+
     lexing_does_not_panic();
     parsing_does_not_panic();
 }

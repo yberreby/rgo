@@ -205,6 +205,7 @@ impl<'src> Lexer<'src> {
             // XXX(perf): unnecessary alloc.
             _ => {
                 value = Some(ident.into());
+                debug!("value: {:?}", value);
                 TokenKind::Ident
             }
         };

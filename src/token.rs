@@ -218,6 +218,9 @@ impl TokenKind {
         // ShortVarDecl .
         self.can_start_decl() || self.can_start_labeled_stmt() || self.can_start_simple_stmt() ||
         self.can_start_go_stmt() ||
+        *self == TokenKind::Return || *self == TokenKind::Break ||
+        *self == TokenKind::Continue || *self == TokenKind::Goto ||
+        *self == TokenKind::Fallthrough ||
         self.can_start_block() || *self == TokenKind::If ||
         // XXX/TODO: double check this is correct.
         *self == TokenKind::Switch || *self == TokenKind::Select ||
