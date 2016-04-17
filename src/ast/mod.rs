@@ -147,10 +147,6 @@ pub enum PrimaryExpr {
     FuncCall(Box<PrimaryExpr>, Arguments),
 }
 
-pub fn parse_primary_expr(s: &str) -> PrimaryExpr {
-    unimplemented!()
-}
-
 // Represents a slicing operating... [1:54] for ex
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Slice {
@@ -200,6 +196,7 @@ impl Parameters {
             decls: vec![ParameterDecl {
                             identifiers: vec![],
                             typ: t,
+                            variadic: false,
                         }],
         }
     }
@@ -212,6 +209,10 @@ pub struct ParameterDecl {
     pub identifiers: Vec<String>,
     /// The type assigned to every identifier in this declaration.
     pub typ: Type,
+    // XXX: review this.
+    // ONLY the last ParameterDecl of a Parameters struct may be variadic.
+    // And only if it's part of _input_ parameters.
+    pub variadic: bool,
 }
 
 // XXX: types need attention.

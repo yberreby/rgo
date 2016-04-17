@@ -128,22 +128,20 @@ impl<'src> Lexer<'src> {
 
                 // Resume whitespace skipping.
                 continue;
-            } else {
-                // Otherwise, at we at the start of a line comment (`// ...`)?
-                if c == '/' && self.next_char() == Some('/') {
-                    while let Some(c) = self.current_char {
-                        if c == '\n' {
-                            break;
-                        } else {
-                            self.bump();
-                        }
-                    }
 
-                    // Resume whitespace skipping.
-                    // Since we have not bumped past the newline character,
-                    // the next iteration of the loop will catch it.
-                    continue;
+            } else if c == '/' && self.next_char() == Some('/') {
+                while let Some(c) = self.current_char {
+                    if c == '\n' {
+                        break;
+                    } else {
+                        self.bump();
+                    }
                 }
+
+                // Resume whitespace skipping.
+                // Since we have not bumped past the newline character,
+                // the next iteration of the loop will catch it.
+                continue;
             }
 
             if c.is_whitespace() {
@@ -152,6 +150,7 @@ impl<'src> Lexer<'src> {
                 break;
             }
         }
+
 
         contains_newline
     }

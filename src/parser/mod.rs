@@ -17,7 +17,7 @@
 //! - Should we pop/push from a vector, or use a slice and an index? Popping frees up memory as we
 //! go, but is most likely slower.
 
-use token::{self, Token, DelimToken, TokenKind, Literal, Keyword};
+use token::{Token, DelimToken, TokenKind, Literal, Keyword};
 use ast;
 use std::iter::Iterator;
 
@@ -134,7 +134,7 @@ impl Parser {
                 }
             }
             // Short import (single ImportSpec).
-            ref t => specs.push(self.parse_import_spec()),
+            _ => specs.push(self.parse_import_spec()),
         }
 
         ast::ImportDecl { specs: specs }
@@ -159,7 +159,7 @@ impl Parser {
                 self.bump();
                 ast::ImportKind::Alias(alias)
             }
-            ref t => ast::ImportKind::Normal,
+            _ => ast::ImportKind::Normal,
         };
 
         // The next token MUST be a string literal (interpreted or raw).
@@ -307,8 +307,6 @@ impl Parser {
         if let Token::Ellipsis = self.token {
             self.eat(&Token::Ellipsis);
             variadic = true;
-            // TODO: variadic funcs
-            unimplemented!()
         }
 
         // The type is mandatory.
@@ -317,6 +315,7 @@ impl Parser {
         ast::ParameterDecl {
             identifiers: idents,
             typ: typ,
+            variadic: variadic,
         }
     }
 
@@ -404,7 +403,6 @@ impl Parser {
         //
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
-        use ast::Statement;
 
         match self.token.kind() {
             TokenKind::Type |
@@ -500,6 +498,6 @@ impl Parser {
 }
 
 pub fn parse(tokens: Vec<Token>) -> ast::SourceFile {
-    let mut parser = Parser::new(tokens);
+    let parser = Parser::new(tokens);
     parser.parse()
 }

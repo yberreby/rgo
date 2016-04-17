@@ -6,7 +6,7 @@ extern crate env_logger;
 extern crate time;
 use convenience::read_file;
 use std::env;
-use time::{PreciseTime, Duration};
+use time::PreciseTime;
 
 
 fn main() {
