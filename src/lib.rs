@@ -19,3 +19,8 @@ pub mod lexer;
 pub mod parser;
 
 pub use parser::Parser;
+
+pub fn parse(src: &str) -> ast::SourceFile {
+    let tokens = lexer::tokenize(src);
+    parser::parse_tokens(tokens)
+}

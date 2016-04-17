@@ -492,7 +492,7 @@ impl Parser {
     }
 }
 
-pub fn parse(tokens: Vec<Token>) -> ast::SourceFile {
+pub fn parse_tokens(tokens: Vec<Token>) -> ast::SourceFile {
     let parser = Parser::new(tokens);
     parser.parse()
 }
