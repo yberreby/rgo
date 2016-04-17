@@ -19,38 +19,10 @@
 
 use token::{Token, TokenKind};
 use ast;
+use Position;
 
-pub enum ParseError {
-    UnexpectedToken {
-        found: Token,
-        expected: Vec<TokenKind>,
-    },
-}
-
-use std::fmt;
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ParseError::UnexpectedToken { ref found, ref expected } => {
-                try!(write!(f, "expected "));
-
-                if expected.len() > 2 {
-                    try!(write!(f, "one of "));
-
-                    let mut sep = " ";
-                    for tk in expected {
-                        try!(write!(f, "\"{}\"{}", tk, sep));
-                        sep = ", ";
-                    }
-                } else {
-                    try!(write!(f, "\"{}\" ", expected[0]));
-                }
-
-                write!(f, "found \"{}\"", found)
-            }
-        }
-    }
-}
+mod error;
+pub use self::error::ParseError;
 
 pub struct Parser {
     /// A list of tokens, **in reverse order**.
@@ -59,6 +31,8 @@ pub struct Parser {
     tokens: Vec<Token>,
     /// The current token.
     token: Token,
+    /// Our current position in the source file.
+    pos: Position,
 }
 
 impl Parser {
@@ -69,6 +43,7 @@ impl Parser {
         Parser {
             token: tokens.pop().unwrap(),
             tokens: tokens,
+            pos: Position::start(),
         }
     }
 

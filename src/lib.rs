@@ -15,6 +15,9 @@ extern crate log;
 #[macro_use]
 extern crate quick_error;
 
+mod pos;
+pub use self::pos::Position;
+
 pub mod token;
 pub mod ast;
 pub mod lexer;
