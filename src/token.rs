@@ -1,4 +1,11 @@
 use std::fmt;
+use Position;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TokenAndOffset {
+    pub token: Token,
+    pub offset: u32,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {

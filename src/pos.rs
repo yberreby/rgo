@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Position {
     /// 1-indexed row.
     pub row: usize,

@@ -1,50 +1,32 @@
 //! # Parser
 //!
 //! Turn a list of tokens into an AST.
-//!
-//! ## To do
-//!
-//! - Use `Result`s for error handling, potentially with the question mark operator if we don't
-//! mind using nightlies only.
-//!
-//! ## Unresolved questions
-//!
-//! - Is the pattern of inspecting the last element by reference, then popping it inside a function
-//! and asserting it is equal to something, bad? It lets smaller functions not worry about what
-//! came before them, **but** it also duplicates knowledge of what a construct may start with and
-//! may hurt performance.
-//!
-//! - Should we pop/push from a vector, or use a slice and an index? Popping frees up memory as we
-//! go, but is most likely slower.
 
 use std::mem;
-use token::{Token, TokenKind};
+use token::{Token, TokenAndOffset, TokenKind};
 use ast;
 use Position;
 
 mod error;
 pub use self::error::ParseError;
 
-pub struct Parser {
-    /// A list of tokens, **in reverse order**.
-    /// This allows efficient push and pop operations (appending or popping from the beginning of a
-    /// vector is horribly inefficient, AFAIK).
-    tokens: Vec<Token>,
+pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
+    /// Our source of tokens.
+    /// Users can choose to read all the tokens up-front, or to read them lazily.
+    reader: R,
     /// The current token.
     token: Token,
-    /// Our current position in the source file.
-    pos: Position,
+    /// Current byte offset from start of source string.
+    offset: u32,
 }
 
-impl Parser {
-    /// Create a new `Parser` from a list of tokens.
-    pub fn new(mut tokens: Vec<Token>) -> Parser {
-        // See doc comment on `tokens` field.
-        tokens.reverse();
+impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
+    pub fn new(mut it: R) -> Parser<R> {
+        let first_tok_and_pos = it.next().unwrap();
         Parser {
-            token: tokens.pop().unwrap(),
-            tokens: tokens,
-            pos: Position::start(),
+            token: first_tok_and_pos.token,
+            offset: first_tok_and_pos.offset,
+            reader: it,
         }
     }
 
@@ -65,11 +47,12 @@ impl Parser {
 
     /// Advance the parser by one token.
     fn bump(&mut self) {
-        let next = self.tokens.pop().unwrap_or(Token {
+        let next = self.reader.next();
+        let next_tok = next.map(|x| x.token).unwrap_or(Token {
             kind: TokenKind::Eof,
             value: None,
         });
-        self.token = next;
+        self.token = next_tok;
     }
 
     /// Advance the parser by one token and return the bumped token.
@@ -508,7 +491,7 @@ impl Parser {
     }
 }
 
-pub fn parse_tokens(tokens: Vec<Token>) -> ast::SourceFile {
-    let parser = Parser::new(tokens);
+pub fn parse_tokens(tokens: Vec<TokenAndOffset>) -> ast::SourceFile {
+    let parser = Parser::new(tokens.into_iter());
     parser.parse()
 }

@@ -20,9 +20,11 @@
 use std::iter::Iterator;
 pub use token::*;
 
+use Position;
+
 pub struct Lexer<'src> {
     /// Byte offset from the start of the source string.
-    pos: usize,
+    offset: usize,
     /// The source string.
     src: &'src str,
     /// The last character to be read.
@@ -39,18 +41,19 @@ impl<'src> Lexer<'src> {
 
         Lexer {
             src: s,
-            pos: 0,
+            offset: 0,
             current_char: first_char,
             last_token_kind: None,
         }
     }
 
     /// 'eat' one character.
+    /// This is a _very_ hot function.
     fn bump(&mut self) {
-        self.pos += self.current_char.unwrap().len_utf8();
+        self.offset += self.current_char.unwrap().len_utf8();
 
-        if self.pos < self.src.len() {
-            let ch = char_at(&self.src, self.pos);
+        if self.offset < self.src.len() {
+            let ch = char_at(&self.src, self.offset);
             self.current_char = Some(ch);
         } else {
             self.current_char = None;
@@ -60,9 +63,9 @@ impl<'src> Lexer<'src> {
     /// Return the next character **without** bumping.
     /// Useful for lookahead.
     fn next_char(&self) -> Option<char> {
-        let next_pos = self.pos + 1;
-        if next_pos < self.src.len() {
-            let ch = char_at(&self.src, next_pos);
+        let next_offset = self.offset + 1;
+        if next_offset < self.src.len() {
+            let ch = char_at(&self.src, next_offset);
             Some(ch)
         } else {
             None
@@ -79,7 +82,7 @@ impl<'src> Lexer<'src> {
         // octal_lit   = "0" { octal_digit } .
         // hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
 
-        let start = self.pos;
+        let start = self.offset;
 
         while let Some(c) = self.current_char {
             // Base 10.
@@ -90,7 +93,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.pos];
+        let s = &self.src[start..self.offset];
 
         Token {
             value: Some(s.into()),
@@ -156,7 +159,7 @@ impl<'src> Lexer<'src> {
     }
 
     fn scan_ident(&mut self) -> &str {
-        let start = self.pos;
+        let start = self.offset;
 
         while let Some(c) = self.current_char {
             if can_continue_identifier(c) {
@@ -166,7 +169,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        &self.src[start..self.pos]
+        &self.src[start..self.offset]
     }
 
     fn scan_ident_or_keyword(&mut self) -> Token {
@@ -491,7 +494,7 @@ impl<'src> Lexer<'src> {
 
     fn scan_interpreted_str_lit(&mut self) -> Token {
         self.bump();
-        let start = self.pos;
+        let start = self.offset;
 
         while let Some(c) = self.current_char {
             // If we encounter a backslash escape, we just skip past the '\' and the
@@ -506,7 +509,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.pos];
+        let s = &self.src[start..self.offset];
 
         // Skip the quote _after_ slicing so that it isn't included
         // in the slice.
@@ -523,7 +526,7 @@ impl<'src> Lexer<'src> {
     fn scan_raw_str_lit(&mut self) -> Token {
         // Bump past the opening backtrick.
         self.bump();
-        let start = self.pos;
+        let start = self.offset;
 
         while let Some(c) = self.current_char {
             // Raw strings are pretty simple, because we don't have to handle escapes.
@@ -534,7 +537,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.pos];
+        let s = &self.src[start..self.offset];
 
         // Skip the backtick _after_ slicing so that it isn't included
         // in the slice.
@@ -549,19 +552,27 @@ impl<'src> Lexer<'src> {
 }
 
 impl<'src> Iterator for Lexer<'src> {
-    type Item = Token;
+    type Item = TokenAndOffset;
 
-    fn next(&mut self) -> Option<Token> {
+    fn next(&mut self) -> Option<TokenAndOffset> {
+        let start = self.offset as u32;
         let t = self.next_token_inner();
         self.last_token_kind = t.as_ref().map(|t| t.kind);
-        t
+
+        t.map(|t| {
+            TokenAndOffset {
+                token: t,
+                offset: start,
+            }
+        })
     }
 }
 
 /// Convenience function to collect all the tokens from a string.
+#[deprecated]
 pub fn tokenize(s: &str) -> Vec<Token> {
     let lexer = Lexer::new(s);
-    lexer.collect()
+    lexer.map(|x| x.token).collect()
 }
 
 
