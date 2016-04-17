@@ -97,15 +97,29 @@ pub struct ConstSpec {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     Unary(UnaryExpr),
-    Binary(Box<Expr>, BinaryOperator, Box<Expr>),
+    Binary(BinaryOperation),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BinaryOperation {
+    lhs: Box<Expr>,
+    operator: BinaryOperator,
+    rhs: Box<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryExpr {
     Primary(Box<PrimaryExpr>),
-    UnaryOperation(UnaryOperator, Box<UnaryExpr>),
+    UnaryOperation(UnaryOperation),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnaryOperation {
+    operator: UnaryOperator,
+    expr: Box<UnaryExpr>,
+}
+
+// TODO
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOperator {
 
@@ -138,20 +152,65 @@ pub enum BinaryOperator {
 pub enum PrimaryExpr {
     Operand(Operand),
     Conversion(Conversion),
-    Selection(Box<PrimaryExpr>, String),
-    Indexing(Box<PrimaryExpr>, Expr),
-    Slicing(Box<PrimaryExpr>, Slice),
-    TypeAssertion(Box<PrimaryExpr>, String),
-    /// The first field is an expression of function type.
-    /// The second is the arguments to that function.
-    FuncCall(Box<PrimaryExpr>, Arguments),
+    SelectorExpr(SelectorExpr),
+    Indexing(IndexExpr),
+    Slicing(SliceExpr),
+    TypeAssertion(TypeAssertion),
+    FuncCall(FuncCall),
 }
 
-// Represents a slicing operating... [1:54] for ex
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Slice {
-
+pub struct SelectorExpr {
+    pub operand: Box<PrimaryExpr>,
+    pub selector: String,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IndexExpr {
+    pub operand: Box<PrimaryExpr>,
+    pub index: Expr,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SliceExpr {
+    operand: Box<PrimaryExpr>,
+    slicing: Slicing,
+}
+// XXX: naming
+
+// From the Go spec:
+//
+//  For an array, pointer to array, or slice a (but not a string), the primary expression
+//
+//    a[low : high : max]
+//
+// constructs a slice of the same type, and with the same length and elements as the simple slice
+// expression a[low : high]. Additionally, it controls the resulting slice's capacity by setting it
+// to max - low. Only the first index may be omitted; it defaults to 0. After slicing the array a
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Slicing {
+    pub low: Expr,
+    pub high: Expr,
+    pub max: Option<Expr>,
+}
+
+/// A TypeAssertion contains the expression whose type is being asserted.
+/// This superficially differs from the grammar in the Go spec.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeAssertion {
+    expr: Box<PrimaryExpr>,
+    typ: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FuncCall {
+    callee: Box<PrimaryExpr>,
+    args: Arguments,
+}
+
+
 
 
 

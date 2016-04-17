@@ -490,6 +490,24 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         unimplemented!()
     }
     fn parse_expr(&mut self) -> PResult<ast::Expr> {
+        // Expression = UnaryExpr | Expression binary_op Expression .
+        // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+        //
+        // binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+        // rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+        // add_op     = "+" | "-" | "|" | "^" .
+        // mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+        //
+        // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
+        Ok(match self.token.kind {
+            k if k.is_unary_op() => {
+                ast::Expr::Unary(ast::UnaryExpr::UnaryOperation(try!(self.parse_unary_operation())))
+            }
+            _ => unimplemented!(),
+        })
+    }
+
+    fn parse_unary_operation(&mut self) -> PResult<ast::UnaryOperation> {
         unimplemented!()
     }
 
