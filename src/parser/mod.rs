@@ -32,12 +32,18 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ParseError::UnexpectedToken { ref found, ref expected } => {
-                try!(write!(f, "expected one of "));
+                try!(write!(f, "expected "));
 
-                let mut sep = "";
-                for tk in expected {
-                    try!(write!(f, "\"{}\"{}", tk, sep));
-                    sep = ", ";
+                if expected.len() > 2 {
+                    try!(write!(f, "one of "));
+
+                    let mut sep = " ";
+                    for tk in expected {
+                        try!(write!(f, "\"{}\"{}", tk, sep));
+                        sep = ", ";
+                    }
+                } else {
+                    try!(write!(f, "\"{}\" ", expected[0]));
                 }
 
                 write!(f, "found \"{}\"", found)
@@ -207,7 +213,13 @@ impl Parser {
                 let fd = self.parse_func_decl();
                 decls.push(ast::TopLevelDecl::Func(fd));
             }
-            _ => panic!("unexpected token"),
+            _ => {
+                panic!(ParseError::UnexpectedToken {
+                           expected: vec![TokenKind::Func],
+                           found: self.token.clone(),
+                       }
+                       .to_string())
+            }
         }
 
         decls
