@@ -5,8 +5,8 @@ pub type PResult<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
-    offset: u32,
-    inner: ErrorKind,
+    pub offset: u32,
+    pub kind: ErrorKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

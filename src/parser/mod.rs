@@ -47,12 +47,21 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
     /// Build a parse error.
     fn err(&self, kind: ErrorKind) -> Error {
-        unimplemented!()
+        Error {
+            offset: self.offset,
+            kind: kind,
+        }
     }
 
     /// Advance the parser by one token.
     fn bump(&mut self) {
+        trace!("bump");
         let next = self.reader.next();
+
+        if let Some(ref tap) = next {
+            self.offset += tap.offset;
+        }
+
         let next_tok = next.map(|x| x.token).unwrap_or(Token {
             kind: TokenKind::Eof,
             value: None,
@@ -83,19 +92,24 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
     /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> PResult<String> {
+        trace!("parse_package_clause");
+
         try!(self.eat(TokenKind::Package));
 
-        match self.token.kind {
+        let package_name = match self.token.kind {
             TokenKind::Ident => Ok(self.bump_and_get().value.unwrap()),
             _ => {
                 Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Ident],
                                                          self.token.clone())))
             }
-        }
+        };
+        try!(self.eat(TokenKind::Semicolon));
+        package_name
     }
 
     /// Parse any number of import declarations.
     fn parse_import_decls(&mut self) -> PResult<Vec<ast::ImportDecl>> {
+        trace!("parse_import_decls");
         let mut decls = Vec::new();
 
         loop {
@@ -111,6 +125,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     /// Parse an import declaration, which is made up of one or more import specs.
     /// Simple example with a single spec: `import "fmt"`.
     fn parse_import_decl(&mut self) -> PResult<ast::ImportDecl> {
+        trace!("parse_import_decl");
         // Grammar:
         //
         // ```
@@ -142,12 +157,14 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             // Short import (single ImportSpec).
             _ => specs.push(try!(self.parse_import_spec())),
         }
+        try!(self.eat(TokenKind::Semicolon));
 
         Ok(ast::ImportDecl { specs: specs })
     }
 
     /// Parse an "import spec".
     fn parse_import_spec(&mut self) -> PResult<ast::ImportSpec> {
+        trace!("parse_import_spec");
         // Grammar:
         //
         // ```
@@ -179,6 +196,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     //
     // TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
     fn parse_top_level_decls(&mut self) -> PResult<Vec<ast::TopLevelDecl>> {
+        trace!("parse_top_level_decls");
         let mut decls = Vec::new();
 
         // FIXME: no loop + unfinished!
@@ -200,6 +218,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
     /// Parse a full function declaration (including signature, name, and block).
     fn parse_func_decl(&mut self) -> PResult<ast::FuncDecl> {
+        trace!("parse_func_decl");
         // Grammar:
         // FunctionDecl = "func" FunctionName ( Function | Signature ) .
         // FunctionName = identifier .
@@ -216,6 +235,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             // Empty body.
             _ => vec![],
         };
+        try!(self.eat(TokenKind::Semicolon));
 
         Ok(ast::FuncDecl {
             name: name,
@@ -226,6 +246,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
     /// Parse a function _signature_ - i.e., just the parameter and result types of a func.
     fn parse_func_signature(&mut self) -> PResult<ast::FuncSignature> {
+        trace!("parse_func_signature");
         // Grammar:
         //
         // Signature      = Parameters [ Result ] .
@@ -264,6 +285,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     /// parenthesis, and follow the same grammar as input parameters.
     /// Parameters may be named or unnamed.
     fn parse_func_params(&mut self) -> PResult<ast::Parameters> {
+        trace!("parse_func_params");
         // Grammar:
         //
         // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
@@ -293,6 +315,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
     /// Parse a "parameter decl".
     fn parse_parameter_decl(&mut self) -> PResult<ast::ParameterDecl> {
+        trace!("parse_parameter_decl");
         // Grammar:
         // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
 
@@ -330,6 +353,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     /// Parse a single type (e.g. `[]string`).
     // XXX: type declarations can be very complex; this function needs attention.
     fn parse_type(&mut self) -> PResult<ast::Type> {
+        trace!("parse_type");
         // Grammar:
         //
         // Type      = TypeName | TypeLit | "(" Type ")" .
@@ -386,6 +410,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
 
     fn parse_block(&mut self) -> PResult<Vec<ast::Statement>> {
+        trace!("parse_block");
         // Grammar:
         // Block = "{" StatementList "}" .
         // StatementList = { Statement ";" } .
@@ -403,6 +428,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
     // XXX: needs thorough review.
     fn parse_statement(&mut self) -> PResult<ast::Statement> {
+        trace!("parse_statement");
         // Statement =
         // 	Declaration | LabeledStmt | SimpleStmt |
         // 	GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
