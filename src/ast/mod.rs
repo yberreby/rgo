@@ -71,20 +71,20 @@ pub enum TopLevelDecl {
 }
 
 // ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
-// ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
+// ConstSpec      = IdentifierList [ [ Type ] "=" ExprList ] .
 //
 // IdentifierList = identifier { "," identifier } .
-// ExpressionList = Expression { "," Expression } .
+// ExprList = Expr { "," Expr } .
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstSpec {
     pub identifiers: Vec<Identifier>,
     pub typ: Option<Type>,
-    pub expressions: Vec<Expression>,
+    pub expressions: Vec<Expr>,
 }
 
 
-// Expression = UnaryExpr | Expression binary_op Expression .
+// Expr = UnaryExpr | Expr binary_op Expr .
 // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
 //
 // binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
@@ -95,9 +95,9 @@ pub struct ConstSpec {
 // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expression {
+pub enum Expr {
     Unary(UnaryExpr),
-    Binary(Box<Expression>, BinaryOperator, Box<Expression>),
+    Binary(Box<Expr>, BinaryOperator, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -126,12 +126,12 @@ pub enum BinaryOperator {
 // 	PrimaryExpr Arguments .
 //
 // Selector       = "." identifier .
-// Index          = "[" Expression "]" .
-// Slice          = "[" ( [ Expression ] ":" [ Expression ] ) |
-//                      ( [ Expression ] ":" Expression ":" Expression )
+// Index          = "[" Expr "]" .
+// Slice          = "[" ( [ Expr ] ":" [ Expr ] ) |
+//                      ( [ Expr ] ":" Expr ":" Expr )
 //                  "]" .
 // TypeAssertion  = "." "(" Type ")" .
-// Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")".
+// Arguments      = "(" [ ( ExprList | Type [ "," ExprList ] ) [ "..." ] [ "," ] ] ")".
 
 /// Primary expressions are the operands for unary and binary expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -139,7 +139,7 @@ pub enum PrimaryExpr {
     Operand(Operand),
     Conversion(Conversion),
     Selection(Box<PrimaryExpr>, String),
-    Indexing(Box<PrimaryExpr>, Expression),
+    Indexing(Box<PrimaryExpr>, Expr),
     Slicing(Box<PrimaryExpr>, Slice),
     TypeAssertion(Box<PrimaryExpr>, String),
     /// The first field is an expression of function type.
@@ -310,7 +310,7 @@ pub struct ChanType;
 // 	FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
 // 	DeferStmt .
 //
-// SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment | ShortVarDecl .
+// SimpleStmt = EmptyStmt | ExprStmt | SendStmt | IncDecStmt | Assignment | ShortVarDecl .
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
@@ -364,7 +364,7 @@ enum_from_impl!(Statement, Empty, EmptyStmt);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimpleStmt {
     EmptyStmt,
-    Expression(Expression),
+    Expr(Expr),
     Send(SendStmt),
     IncDec(IncDecStmt),
     Assignment(Assignment),
@@ -378,7 +378,12 @@ pub struct LabeledStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GoStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReturnStmt;
+pub struct ReturnStmt {
+    /// The expression being returned.
+    pub expr: Expr,
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BreakStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -438,5 +443,5 @@ pub struct FuncLit;
 /// as their first argument.
 pub struct Arguments {
     pub typ: Option<Type>,
-    pub expressions: Vec<Expression>,
+    pub expressions: Vec<Expr>,
 }

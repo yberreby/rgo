@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate log;
 extern crate rgo;
 extern crate convenience as cnv;
 extern crate env_logger;
@@ -19,13 +21,13 @@ fn for_all_in<P: AsRef<Path>, F: Fn(String) -> U, U>(path: P, f: F) {
     for entry in entries {
         let path = entry.unwrap().path();
         let src = cnv::read_file(&path).unwrap();
-        println!("processing {}", path.display());
+        debug!("processing {}", path.display());
         f(src);
     }
 }
 
 fn main() {
-    env::set_var("RUST_LOG", "trace");
+    env::set_var("RUST_LOG", env::var("LOG").unwrap_or("info".into()));
     env::set_var("RUST_BACKTRACE", "1");
     env_logger::init().unwrap();
 

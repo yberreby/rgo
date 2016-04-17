@@ -302,7 +302,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                 decls.push(try!(self.parse_parameter_decl()));
 
                 while let TokenKind::Comma = self.token.kind {
-                    self.eat(TokenKind::Comma);
+                    try!(self.eat(TokenKind::Comma));
                     decls.push(try!(self.parse_parameter_decl()));
                 }
             }
@@ -415,7 +415,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // Grammar:
         // Block = "{" StatementList "}" .
         // StatementList = { Statement ";" } .
-        self.eat(TokenKind::LBrace);
+        try!(self.eat(TokenKind::LBrace));
 
         let mut statements = Vec::new();
         while self.token.kind.can_start_statement() {
@@ -468,7 +468,8 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         unimplemented!()
     }
     fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
-        unimplemented!()
+        try!(self.eat(TokenKind::Return));
+        Ok(ast::ReturnStmt { expr: try!(self.parse_expr()) })
     }
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
         unimplemented!()
@@ -486,6 +487,9 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         unimplemented!()
     }
     fn parse_decl_stmt(&mut self) -> PResult<ast::SimpleStmt> {
+        unimplemented!()
+    }
+    fn parse_expr(&mut self) -> PResult<ast::Expr> {
         unimplemented!()
     }
 
