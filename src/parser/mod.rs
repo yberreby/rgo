@@ -17,6 +17,7 @@
 //! - Should we pop/push from a vector, or use a slice and an index? Popping frees up memory as we
 //! go, but is most likely slower.
 
+use std::mem;
 use token::{Token, TokenKind};
 use ast;
 use Position;
@@ -71,6 +72,18 @@ impl Parser {
         self.token = next;
     }
 
+    /// Advance the parser by one token and return the bumped token.
+    pub fn bump_and_get(&mut self) -> Token {
+        // The star is used a dummy token and replaced immediately.
+        let old_token = mem::replace(&mut self.token,
+                                     Token {
+                                         kind: TokenKind::Star,
+                                         value: None,
+                                     });
+        self.bump();
+        old_token
+    }
+
     /// Consume the next token, asserting its kind is equal to `expected`.
     fn eat(&mut self, expected: TokenKind) {
         assert_eq!(self.token.kind, expected);
@@ -82,12 +95,7 @@ impl Parser {
         self.eat(TokenKind::Package);
 
         match self.token.kind {
-            TokenKind::Ident => {
-                // XXX: cloning.
-                let v = self.token.value.clone();
-                self.bump();
-                v.unwrap()
-            }
+            TokenKind::Ident => self.bump_and_get().value.unwrap(),
             _ => panic!("expected identifier"),
         }
     }
@@ -159,10 +167,7 @@ impl Parser {
                 self.bump();
                 ast::ImportKind::Glob
             }
-            TokenKind::Ident => {
-                self.bump();
-                ast::ImportKind::Alias(self.token.value.clone().unwrap())
-            }
+            TokenKind::Ident => ast::ImportKind::Alias(self.bump_and_get().value.unwrap()),
             _ => ast::ImportKind::Normal,
         };
 
@@ -490,15 +495,13 @@ impl Parser {
 
         match self.token.kind {
             TokenKind::Str => {
-                self.bump();
                 // XXX TODO FIXME: we HAVE to interpret escape sequences!
                 // For now, do nothing.
-                self.token.value.clone().unwrap()
+                self.bump_and_get().value.unwrap()
             }
             TokenKind::StrRaw => {
-                self.bump();
                 // Nothing to interpret, move along.
-                self.token.value.clone().unwrap()
+                self.bump_and_get().value.unwrap()
             }
             _ => panic!("unexpected token"),
         }
