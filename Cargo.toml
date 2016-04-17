@@ -3,6 +3,12 @@ authors = ["Yohai Berreby (yberreby) <yohaiberreby@gmail.com>"]
 name = "rgo"
 version = "0.1.0"
 
+[profile.dev]
+debug = true
+
+[profile.release]
+debug = true
+
 [dependencies]
 convenience = "0.1.0"
 env_logger = "0.3.3"

@@ -371,7 +371,7 @@ impl<'src> Lexer<'src> {
                     }
                     Some('-') => {
                         self.bump();
-                        Token::ChanReceive
+                        Token::LeftArrow
                     }
                     _ => Token::LessThan,
                 }

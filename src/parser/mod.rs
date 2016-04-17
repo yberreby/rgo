@@ -17,7 +17,7 @@
 //! - Should we pop/push from a vector, or use a slice and an index? Popping frees up memory as we
 //! go, but is most likely slower.
 
-use lexer::{Token, Keyword, DelimToken, Literal};
+use token::{self, Token, DelimToken, TokenKind, Literal, Keyword};
 use ast;
 use std::iter::Iterator;
 
@@ -114,9 +114,9 @@ impl Parser {
         self.eat_keyword(Keyword::Import);
         let mut specs = Vec::new();
 
-        match self.token.clone() {
+        match self.token.kind() {
             // Long import declaration.
-            Token::OpenDelim(DelimToken::Paren) => {
+            TokenKind::LParen => {
                 self.bump();
 
                 // There may be multiple `ImportSpec`s in a single "long" import declaration.
@@ -385,7 +385,7 @@ impl Parser {
         self.eat(&Token::OpenDelim(DelimToken::Brace));
 
         let mut statements = Vec::new();
-        while self.token.can_start_statement() {
+        while self.token.kind().can_start_statement() {
             statements.push(self.parse_statement());
             self.eat(&Token::Semicolon);
         }
@@ -406,22 +406,21 @@ impl Parser {
         //  ShortVarDecl .
         use ast::Statement;
 
-        // XXX: cloning.
-        match self.token.clone() {
-            Token::Keyword(Keyword::Type) |
-            Token::Keyword(Keyword::Var) |
-            Token::Keyword(Keyword::Const) => self.parse_decl_stmt().into(),
-            Token::Keyword(Keyword::Go) => self.parse_go_stmt().into(),
-            Token::Keyword(Keyword::Defer) => self.parse_defer_stmt().into(),
-            Token::Keyword(Keyword::Return) => self.parse_return_stmt().into(),
-            Token::Keyword(Keyword::If) => self.parse_if_stmt().into(),
-            Token::Keyword(Keyword::Switch) => self.parse_switch_stmt().into(),
-            Token::Keyword(Keyword::Select) => self.parse_select_stmt().into(),
-            Token::Keyword(Keyword::For) => self.parse_for_stmt().into(),
+        match self.token.kind() {
+            TokenKind::Type |
+            TokenKind::Var |
+            TokenKind::Const => self.parse_decl_stmt().into(),
+            TokenKind::Go => self.parse_go_stmt().into(),
+            TokenKind::Defer => self.parse_defer_stmt().into(),
+            TokenKind::Return => self.parse_return_stmt().into(),
+            TokenKind::If => self.parse_if_stmt().into(),
+            TokenKind::Switch => self.parse_switch_stmt().into(),
+            TokenKind::Select => self.parse_select_stmt().into(),
+            TokenKind::For => self.parse_for_stmt().into(),
             // All simple statements start with something expression-like.
             ref t if t.can_start_expr() => self.parse_simple_stmt().into(),
-            Token::OpenDelim(DelimToken::Brace) => ast::Block(self.parse_block()).into(),
-            Token::CloseDelim(DelimToken::Brace) => {
+            TokenKind::LBrace => ast::Block(self.parse_block()).into(),
+            TokenKind::RBrace => {
                 // a semicolon may be omitted before a closing "}"
                 ast::EmptyStmt.into()
             }
