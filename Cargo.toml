@@ -28,5 +28,5 @@ debug = true
 
 # We use a custom test runner.
 [[test]]
-name = "all"
+name = "runner"
 harness = false
