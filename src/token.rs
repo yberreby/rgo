@@ -1,7 +1,22 @@
+use std::fmt;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: Option<String>,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::TokenKind::*;
+
+        match self.kind {
+            Ident | Integer | Float | Imaginary | Rune | Str | StrRaw => {
+                write!(f, "{}", self.value.as_ref().unwrap())
+            }
+            kind => fmt::Debug::fmt(&kind, f), // FIXME
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -145,164 +160,12 @@ pub enum TokenKind {
     Eof,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BigToken {
-    Ident(String),
-    Literal(Literal),
-    Keyword(Keyword),
-    OpenDelim(DelimToken),
-    CloseDelim(DelimToken),
-    // Binary operators.
-    /// +
-    Plus,
-    /// -
-    Minus,
-    /// *
-    Star,
-    /// /
-    Slash,
-    /// %
-    Percent,
-    /// &
-    And,
-    /// |
-    Or,
-    /// ^
-    Caret,
-    /// <<
-    Lshift,
-    /// >>
-    Rshift,
-    /// &^
-    BitClear,
-    // Compound operators.
-    /// ++
-    Increment,
-    /// --
-    Decrement,
-    /// +=
-    PlusAssign,
-    /// -=
-    MinusAssign,
-    /// *=
-    StarAssign,
-    /// /=
-    SlashAssign,
-    /// %=
-    PercentAssign,
-    /// &=
-    AndAssign,
-    /// |=
-    OrAssign,
-    /// ^=
-    CaretAssign,
-    /// <<=
-    LshiftAssign,
-    /// >>=
-    RshiftAssign,
-    /// &^=
-    BitClearAssign,
-    // Boolean operators.
-    /// !
-    Not,
-    /// &&
-    AndAnd,
-    /// ||
-    OrOr,
-    /// ==
-    Equals,
-    /// !=
-    NotEqual,
-    /// <
-    LessThan,
-    /// >
-    GreaterThan,
-    /// <=
-    LessThanOrEqual,
-    /// >=
-    GreaterThanOrEqual,
-    // Miscellaneous operators and tokens.
-    /// =
-    Assign,
-    /// :=
-    ColonAssign,
-    /// <-
-    LeftArrow,
-    /// ...
-    Ellipsis,
-    /// ,
-    Comma,
-    /// .
-    Dot,
-    /// ;
-    Semicolon,
-    /// :
-    Colon,
-    /// End of file
-    Eof,
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
 }
-
-/// Opening or closing delimiter.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DelimToken {
-    /// A round parenthesis: `(` or `)`
-    Paren,
-    /// A square bracket: `[` or `]`
-    Bracket,
-    /// A curly brace: `{` or `}`
-    Brace,
-}
-
-/// Reserved keywords.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Keyword {
-    Break,
-    Case,
-    Chan,
-    Const,
-    Continue,
-    Default,
-    Defer,
-    Else,
-    Fallthrough,
-    For,
-    Func,
-    Go,
-    Goto,
-    If,
-    Import,
-    Interface,
-    Map,
-    Package,
-    Range,
-    Return,
-    Select,
-    Struct,
-    Switch,
-    Type,
-    Var,
-}
-
-/// Literal of any kind.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Literal {
-    /// Integer literal.
-    Integer(String),
-    /// Floating-point literal.
-    Float(String),
-    /// Imaginary literal (e.g. `6.67428e-11i`).
-    Imaginary(String),
-    /// Rune literal (e.g. `'本'`, `'\U00101234'`).
-    Rune(String),
-    /// Interpreted string literal.
-    Str(String),
-    /// Raw string literal.
-    StrRaw(String),
-}
-
-
-
-
 
 
 impl TokenKind {

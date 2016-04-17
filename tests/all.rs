@@ -17,7 +17,8 @@ fn for_all_in<P: AsRef<Path>, F: Fn(String) -> U, U>(path: P, f: F) {
 
     for entry in entries {
         let path = entry.unwrap().path();
-        let src = cnv::read_file(path).unwrap();
+        let src = cnv::read_file(&path).unwrap();
+        println!("processing {}", path.display());
         f(src);
     }
 }

@@ -20,6 +20,32 @@
 use token::{Token, TokenKind};
 use ast;
 
+pub enum ParseError {
+    UnexpectedToken {
+        found: Token,
+        expected: Vec<TokenKind>,
+    },
+}
+
+use std::fmt;
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ParseError::UnexpectedToken { ref found, ref expected } => {
+                try!(write!(f, "expected one of "));
+
+                let mut sep = "";
+                for tk in expected {
+                    try!(write!(f, "\"{}\"{}", tk, sep));
+                    sep = ", ";
+                }
+
+                write!(f, "found \"{}\"", found)
+            }
+        }
+    }
+}
+
 pub struct Parser {
     /// A list of tokens, **in reverse order**.
     /// This allows efficient push and pop operations (appending or popping from the beginning of a
