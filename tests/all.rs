@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 
 fn test_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut new = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    new.push("test-data");
+    new.push("tests");
+    new.push("data");
     new.push(path);
     new
 }
