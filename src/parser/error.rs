@@ -1,17 +1,35 @@
+use std::fmt;
 use token::{Token, TokenKind};
 
-pub enum ParseError {
+pub type PResult<T> = ::std::result::Result<T, Error>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Error {
+    offset: u32,
+    inner: ErrorKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
     UnexpectedToken {
         found: Token,
         expected: Vec<TokenKind>,
     },
 }
 
-use std::fmt;
-impl fmt::Display for ParseError {
+impl ErrorKind {
+    pub fn unexpected_token(expected: Vec<TokenKind>, found: Token) -> ErrorKind {
+        ErrorKind::UnexpectedToken {
+            found: found,
+            expected: expected,
+        }
+    }
+}
+
+impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ParseError::UnexpectedToken { ref found, ref expected } => {
+            ErrorKind::UnexpectedToken { ref found, ref expected } => {
                 try!(write!(f, "expected "));
 
                 if expected.len() > 2 {

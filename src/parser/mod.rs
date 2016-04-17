@@ -8,7 +8,7 @@ use ast;
 use Position;
 
 mod error;
-pub use self::error::ParseError;
+pub use self::error::{PResult, Error, ErrorKind};
 
 pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
     /// Our source of tokens.
@@ -31,19 +31,24 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
 
     /// Parse the tokens into a SourceFile (AST).
-    pub fn parse(mut self) -> ast::SourceFile {
-        let package_name = self.parse_package_clause();
-        let import_decls = self.parse_import_decls();
-        let top_level_decls = self.parse_top_level_decls();
+    pub fn parse(mut self) -> PResult<ast::SourceFile> {
+        let package_name = try!(self.parse_package_clause());
+        let import_decls = try!(self.parse_import_decls());
+        let top_level_decls = try!(self.parse_top_level_decls());
 
-        ast::SourceFile {
+        Ok(ast::SourceFile {
             package: package_name,
             import_decls: import_decls,
             top_level_decls: top_level_decls,
-        }
+        })
     }
 
     // === Utility functions ===
+
+    /// Build a parse error.
+    fn err(&self, kind: ErrorKind) -> Error {
+        unimplemented!()
+    }
 
     /// Advance the parser by one token.
     fn bump(&mut self) {
@@ -68,45 +73,51 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
 
     /// Consume the next token, asserting its kind is equal to `expected`.
-    fn eat(&mut self, expected: TokenKind) {
-        assert_eq!(self.token.kind, expected);
+    fn eat(&mut self, expected: TokenKind) -> PResult<()> {
+        if self.token.kind != expected {
+            return Err(self.err(ErrorKind::unexpected_token(vec![expected], self.token.clone())));
+        }
         self.bump();
+        Ok(())
     }
 
     /// Parse a package clause (e.g. `package main`).
-    fn parse_package_clause(&mut self) -> String {
-        self.eat(TokenKind::Package);
+    fn parse_package_clause(&mut self) -> PResult<String> {
+        try!(self.eat(TokenKind::Package));
 
         match self.token.kind {
-            TokenKind::Ident => self.bump_and_get().value.unwrap(),
-            _ => panic!("expected identifier"),
+            TokenKind::Ident => Ok(self.bump_and_get().value.unwrap()),
+            _ => {
+                Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Ident],
+                                                         self.token.clone())))
+            }
         }
     }
 
     /// Parse any number of import declarations.
-    fn parse_import_decls(&mut self) -> Vec<ast::ImportDecl> {
+    fn parse_import_decls(&mut self) -> PResult<Vec<ast::ImportDecl>> {
         let mut decls = Vec::new();
 
         loop {
             match self.token.kind {
                 TokenKind::Import => {
-                    decls.push(self.parse_import_decl());
+                    decls.push(try!(self.parse_import_decl()));
                 }
-                _ => return decls,
+                _ => return Ok(decls),
             }
         }
     }
 
     /// Parse an import declaration, which is made up of one or more import specs.
     /// Simple example with a single spec: `import "fmt"`.
-    fn parse_import_decl(&mut self) -> ast::ImportDecl {
+    fn parse_import_decl(&mut self) -> PResult<ast::ImportDecl> {
         // Grammar:
         //
         // ```
         // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
         // ```
 
-        self.eat(TokenKind::Import);
+        try!(self.eat(TokenKind::Import));
         let mut specs = Vec::new();
 
         match self.token.kind {
@@ -123,20 +134,20 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                             break;
                         }
                         _ => {
-                            specs.push(self.parse_import_spec());
+                            specs.push(try!(self.parse_import_spec()));
                         }
                     }
                 }
             }
             // Short import (single ImportSpec).
-            _ => specs.push(self.parse_import_spec()),
+            _ => specs.push(try!(self.parse_import_spec())),
         }
 
-        ast::ImportDecl { specs: specs }
+        Ok(ast::ImportDecl { specs: specs })
     }
 
     /// Parse an "import spec".
-    fn parse_import_spec(&mut self) -> ast::ImportSpec {
+    fn parse_import_spec(&mut self) -> PResult<ast::ImportSpec> {
         // Grammar:
         //
         // ```
@@ -155,67 +166,66 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         };
 
         // The next token MUST be a string literal (interpreted or raw).
-        let path = self.parse_string_lit();
+        let path = try!(self.parse_string_lit());
 
-        ast::ImportSpec {
+        Ok(ast::ImportSpec {
             path: path,
             kind: kind,
-        }
+        })
     }
 
     /// Parse any number of top-level declarations (see TopLevelDecl docs).
     // Grammar:
     //
     // TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
-    fn parse_top_level_decls(&mut self) -> Vec<ast::TopLevelDecl> {
+    fn parse_top_level_decls(&mut self) -> PResult<Vec<ast::TopLevelDecl>> {
         let mut decls = Vec::new();
+
+        // FIXME: no loop + unfinished!
 
         match self.token.kind {
             // FunctionDecl
             TokenKind::Func => {
-                let fd = self.parse_func_decl();
+                let fd = try!(self.parse_func_decl());
                 decls.push(ast::TopLevelDecl::Func(fd));
             }
             _ => {
-                panic!(ParseError::UnexpectedToken {
-                           expected: vec![TokenKind::Func],
-                           found: self.token.clone(),
-                       }
-                       .to_string())
+                return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Func],
+                                                                self.token.clone())));
             }
         }
 
-        decls
+        Ok(decls)
     }
 
     /// Parse a full function declaration (including signature, name, and block).
-    fn parse_func_decl(&mut self) -> ast::FuncDecl {
+    fn parse_func_decl(&mut self) -> PResult<ast::FuncDecl> {
         // Grammar:
         // FunctionDecl = "func" FunctionName ( Function | Signature ) .
         // FunctionName = identifier .
         // Function     = Signature FunctionBody .
         // FunctionBody = Block .
 
-        self.eat(TokenKind::Func);
-        let name = self.parse_ident();
-        let signature = self.parse_func_signature();
+        try!(self.eat(TokenKind::Func));
+        let name = try!(self.parse_ident());
+        let signature = try!(self.parse_func_signature());
 
         let body = match self.token.kind {
             // This function has a body, parse it.
-            TokenKind::LBrace => self.parse_block(),
+            TokenKind::LBrace => try!(self.parse_block()),
             // Empty body.
             _ => vec![],
         };
 
-        ast::FuncDecl {
+        Ok(ast::FuncDecl {
             name: name,
             signature: signature,
             body: body,
-        }
+        })
     }
 
     /// Parse a function _signature_ - i.e., just the parameter and result types of a func.
-    fn parse_func_signature(&mut self) -> ast::FuncSignature {
+    fn parse_func_signature(&mut self) -> PResult<ast::FuncSignature> {
         // Grammar:
         //
         // Signature      = Parameters [ Result ] .
@@ -230,22 +240,22 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         //
         // "Parameter and result lists are always parenthesized except that if there is exactly one
         // unnamed result it may be written as an unparenthesized type."
-        let parameters = self.parse_func_params();
+        let parameters = try!(self.parse_func_params());
 
         let result = match self.token.kind {
             // An opening parenthesis! We can parse an output parameter list.
-            TokenKind::LParen => self.parse_func_params(),
+            TokenKind::LParen => try!(self.parse_func_params()),
             // Brace = no return type, but a body. We don't care about the body in this function.
             // Semicolon = no return type and no body.
             TokenKind::LBrace | TokenKind::Semicolon => ast::Parameters::empty(),
             // Otherwise, a single, unnamed return type.
-            _ => ast::Parameters::from_single_type(self.parse_type()),
+            _ => ast::Parameters::from_single_type(try!(self.parse_type())),
         };
 
-        ast::FuncSignature {
+        Ok(ast::FuncSignature {
             parameters: parameters,
             result: result,
-        }
+        })
     }
 
     /// Parse function parameters, as defined by the Go grammar.
@@ -253,36 +263,36 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     /// This may be used to parse the return types of a function if they are prefixed with a
     /// parenthesis, and follow the same grammar as input parameters.
     /// Parameters may be named or unnamed.
-    fn parse_func_params(&mut self) -> ast::Parameters {
+    fn parse_func_params(&mut self) -> PResult<ast::Parameters> {
         // Grammar:
         //
         // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
         // ParameterList  = ParameterDecl { "," ParameterDecl } .
         // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
-        self.eat(TokenKind::LParen);
+        try!(self.eat(TokenKind::LParen));
 
         let mut decls = Vec::new();
 
         // The parameter list is optional.
         match self.token.kind {
             TokenKind::Ident | TokenKind::Ellipsis => {
-                decls.push(self.parse_parameter_decl());
+                decls.push(try!(self.parse_parameter_decl()));
 
                 while let TokenKind::Comma = self.token.kind {
                     self.eat(TokenKind::Comma);
-                    decls.push(self.parse_parameter_decl());
+                    decls.push(try!(self.parse_parameter_decl()));
                 }
             }
             _ => {}
         }
-        self.eat(TokenKind::RParen);
+        try!(self.eat(TokenKind::RParen));
 
         // XXX: do we _need_ Parameters to be a type by itself?
-        ast::Parameters { decls: decls }
+        Ok(ast::Parameters { decls: decls })
     }
 
     /// Parse a "parameter decl".
-    fn parse_parameter_decl(&mut self) -> ast::ParameterDecl {
+    fn parse_parameter_decl(&mut self) -> PResult<ast::ParameterDecl> {
         // Grammar:
         // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
 
@@ -293,33 +303,33 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         if let TokenKind::Ident = self.token.kind {
             // Grammar:
             // IdentifierList = identifier { "," identifier } .
-            idents.push(self.parse_ident());
+            idents.push(try!(self.parse_ident()));
 
             while let TokenKind::Comma = self.token.kind {
-                self.eat(TokenKind::Comma);
-                idents.push(self.parse_ident());
+                try!(self.eat(TokenKind::Comma));
+                idents.push(try!(self.parse_ident()));
             }
         }
 
         // So is the ellipsis that indicates a variadic func.
         if let TokenKind::Ellipsis = self.token.kind {
-            self.eat(TokenKind::Ellipsis);
+            try!(self.eat(TokenKind::Ellipsis));
             variadic = true;
         }
 
         // The type is mandatory.
-        let typ = self.parse_type();
+        let typ = try!(self.parse_type());
 
-        ast::ParameterDecl {
+        Ok(ast::ParameterDecl {
             identifiers: idents,
             typ: typ,
             variadic: variadic,
-        }
+        })
     }
 
     /// Parse a single type (e.g. `[]string`).
     // XXX: type declarations can be very complex; this function needs attention.
-    fn parse_type(&mut self) -> ast::Type {
+    fn parse_type(&mut self) -> PResult<ast::Type> {
         // Grammar:
         //
         // Type      = TypeName | TypeLit | "(" Type ")" .
@@ -334,14 +344,14 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             // A Type may be surrounded in parentheses, in which case we simply eat the
             // parentheses and recurse.
             TokenKind::LParen => {
-                self.eat(TokenKind::LParen);
-                let typ = self.parse_type();
-                self.eat(TokenKind::RParen);
-                typ
+                try!(self.eat(TokenKind::LParen));
+                let typ = try!(self.parse_type());
+                try!(self.eat(TokenKind::RParen));
+                Ok(typ)
             }
             // If a Type starts with an identifier, it can only be a TypeName.
             TokenKind::Ident => {
-                let part1 = self.parse_ident();
+                let part1 = try!(self.parse_ident());
 
                 let name;
                 let package;
@@ -353,8 +363,8 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                     // - operands.
                     TokenKind::Colon => {
                         // XXX: I don't like this pattern.
-                        self.eat(TokenKind::Colon);
-                        let part2 = self.parse_ident();
+                        try!(self.eat(TokenKind::Colon));
+                        let part2 = try!(self.parse_ident());
 
                         package = Some(part1);
                         name = part2;
@@ -366,16 +376,16 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                     }
                 }
 
-                ast::Type::Plain(ast::MaybeQualifiedIdent {
+                Ok(ast::Type::Plain(ast::MaybeQualifiedIdent {
                     package: package,
                     name: name,
-                })
+                }))
             }
             _ => unimplemented!(),
         }
     }
 
-    fn parse_block(&mut self) -> Vec<ast::Statement> {
+    fn parse_block(&mut self) -> PResult<Vec<ast::Statement>> {
         // Grammar:
         // Block = "{" StatementList "}" .
         // StatementList = { Statement ";" } .
@@ -383,16 +393,16 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
         let mut statements = Vec::new();
         while self.token.kind.can_start_statement() {
-            statements.push(self.parse_statement());
-            self.eat(TokenKind::Semicolon);
+            statements.push(try!(self.parse_statement()));
+            try!(self.eat(TokenKind::Semicolon));
         }
 
-        self.eat(TokenKind::RBrace);
-        statements
+        try!(self.eat(TokenKind::RBrace));
+        Ok(statements)
     }
 
     // XXX: needs thorough review.
-    fn parse_statement(&mut self) -> ast::Statement {
+    fn parse_statement(&mut self) -> PResult<ast::Statement> {
         // Statement =
         // 	Declaration | LabeledStmt | SimpleStmt |
         // 	GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
@@ -402,72 +412,75 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
 
-        match self.token.kind {
+        Ok(match self.token.kind {
             TokenKind::Type |
             TokenKind::Var |
-            TokenKind::Const => self.parse_decl_stmt().into(),
-            TokenKind::Go => self.parse_go_stmt().into(),
-            TokenKind::Defer => self.parse_defer_stmt().into(),
-            TokenKind::Return => self.parse_return_stmt().into(),
-            TokenKind::If => self.parse_if_stmt().into(),
-            TokenKind::Switch => self.parse_switch_stmt().into(),
-            TokenKind::Select => self.parse_select_stmt().into(),
-            TokenKind::For => self.parse_for_stmt().into(),
+            TokenKind::Const => try!(self.parse_decl_stmt()).into(),
+            TokenKind::Go => try!(self.parse_go_stmt()).into(),
+            TokenKind::Defer => try!(self.parse_defer_stmt()).into(),
+            TokenKind::Return => try!(self.parse_return_stmt()).into(),
+            TokenKind::If => try!(self.parse_if_stmt()).into(),
+            TokenKind::Switch => try!(self.parse_switch_stmt()).into(),
+            TokenKind::Select => try!(self.parse_select_stmt()).into(),
+            TokenKind::For => try!(self.parse_for_stmt()).into(),
             // All simple statements start with something expression-like.
-            t if t.can_start_expr() => self.parse_simple_stmt().into(),
-            TokenKind::LBrace => ast::Block(self.parse_block()).into(),
+            t if t.can_start_expr() => try!(self.parse_simple_stmt()).into(),
+            TokenKind::LBrace => ast::Block(try!(self.parse_block())).into(),
             TokenKind::RBrace => {
                 // a semicolon may be omitted before a closing "}"
                 ast::EmptyStmt.into()
             }
             _ => panic!("unexpected token"),
-        }
+        })
     }
 
-    fn parse_go_stmt(&mut self) -> ast::GoStmt {
+    fn parse_go_stmt(&mut self) -> PResult<ast::GoStmt> {
         unimplemented!()
     }
-    fn parse_defer_stmt(&mut self) -> ast::DeferStmt {
+    fn parse_defer_stmt(&mut self) -> PResult<ast::DeferStmt> {
         unimplemented!()
     }
-    fn parse_return_stmt(&mut self) -> ast::ReturnStmt {
+    fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
         unimplemented!()
     }
-    fn parse_if_stmt(&mut self) -> ast::IfStmt {
+    fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
         unimplemented!()
     }
-    fn parse_switch_stmt(&mut self) -> ast::SwitchStmt {
+    fn parse_switch_stmt(&mut self) -> PResult<ast::SwitchStmt> {
         unimplemented!()
     }
-    fn parse_select_stmt(&mut self) -> ast::SelectStmt {
+    fn parse_select_stmt(&mut self) -> PResult<ast::SelectStmt> {
         unimplemented!()
     }
-    fn parse_for_stmt(&mut self) -> ast::ForStmt {
+    fn parse_for_stmt(&mut self) -> PResult<ast::ForStmt> {
         unimplemented!()
     }
-    fn parse_simple_stmt(&mut self) -> ast::SimpleStmt {
+    fn parse_simple_stmt(&mut self) -> PResult<ast::SimpleStmt> {
         unimplemented!()
     }
-    fn parse_decl_stmt(&mut self) -> ast::SimpleStmt {
+    fn parse_decl_stmt(&mut self) -> PResult<ast::SimpleStmt> {
         unimplemented!()
     }
 
     /// Parse an identifier.
     // XXX: come back later. String interning and all that.
-    fn parse_ident(&mut self) -> String {
+    fn parse_ident(&mut self) -> PResult<String> {
         match self.token.kind {
             TokenKind::Ident => {
                 self.bump();
-                self.token.value.clone().unwrap()
+                Ok(self.token.value.clone().unwrap())
             }
-            _ => panic!("unexpected token"),
+            _ => {
+                Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Ident],
+                                                         self.token.clone())))
+            }
         }
     }
 
     /// Parse a string literal, whether interpreted or raw.
     /// This is useful because one will often expect a string literal without caring about its
     /// kind.
-    fn parse_string_lit(&mut self) -> String {
+    fn parse_string_lit(&mut self) -> PResult<String> {
         // Grammar:
         //
         // ```
@@ -480,18 +493,21 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             TokenKind::Str => {
                 // XXX TODO FIXME: we HAVE to interpret escape sequences!
                 // For now, do nothing.
-                self.bump_and_get().value.unwrap()
+                Ok(self.bump_and_get().value.unwrap())
             }
             TokenKind::StrRaw => {
                 // Nothing to interpret, move along.
-                self.bump_and_get().value.unwrap()
+                Ok(self.bump_and_get().value.unwrap())
             }
-            _ => panic!("unexpected token"),
+            _ => {
+                Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Str, TokenKind::StrRaw],
+                                                         self.token.clone())))
+            }
         }
     }
 }
 
 pub fn parse_tokens(tokens: Vec<TokenAndOffset>) -> ast::SourceFile {
     let parser = Parser::new(tokens.into_iter());
-    parser.parse()
+    parser.parse().unwrap()
 }
