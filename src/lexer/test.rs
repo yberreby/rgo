@@ -21,12 +21,12 @@ fn tok_cmp<T, U>(found_s: T, expected_s: U)
 
 #[test]
 fn tokenize_delimiters() {
-    tok_cmp(tokenize("("), vec![Token::OpenDelim(DelimToken::Paren)]);
-    tok_cmp(tokenize(")"), vec![Token::CloseDelim(DelimToken::Paren)]);
-    tok_cmp(tokenize("{"), vec![Token::OpenDelim(DelimToken::Brace)]);
-    tok_cmp(tokenize("}"), vec![Token::CloseDelim(DelimToken::Brace)]);
-    tok_cmp(tokenize("["), vec![Token::OpenDelim(DelimToken::Bracket)]);
-    tok_cmp(tokenize("]"), vec![Token::CloseDelim(DelimToken::Bracket)]);
+    tok_cmp(tokenize("("), vec![TokenKind::LParen]);
+    tok_cmp(tokenize(")"), vec![TokenKind::RParen]);
+    tok_cmp(tokenize("{"), vec![TokenKind::LBrace]);
+    tok_cmp(tokenize("}"), vec![TokenKind::RBrace]);
+    tok_cmp(tokenize("["), vec![TokenKind::LBracket]);
+    tok_cmp(tokenize("]"), vec![TokenKind::RBracket]);
 }
 
 #[test]
@@ -231,17 +231,17 @@ func main() {
                     Token::Semicolon,
                     Token::Keyword(Keyword::Func),
                     Token::Ident("main".into()),
-                    Token::OpenDelim(DelimToken::Paren),
-                    Token::CloseDelim(DelimToken::Paren),
-                    Token::OpenDelim(DelimToken::Brace),
+                    TokenKind::LParen,
+                    TokenKind::RParen,
+                    TokenKind::LBrace,
                     Token::Ident("fmt".into()),
                     Token::Dot,
                     Token::Ident("Println".into()),
-                    Token::OpenDelim(DelimToken::Paren),
+                    TokenKind::LParen,
                     Token::Literal(Literal::Str("Hello, rgo".into())),
-                    Token::CloseDelim(DelimToken::Paren),
+                    TokenKind::RParen,
                     Token::Semicolon,
-                    Token::CloseDelim(DelimToken::Brace)];
+                    TokenKind::RBrace];
 
     tok_cmp(tokenize(src), expected);
 }
@@ -305,17 +305,17 @@ func main() {
                     Token::Semicolon,
                     Token::Keyword(Keyword::Func),
                     Token::Ident("main".into()),
-                    Token::OpenDelim(DelimToken::Paren),
-                    Token::CloseDelim(DelimToken::Paren),
-                    Token::OpenDelim(DelimToken::Brace),
+                    TokenKind::LParen,
+                    TokenKind::RParen,
+                    TokenKind::LBrace,
                     Token::Ident("fmt".into()),
                     Token::Dot,
                     Token::Ident("Println".into()),
-                    Token::OpenDelim(DelimToken::Paren),
+                    TokenKind::LParen,
                     Token::Literal(Literal::Str("Hello, rgo".into())),
-                    Token::CloseDelim(DelimToken::Paren),
+                    TokenKind::RParen,
                     Token::Semicolon,
-                    Token::CloseDelim(DelimToken::Brace)];
+                    TokenKind::RBrace];
 
     tok_cmp(tokenize(src), expected);
 }

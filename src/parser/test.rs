@@ -34,9 +34,9 @@ fn parse_short_import() {
 #[test]
 fn parse_long_import() {
     let tokens = vec![Token::Keyword(Keyword::Import),
-                      Token::OpenDelim(DelimToken::Paren),
+                      TokenKind::LParen,
                       Token::Literal(Literal::Str("github.com/user/stringutil".into())),
-                      Token::CloseDelim(DelimToken::Paren)];
+                      TokenKind::RParen];
 
     let expected = vec![ast::ImportDecl {
                             specs: vec![ast::ImportSpec {
@@ -56,10 +56,10 @@ fn parse_simplest() {
                       Token::Ident("main".into()),
                       Token::Keyword(Keyword::Func),
                       Token::Ident("main".into()),
-                      Token::OpenDelim(DelimToken::Paren),
-                      Token::CloseDelim(DelimToken::Paren),
-                      Token::OpenDelim(DelimToken::Brace),
-                      Token::CloseDelim(DelimToken::Brace)];
+                      TokenKind::LParen,
+                      TokenKind::RParen,
+                      TokenKind::LBrace,
+                      TokenKind::RBrace];
     let expected = ast::SourceFile {
         package: "main".into(),
         import_decls: vec![],
@@ -86,16 +86,16 @@ fn parse_hello() {
                       Token::Literal(Literal::Str("fmt".into())),
                       Token::Keyword(Keyword::Func),
                       Token::Ident("main".into()),
-                      Token::OpenDelim(DelimToken::Paren),
-                      Token::CloseDelim(DelimToken::Paren),
-                      Token::OpenDelim(DelimToken::Brace),
+                      TokenKind::LParen,
+                      TokenKind::RParen,
+                      TokenKind::LBrace,
                       Token::Ident("fmt".into()),
                       Token::Dot,
                       Token::Ident("Println".into()),
-                      Token::OpenDelim(DelimToken::Paren),
+                      TokenKind::LParen,
                       Token::Literal(Literal::Str("Hello, rgo".into())),
-                      Token::CloseDelim(DelimToken::Paren),
-                      Token::CloseDelim(DelimToken::Brace)];
+                      TokenKind::RParen,
+                      TokenKind::RBrace];
 
     let expected = ast::SourceFile {
         package: "main".into(),

@@ -216,13 +216,6 @@ impl<'src> Lexer<'src> {
     }
 
     /// Return the next token, if any.
-    ///
-    /// # Example
-    ///
-    /// ``` use rgo::lexer::{Lexer, Token, DelimToken};
-    ///
-    /// let mut lexer = Lexer::new(")"); assert_eq!(lexer.next(),
-    /// Some(Token::CloseDelim(DelimToken::Paren))); ```
     fn next_token_inner(&mut self) -> Option<Token> {
         // Whitespace and comment handling.
         let contains_newline = self.skip_whitespace_and_comments();
@@ -569,17 +562,6 @@ impl<'src> Iterator for Lexer<'src> {
 }
 
 /// Convenience function to collect all the tokens from a string.
-///
-/// # Example
-///
-/// ```
-/// use rgo::lexer::{tokenize, Token, DelimToken};
-///
-/// assert_eq!(tokenize("()"), vec![
-///     Token::OpenDelim(DelimToken::Paren),
-///     Token::CloseDelim(DelimToken::Paren)
-/// ]);
-/// ```
 pub fn tokenize(s: &str) -> Vec<Token> {
     let lexer = Lexer::new(s);
     lexer.collect()
