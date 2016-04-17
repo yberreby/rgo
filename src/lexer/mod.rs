@@ -74,7 +74,7 @@ impl<'src> Lexer<'src> {
 
     /// Scan a number literal (integer or float).
     // FIXME: ONLY supports integers in base 10 for now.
-    fn scan_number(&mut self) -> Literal {
+    fn scan_number(&mut self) -> Token {
         // Integer literal grammar:
         //
         // int_lit     = decimal_lit | octal_lit | hex_lit .
@@ -95,7 +95,10 @@ impl<'src> Lexer<'src> {
 
         let s = &self.src[start..self.pos];
 
-        Literal::Integer(s.into())
+        Token {
+            value: Some(s.into()),
+            kind: TokenKind::Integer, // FIXME
+        }
     }
 
     /// Skip whitespace and comments, returning whether at least one newline was encountered.
@@ -171,35 +174,44 @@ impl<'src> Lexer<'src> {
 
     fn scan_ident_or_keyword(&mut self) -> Token {
         let ident = self.scan_ident();
+        let mut value = None;
 
-        match &*ident {
-            "break" => Token::Keyword(Keyword::Break),
-            "case" => Token::Keyword(Keyword::Case),
-            "chan" => Token::Keyword(Keyword::Chan),
-            "const" => Token::Keyword(Keyword::Const),
-            "continue" => Token::Keyword(Keyword::Continue),
-            "default" => Token::Keyword(Keyword::Default),
-            "defer" => Token::Keyword(Keyword::Defer),
-            "else" => Token::Keyword(Keyword::Else),
-            "fallthrough" => Token::Keyword(Keyword::Fallthrough),
-            "for" => Token::Keyword(Keyword::For),
-            "func" => Token::Keyword(Keyword::Func),
-            "go" => Token::Keyword(Keyword::Go),
-            "goto" => Token::Keyword(Keyword::Goto),
-            "if" => Token::Keyword(Keyword::If),
-            "import" => Token::Keyword(Keyword::Import),
-            "interface" => Token::Keyword(Keyword::Interface),
-            "map" => Token::Keyword(Keyword::Map),
-            "package" => Token::Keyword(Keyword::Package),
-            "range" => Token::Keyword(Keyword::Range),
-            "return" => Token::Keyword(Keyword::Return),
-            "select" => Token::Keyword(Keyword::Select),
-            "struct" => Token::Keyword(Keyword::Struct),
-            "switch" => Token::Keyword(Keyword::Switch),
-            "type" => Token::Keyword(Keyword::Type),
-            "var" => Token::Keyword(Keyword::Var),
+        let kind = match &*ident {
+            "break" => TokenKind::Break,
+            "case" => TokenKind::Case,
+            "chan" => TokenKind::Chan,
+            "const" => TokenKind::Const,
+            "continue" => TokenKind::Continue,
+            "default" => TokenKind::Default,
+            "defer" => TokenKind::Defer,
+            "else" => TokenKind::Else,
+            "fallthrough" => TokenKind::Fallthrough,
+            "for" => TokenKind::For,
+            "func" => TokenKind::Func,
+            "go" => TokenKind::Go,
+            "goto" => TokenKind::Goto,
+            "if" => TokenKind::If,
+            "import" => TokenKind::Import,
+            "interface" => TokenKind::Interface,
+            "map" => TokenKind::Map,
+            "package" => TokenKind::Package,
+            "range" => TokenKind::Range,
+            "return" => TokenKind::Return,
+            "select" => TokenKind::Select,
+            "struct" => TokenKind::Struct,
+            "switch" => TokenKind::Switch,
+            "type" => TokenKind::Type,
+            "var" => TokenKind::Var,
             // XXX(perf): unnecessary alloc.
-            _ => Token::Ident(ident.into()),
+            _ => {
+                value = Some(ident.into());
+                TokenKind::Ident
+            }
+        };
+
+        Token {
+            kind: kind,
+            value: value,
         }
     }
 
@@ -222,7 +234,10 @@ impl<'src> Lexer<'src> {
         // This case is _not_ handled by the lexer, but by the parser, as it requires too much
         // context.
         if contains_newline && may_terminate_statement(self.last_token_kind) {
-            return Some(Token::Semicolon);
+            return Some(Token {
+                kind: TokenKind::Semicolon,
+                value: None,
+            });
         }
 
         // Check for EOF after whitespace handling.
@@ -231,39 +246,39 @@ impl<'src> Lexer<'src> {
             None => return None,
         };
 
-        let tok = match c {
+        let kind = match c {
             // Single-character tokens.
             '(' => {
                 self.bump();
-                Token::OpenDelim(DelimToken::Paren)
+                TokenKind::LParen
             }
             ')' => {
                 self.bump();
-                Token::CloseDelim(DelimToken::Paren)
+                TokenKind::RParen
             }
             '{' => {
                 self.bump();
-                Token::OpenDelim(DelimToken::Brace)
+                TokenKind::LBrace
             }
             '}' => {
                 self.bump();
-                Token::CloseDelim(DelimToken::Brace)
+                TokenKind::RBrace
             }
             '[' => {
                 self.bump();
-                Token::OpenDelim(DelimToken::Bracket)
+                TokenKind::LBracket
             }
             ']' => {
                 self.bump();
-                Token::CloseDelim(DelimToken::Bracket)
+                TokenKind::RBracket
             }
             ',' => {
                 self.bump();
-                Token::Comma
+                TokenKind::Comma
             }
             ';' => {
                 self.bump();
-                Token::Semicolon
+                TokenKind::Semicolon
             }
             // More complex tokens.
             '.' => {
@@ -273,9 +288,9 @@ impl<'src> Lexer<'src> {
                 if self.current_char == Some('.') && self.next_char() == Some('.') {
                     self.bump();
                     self.bump();
-                    Token::Ellipsis
+                    TokenKind::Ellipsis
                 } else {
-                    Token::Dot
+                    TokenKind::Dot
                 }
             }
             ':' => {
@@ -283,9 +298,9 @@ impl<'src> Lexer<'src> {
 
                 if self.current_char == Some('=') {
                     self.bump();
-                    Token::ColonAssign
+                    TokenKind::ColonAssign
                 } else {
-                    Token::Colon
+                    TokenKind::Colon
                 }
             }
             '=' => {
@@ -293,9 +308,9 @@ impl<'src> Lexer<'src> {
 
                 if self.current_char == Some('=') {
                     self.bump();
-                    Token::Equals
+                    TokenKind::Equals
                 } else {
-                    Token::Assign
+                    TokenKind::Assign
                 }
             }
             '+' => {
@@ -304,13 +319,13 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('+') => {
                         self.bump();
-                        Token::Increment
+                        TokenKind::Increment
                     }
                     Some('=') => {
                         self.bump();
-                        Token::PlusAssign
+                        TokenKind::PlusAssign
                     }
-                    _ => Token::Plus,
+                    _ => TokenKind::Plus,
                 }
             }
             '-' => {
@@ -319,13 +334,13 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('-') => {
                         self.bump();
-                        Token::Decrement
+                        TokenKind::Decrement
                     }
                     Some('=') => {
                         self.bump();
-                        Token::MinusAssign
+                        TokenKind::MinusAssign
                     }
-                    _ => Token::Minus,
+                    _ => TokenKind::Minus,
                 }
             }
             '*' => {
@@ -334,9 +349,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        Token::StarAssign
+                        TokenKind::StarAssign
                     }
-                    _ => Token::Star,
+                    _ => TokenKind::Star,
                 }
             }
             '/' => {
@@ -345,9 +360,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        Token::SlashAssign
+                        TokenKind::SlashAssign
                     }
-                    _ => Token::Slash,
+                    _ => TokenKind::Slash,
                 }
             }
             '<' => {
@@ -359,20 +374,20 @@ impl<'src> Lexer<'src> {
                         match self.current_char {
                             Some('=') => {
                                 self.bump();
-                                Token::LshiftAssign
+                                TokenKind::LshiftAssign
                             }
-                            _ => Token::Lshift,
+                            _ => TokenKind::Lshift,
                         }
                     }
                     Some('=') => {
                         self.bump();
-                        Token::LessThanOrEqual
+                        TokenKind::LessThanOrEqual
                     }
                     Some('-') => {
                         self.bump();
-                        Token::LeftArrow
+                        TokenKind::LeftArrow
                     }
-                    _ => Token::LessThan,
+                    _ => TokenKind::LessThan,
                 }
             }
             '>' => {
@@ -384,16 +399,16 @@ impl<'src> Lexer<'src> {
                         match self.current_char {
                             Some('=') => {
                                 self.bump();
-                                Token::RshiftAssign
+                                TokenKind::RshiftAssign
                             }
-                            _ => Token::Rshift,
+                            _ => TokenKind::Rshift,
                         }
                     }
                     Some('=') => {
                         self.bump();
-                        Token::GreaterThanOrEqual
+                        TokenKind::GreaterThanOrEqual
                     }
-                    _ => Token::GreaterThan,
+                    _ => TokenKind::GreaterThan,
                 }
             }
             '|' => {
@@ -402,13 +417,13 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('|') => {
                         self.bump();
-                        Token::OrOr
+                        TokenKind::OrOr
                     }
                     Some('=') => {
                         self.bump();
-                        Token::OrAssign
+                        TokenKind::OrAssign
                     }
-                    _ => Token::Or,
+                    _ => TokenKind::Or,
                 }
             }
             '&' => {
@@ -417,23 +432,23 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('&') => {
                         self.bump();
-                        Token::AndAnd
+                        TokenKind::AndAnd
                     }
                     Some('=') => {
                         self.bump();
-                        Token::AndAssign
+                        TokenKind::AndAssign
                     }
                     Some('^') => {
                         self.bump();
                         match self.current_char {
                             Some('=') => {
                                 self.bump();
-                                Token::BitClearAssign
+                                TokenKind::BitClearAssign
                             }
-                            _ => Token::BitClear,
+                            _ => TokenKind::BitClear,
                         }
                     }
-                    _ => Token::And,
+                    _ => TokenKind::And,
                 }
             }
             '!' => {
@@ -442,9 +457,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        Token::NotEqual
+                        TokenKind::NotEqual
                     }
-                    _ => Token::Not,
+                    _ => TokenKind::Not,
                 }
             }
             '^' => {
@@ -453,9 +468,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        Token::CaretAssign
+                        TokenKind::CaretAssign
                     }
-                    _ => Token::Caret,
+                    _ => TokenKind::Caret,
                 }
             }
             '%' => {
@@ -464,30 +479,27 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        Token::PercentAssign
+                        TokenKind::PercentAssign
                     }
-                    _ => Token::Percent,
+                    _ => TokenKind::Percent,
                 }
             }
             // Scan integer.
-            c if c.is_digit(10) => Token::Literal(self.scan_number()),
-            c if can_start_identifier(c) => self.scan_ident_or_keyword(),
+            c if c.is_digit(10) => return Some(self.scan_number()),
+            c if can_start_identifier(c) => return Some(self.scan_ident_or_keyword()),
             // Start of _interpreted_ string literal.
-            '"' => {
-                let lit = self.scan_interpreted_str_lit();
-                Token::Literal(Literal::Str(lit))
-            }
-            '`' => {
-                let l = self.scan_raw_str_lit();
-                Token::Literal(Literal::StrRaw(l))
-            }
+            '"' => return Some(self.scan_interpreted_str_lit()),
+            '`' => return Some(self.scan_raw_str_lit()),
             c => panic!("unexpected start of token: '{}'", c),
         };
 
-        Some(tok)
+        Some(Token {
+            kind: kind,
+            value: None,
+        })
     }
 
-    fn scan_interpreted_str_lit(&mut self) -> String {
+    fn scan_interpreted_str_lit(&mut self) -> Token {
         self.bump();
         let start = self.pos;
 
@@ -510,11 +522,15 @@ impl<'src> Lexer<'src> {
         // in the slice.
         self.bump();
         // XXX(perf): alloc.
-        s.into()
+
+        Token {
+            value: Some(s.into()),
+            kind: TokenKind::Str,
+        }
     }
 
     // XXX: review and test.
-    fn scan_raw_str_lit(&mut self) -> String {
+    fn scan_raw_str_lit(&mut self) -> Token {
         // Bump past the opening backtrick.
         self.bump();
         let start = self.pos;
@@ -534,7 +550,11 @@ impl<'src> Lexer<'src> {
         // in the slice.
         self.bump();
         // XXX(perf): alloc.
-        s.into()
+
+        Token {
+            value: Some(s.into()),
+            kind: TokenKind::StrRaw,
+        }
     }
 }
 
@@ -543,9 +563,7 @@ impl<'src> Iterator for Lexer<'src> {
 
     fn next(&mut self) -> Option<Token> {
         let t = self.next_token_inner();
-        // XXX(perf): do we need to clone?
-        // If we do - can we make cloning tokens cheap?
-        self.last_token_kind = t.as_ref().map(|t| t.kind());
+        self.last_token_kind = t.as_ref().map(|t| t.kind);
         t
     }
 }

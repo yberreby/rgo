@@ -1,3 +1,9 @@
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub value: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
     Ident,
@@ -140,7 +146,7 @@ pub enum TokenKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Token {
+pub enum BigToken {
     Ident(String),
     Literal(Literal),
     Keyword(Keyword),
@@ -234,111 +240,6 @@ pub enum Token {
     Colon,
     /// End of file
     Eof,
-}
-
-// XXX/TODO: come back here and review this code.
-
-impl Token {
-    pub fn kind(&self) -> TokenKind {
-        match *self {
-            Token::Keyword(ref kw) => {
-                match *kw {
-                    Keyword::Break => TokenKind::Break,
-                    Keyword::Case => TokenKind::Case,
-                    Keyword::Chan => TokenKind::Chan,
-                    Keyword::Const => TokenKind::Const,
-                    Keyword::Continue => TokenKind::Continue,
-                    Keyword::Default => TokenKind::Default,
-                    Keyword::Defer => TokenKind::Defer,
-                    Keyword::Else => TokenKind::Else,
-                    Keyword::Fallthrough => TokenKind::Fallthrough,
-                    Keyword::For => TokenKind::For,
-                    Keyword::Func => TokenKind::Func,
-                    Keyword::Go => TokenKind::Go,
-                    Keyword::Goto => TokenKind::Goto,
-                    Keyword::If => TokenKind::If,
-                    Keyword::Import => TokenKind::Import,
-                    Keyword::Interface => TokenKind::Interface,
-                    Keyword::Map => TokenKind::Map,
-                    Keyword::Package => TokenKind::Package,
-                    Keyword::Range => TokenKind::Range,
-                    Keyword::Return => TokenKind::Return,
-                    Keyword::Select => TokenKind::Select,
-                    Keyword::Struct => TokenKind::Struct,
-                    Keyword::Switch => TokenKind::Switch,
-                    Keyword::Type => TokenKind::Type,
-                    Keyword::Var => TokenKind::Var,
-                }
-            }
-            Token::Literal(ref lit) => {
-                match *lit {
-                    Literal::Integer(_) => TokenKind::Integer,
-                    Literal::Float(_) => TokenKind::Float,
-                    Literal::Imaginary(_) => TokenKind::Imaginary,
-                    Literal::Rune(_) => TokenKind::Rune,
-                    Literal::Str(_) => TokenKind::Str,
-                    Literal::StrRaw(_) => TokenKind::StrRaw,
-                }
-            }
-            Token::OpenDelim(ref d) => {
-                match *d {
-                    DelimToken::Paren => TokenKind::LParen,
-                    DelimToken::Bracket => TokenKind::LBracket,
-                    DelimToken::Brace => TokenKind::LBrace,
-                }
-            }
-            Token::CloseDelim(ref d) => {
-                match *d {
-                    DelimToken::Paren => TokenKind::RParen,
-                    DelimToken::Bracket => TokenKind::RBracket,
-                    DelimToken::Brace => TokenKind::RBrace,
-                }
-            }
-            Token::Ident(_) => TokenKind::Ident,
-            Token::Plus => TokenKind::Plus,
-            Token::Minus => TokenKind::Minus,
-            Token::Star => TokenKind::Star,
-            Token::Slash => TokenKind::Slash,
-            Token::Percent => TokenKind::Percent,
-            Token::And => TokenKind::And,
-            Token::Or => TokenKind::Or,
-            Token::Caret => TokenKind::Caret,
-            Token::Lshift => TokenKind::Lshift,
-            Token::Rshift => TokenKind::Rshift,
-            Token::BitClear => TokenKind::BitClear,
-            Token::Increment => TokenKind::Increment,
-            Token::Decrement => TokenKind::Decrement,
-            Token::PlusAssign => TokenKind::PlusAssign,
-            Token::MinusAssign => TokenKind::MinusAssign,
-            Token::StarAssign => TokenKind::StarAssign,
-            Token::SlashAssign => TokenKind::SlashAssign,
-            Token::PercentAssign => TokenKind::PercentAssign,
-            Token::AndAssign => TokenKind::AndAssign,
-            Token::OrAssign => TokenKind::OrAssign,
-            Token::CaretAssign => TokenKind::CaretAssign,
-            Token::LshiftAssign => TokenKind::LshiftAssign,
-            Token::RshiftAssign => TokenKind::RshiftAssign,
-            Token::BitClearAssign => TokenKind::BitClearAssign,
-            Token::Not => TokenKind::Not,
-            Token::AndAnd => TokenKind::AndAnd,
-            Token::OrOr => TokenKind::OrOr,
-            Token::Equals => TokenKind::Equals,
-            Token::NotEqual => TokenKind::NotEqual,
-            Token::LessThan => TokenKind::LessThan,
-            Token::GreaterThan => TokenKind::GreaterThan,
-            Token::LessThanOrEqual => TokenKind::LessThanOrEqual,
-            Token::GreaterThanOrEqual => TokenKind::GreaterThanOrEqual,
-            Token::Assign => TokenKind::Assign,
-            Token::ColonAssign => TokenKind::ColonAssign,
-            Token::LeftArrow => TokenKind::LeftArrow,
-            Token::Ellipsis => TokenKind::Ellipsis,
-            Token::Comma => TokenKind::Comma,
-            Token::Dot => TokenKind::Dot,
-            Token::Semicolon => TokenKind::Semicolon,
-            Token::Colon => TokenKind::Colon,
-            Token::Eof => TokenKind::Eof,
-        }
-    }
 }
 
 /// Opening or closing delimiter.
