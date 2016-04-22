@@ -1,5 +1,8 @@
 // Go language specification: https://golang.org/ref/spec
 
+use std::mem;
+use token::TokenKind;
+
 // SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
 
 /// A complete source file.
@@ -55,7 +58,7 @@ pub enum ImportKind {
 // Declaration   = ConstDecl | TypeDecl | VarDecl .
 /// A statement declaration.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DeclStatement {
+pub enum DeclStmt {
     Const(ConstDecl),
     TypeDecl(TypeDecl),
     VarDecl(VarDecl),
@@ -65,7 +68,7 @@ pub enum DeclStatement {
 /// A top-level declaration - i.e. a declaration that may appear immediately after import
 /// declarations.
 pub enum TopLevelDecl {
-    Statement(DeclStatement),
+    Statement(DeclStmt),
     Func(FuncDecl),
     Method(MethodDecl),
 }
@@ -94,17 +97,26 @@ pub struct ConstSpec {
 //
 // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
 
+// I went for a strongly-typed approach here: instead of having one giant, flat `Expr` enum, I
+// chose a deeply nested hierarchy.
+//
+// Advantage: more type-safety.
+// Disadvantages:
+// - takes up more space because Rust doesn't collapse nested enum tags
+// - more verbose
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     Unary(UnaryExpr),
-    Binary(BinaryOperation),
+    Binary(BinaryExpr),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BinaryOperation {
-    lhs: Box<Expr>,
-    operator: BinaryOperator,
-    rhs: Box<Expr>,
+pub struct BinaryExpr {
+    pub lhs: Box<Expr>,
+    // TODO: type safety (OperatorKind or something)
+    pub operator: TokenKind,
+    pub rhs: Box<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,14 +127,20 @@ pub enum UnaryExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnaryOperation {
-    operator: UnaryOperator,
-    expr: Box<UnaryExpr>,
+    pub operator: UnaryOperator, // TODO: type safety
+    pub operand: Box<UnaryExpr>,
 }
 
 // TODO
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BinaryOperator {
-
+pub enum UnaryOperator {
+    Plus,
+    Minus,
+    Not,
+    Caret,
+    Star,
+    And,
+    Arrow, // ... not sure about this one
 }
 
 // pub enum
@@ -343,8 +361,7 @@ pub enum Operand {
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Conversion;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UnaryOperator {}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArrayType;
@@ -431,8 +448,6 @@ pub enum SimpleStmt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DeclStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LabeledStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GoStmt;
@@ -467,8 +482,14 @@ pub struct SendStmt;
 pub struct IncDecStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment;
+
+// ShortVarDecl = IdentifierList ":=" ExpressionList .
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ShortVarDecl;
+pub struct ShortVarDecl {
+    pub lhs: Vec<String>,
+    pub rhs: Vec<Expr>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmptyStmt;
 
@@ -479,13 +500,20 @@ pub struct Block(pub Vec<Statement>);
 // XXX/FIXME: review and fix this.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BasicLit {
-    Int,
+    Int([u8; 8]),
     Float,
     Imaginary,
     Rune,
     // XXX: interpreted/raw strings?
     // Possible solution: all strings are interpreted by the time they are put into the AST.
     Str(String),
+}
+
+impl From<u64> for BasicLit {
+    fn from(x: u64) -> BasicLit {
+        let val = unsafe { mem::transmute(x) };
+        BasicLit::Int(val)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

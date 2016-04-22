@@ -12,6 +12,9 @@
 
 #[macro_use]
 extern crate log;
+// XXX: do we still need it?
+#[macro_use]
+extern crate lazy_static;
 #[macro_use]
 extern crate quick_error;
 

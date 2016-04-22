@@ -15,6 +15,9 @@ pub enum ErrorKind {
         found: Token,
         expected: Vec<TokenKind>,
     },
+    Other {
+        msg: String,
+    },
 }
 
 impl ErrorKind {
@@ -23,6 +26,13 @@ impl ErrorKind {
             found: found,
             expected: expected,
         }
+    }
+
+    // XXX: potential code bloat due to monomorphisation, unless inlined. But we don't want to
+    // inline cold functions... so it could be best to remove all generics here and
+    // #[inline(never)].
+    pub fn other<T: Into<String>>(msg: T) -> ErrorKind {
+        ErrorKind::Other { msg: msg.into() }
     }
 }
 
@@ -46,6 +56,7 @@ impl fmt::Display for ErrorKind {
 
                 write!(f, "found \"{}\"", found)
             }
+            ErrorKind::Other { ref msg } => write!(f, "{}", msg),
         }
     }
 }

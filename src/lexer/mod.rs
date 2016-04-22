@@ -20,8 +20,6 @@
 use std::iter::Iterator;
 pub use token::*;
 
-use Position;
-
 pub struct Lexer<'src> {
     /// Byte offset from the start of the source string.
     offset: usize,
@@ -205,7 +203,6 @@ impl<'src> Lexer<'src> {
             // XXX(perf): unnecessary alloc.
             _ => {
                 value = Some(ident.into());
-                debug!("value: {:?}", value);
                 TokenKind::Ident
             }
         };
@@ -379,7 +376,7 @@ impl<'src> Lexer<'src> {
                     }
                     Some('-') => {
                         self.bump();
-                        TokenKind::LeftArrow
+                        TokenKind::Arrow
                     }
                     _ => TokenKind::LessThan,
                 }
@@ -570,10 +567,9 @@ impl<'src> Iterator for Lexer<'src> {
 }
 
 /// Convenience function to collect all the tokens from a string.
-#[deprecated]
-pub fn tokenize(s: &str) -> Vec<Token> {
+pub fn tokenize(s: &str) -> Vec<TokenAndOffset> {
     let lexer = Lexer::new(s);
-    lexer.map(|x| x.token).collect()
+    lexer.collect()
 }
 
 

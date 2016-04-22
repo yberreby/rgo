@@ -1,11 +1,8 @@
-//! # Parser
-//!
-//! Turn a list of tokens into an AST.
-
 use std::mem;
+use std::iter::Peekable;
+use std::collections::HashMap;
 use token::{Token, TokenAndOffset, TokenKind};
 use ast;
-use Position;
 
 mod error;
 pub use self::error::{PResult, Error, ErrorKind};
@@ -13,7 +10,7 @@ pub use self::error::{PResult, Error, ErrorKind};
 pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
     /// Our source of tokens.
     /// Users can choose to read all the tokens up-front, or to read them lazily.
-    reader: R,
+    reader: Peekable<R>,
     /// The current token.
     token: Token,
     /// Current byte offset from start of source string.
@@ -22,12 +19,13 @@ pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
 
 impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     pub fn new(mut it: R) -> Parser<R> {
-        let first_tok_and_pos = it.next().unwrap();
+        // TODO: handle missing tok gracefully.
+        let first_tok_and_pos = it.next().expect("missing first token");
         debug!("first_tok_and_pos: {:?}", first_tok_and_pos);
         Parser {
             token: first_tok_and_pos.token,
             offset: first_tok_and_pos.offset,
-            reader: it,
+            reader: it.peekable(),
         }
     }
 
@@ -71,7 +69,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
 
     /// Advance the parser by one token and return the bumped token.
-    pub fn bump_and_get(&mut self) -> Token {
+    fn bump_and_get(&mut self) -> Token {
         // The star is used a dummy token and replaced immediately.
         let old_token = mem::replace(&mut self.token,
                                      Token {
@@ -80,6 +78,11 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                                      });
         self.bump();
         old_token
+    }
+
+    /// Peek at the kind of the next token.
+    fn next_kind(&mut self) -> TokenKind {
+        self.reader.peek().map(|x| x.token.kind).unwrap_or(TokenKind::Eof)
     }
 
     /// Consume the next token, asserting its kind is equal to `expected`.
@@ -97,15 +100,9 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
         try!(self.eat(TokenKind::Package));
 
-        let package_name = match self.token.kind {
-            TokenKind::Ident => Ok(self.bump_and_get().value.unwrap()),
-            _ => {
-                Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Ident],
-                                                         self.token.clone())))
-            }
-        };
+        let package_name = try!(self.parse_ident());
         try!(self.eat(TokenKind::Semicolon));
-        package_name
+        Ok(package_name)
     }
 
     /// Parse any number of import declarations.
@@ -462,58 +459,110 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
 
     fn parse_go_stmt(&mut self) -> PResult<ast::GoStmt> {
+        trace!("parse_go_stmt");
         unimplemented!()
     }
     fn parse_defer_stmt(&mut self) -> PResult<ast::DeferStmt> {
+        trace!("parse_defer_stmt");
         unimplemented!()
     }
     fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
+        trace!("parse_return_stmt");
         try!(self.eat(TokenKind::Return));
         Ok(ast::ReturnStmt { expr: try!(self.parse_expr()) })
     }
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
+        trace!("parse_if_stmt");
         unimplemented!()
     }
     fn parse_switch_stmt(&mut self) -> PResult<ast::SwitchStmt> {
+        trace!("parse_switch_stmt");
         unimplemented!()
     }
     fn parse_select_stmt(&mut self) -> PResult<ast::SelectStmt> {
+        trace!("parse_select_stmt");
         unimplemented!()
     }
     fn parse_for_stmt(&mut self) -> PResult<ast::ForStmt> {
+        trace!("parse_for_stmt");
         unimplemented!()
     }
     fn parse_simple_stmt(&mut self) -> PResult<ast::SimpleStmt> {
+        trace!("parse_simple_stmt");
         unimplemented!()
     }
     fn parse_decl_stmt(&mut self) -> PResult<ast::SimpleStmt> {
+        trace!("parse_decl_stmt");
         unimplemented!()
     }
+
+    // XXX: error msg
     fn parse_expr(&mut self) -> PResult<ast::Expr> {
-        // Expression = UnaryExpr | Expression binary_op Expression .
+        trace!("parse_expr");
+
+        self.parse_potential_binary_expr(0)
+    }
+
+    /// Parse a unary *expression*, which can be a primary expression OR a unary *operation*.
+    fn parse_unary_expr(&mut self) -> PResult<ast::UnaryExpr> {
         // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
-        //
-        // binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
-        // rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
-        // add_op     = "+" | "-" | "|" | "^" .
-        // mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
-        //
-        // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
-        Ok(match self.token.kind {
-            k if k.is_unary_op() => {
-                ast::Expr::Unary(ast::UnaryExpr::UnaryOperation(try!(self.parse_unary_operation())))
-            }
-            _ => unimplemented!(),
-        })
+        trace!("parse_unary_expr");
+
+        if self.token.kind.is_unary_op() {
+            Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
+                operator: try!(self.parse_unary_operator()),
+                operand: Box::new(try!(self.parse_unary_expr())),
+            }))
+        } else if self.token.kind == TokenKind::Arrow {
+            unimplemented!()
+        } else {
+            unimplemented!()
+        }
+    }
+
+    fn parse_unary_operator(&mut self) -> PResult<ast::UnaryOperator> {
+        unimplemented!()
     }
 
     fn parse_unary_operation(&mut self) -> PResult<ast::UnaryOperation> {
-        unimplemented!()
+        trace!("parse_unary_operation");
+
+        Ok(ast::UnaryOperation {
+            operator: try!(self.parse_unary_operator()),
+            operand: Box::new(try!(self.parse_unary_expr())),
+        })
+    }
+
+    // This is pretty much a straight port from the official Go source.
+    fn parse_potential_binary_expr(&mut self, prec1: i32) -> PResult<ast::Expr> {
+        // Grammar:
+        //  Expression binary_op Expression
+        trace!("parse_potential_binary_expr");
+
+        let mut x = ast::Expr::Unary(try!(self.parse_unary_expr()));
+
+        loop {
+            let op_kind = self.token.kind;
+            let precedence = op_kind.precedence();
+            if precedence < prec1 {
+                return Ok(x);
+            }
+
+            self.bump();
+
+            let y = try!(self.parse_potential_binary_expr(precedence + 1));
+            x = ast::Expr::Binary(ast::BinaryExpr {
+                lhs: Box::new(x),
+                operator: op_kind,
+                rhs: Box::new(y),
+            });
+        }
     }
 
     /// Parse an identifier.
     // XXX: come back later. String interning and all that.
     fn parse_ident(&mut self) -> PResult<String> {
+        trace!("parse_ident");
         match self.token.kind {
             TokenKind::Ident => {
                 Ok(self.bump_and_get()
@@ -532,6 +581,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     /// This is useful because one will often expect a string literal without caring about its
     /// kind.
     fn parse_string_lit(&mut self) -> PResult<String> {
+        trace!("parse_string_lit");
         // Grammar:
         //
         // ```
@@ -544,11 +594,11 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             TokenKind::Str => {
                 // XXX TODO FIXME: we HAVE to interpret escape sequences!
                 // For now, do nothing.
-                Ok(self.bump_and_get().value.unwrap())
+                Ok(self.bump_and_get().value.expect("BUG: missing Str value"))
             }
             TokenKind::StrRaw => {
                 // Nothing to interpret, move along.
-                Ok(self.bump_and_get().value.unwrap())
+                Ok(self.bump_and_get().value.expect("BUG: missing StrRaw value"))
             }
             _ => {
                 Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Str, TokenKind::StrRaw],
@@ -560,5 +610,6 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
 pub fn parse_tokens(tokens: Vec<TokenAndOffset>) -> ast::SourceFile {
     let parser = Parser::new(tokens.into_iter());
+    // XXX: unwrapping
     parser.parse().unwrap()
 }

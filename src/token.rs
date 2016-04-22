@@ -1,5 +1,4 @@
 use std::fmt;
-use Position;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenAndOffset {
@@ -21,7 +20,7 @@ impl fmt::Display for Token {
             Ident | Integer | Float | Imaginary | Rune | Str | StrRaw => {
                 write!(f, "{}", self.value.as_ref().unwrap())
             }
-            kind => fmt::Debug::fmt(&kind, f), // FIXME
+            kind => fmt::Debug::fmt(&kind, f), // FIXME: we're just using the Debug impl
         }
     }
 }
@@ -152,7 +151,7 @@ pub enum TokenKind {
     /// :=
     ColonAssign,
     /// <-
-    LeftArrow,
+    Arrow,
     /// ...
     Ellipsis,
     /// ,
@@ -176,6 +175,24 @@ impl fmt::Display for TokenKind {
 
 
 impl TokenKind {
+    pub fn precedence(&self) -> i32 {
+        // Precedence    Operator
+        //    5             *  /  %  <<  >>  &  &^
+        //    4             +  -  |  ^
+        //    3             ==  !=  <  <=  >  >=
+        //    2             &&
+        //    1             ||
+        use self::TokenKind::*;
+        match *self {
+            Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
+            Plus | Minus | Or | Caret => 4,
+            Equals | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => 3,
+            AndAnd => 2,
+            OrOr => 1,
+            _ => panic!("BUG: calling .precedence() on a token which is not a binary operator"),
+        }
+    }
+
     pub fn is_ident(&self) -> bool {
         *self == TokenKind::Ident
     }
@@ -189,7 +206,36 @@ impl TokenKind {
             TokenKind::Caret |
             TokenKind::Star |
             TokenKind::And |
-            TokenKind::LeftArrow => true,
+            TokenKind::Arrow => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_binary_op(&self) -> bool {
+        // binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+        // rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+        // add_op     = "+" | "-" | "|" | "^" .
+        // mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+        match *self {
+            TokenKind::OrOr |
+            TokenKind::AndAnd |
+            TokenKind::Equals |
+            TokenKind::NotEqual |
+            TokenKind::LessThan |
+            TokenKind::LessThanOrEqual |
+            TokenKind::GreaterThan |
+            TokenKind::GreaterThanOrEqual |
+            TokenKind::Plus |
+            TokenKind::Minus |
+            TokenKind::Or |
+            TokenKind::Caret |
+            TokenKind::Star |
+            TokenKind::Slash |
+            TokenKind::Percent |
+            TokenKind::Lshift |
+            TokenKind::Rshift |
+            TokenKind::And |
+            TokenKind::BitClear => true,
             _ => false,
         }
     }
@@ -352,7 +398,7 @@ impl TokenKind {
 
     pub fn can_start_chan_type(&self) -> bool {
         // ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
-        *self == TokenKind::Chan || *self == TokenKind::LeftArrow
+        *self == TokenKind::Chan || *self == TokenKind::Arrow
     }
 
     pub fn can_start_lit(&self) -> bool {

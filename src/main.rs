@@ -8,7 +8,6 @@ use convenience::read_file;
 use std::env;
 use time::PreciseTime;
 
-
 fn main() {
     env_logger::init().unwrap();
     // 0th arg is the program path.
@@ -20,8 +19,7 @@ fn main() {
     let tokens = rgo::lexer::tokenize(&s);
     println!("Lexing: {} µs",
              start.to(PreciseTime::now()).num_microseconds().unwrap());
-    debug!("Token stream:\n{:?}", tokens);
 
-    // let ast: rgo::ast::SourceFile = rgo::parser::parse(tokens);
-    // println!("Abstract Syntax Tree:\n{:?}", ast);
+    let ast: rgo::ast::SourceFile = rgo::parser::parse_tokens(tokens);
+    println!("AST:\n{:?}", ast);
 }
