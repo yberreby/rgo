@@ -1,24 +1,18 @@
 # rgo
 
-`rgo` is a **work-in-progress** (i.e. unfinished) Go compiler, written in Rust.
+`rgo` is a **work-in-progress** (i.e. unfinished) Go compiler, written
+in Rust.
 
-## Goals
+For now, this is primarily a fun learning project.
 
-- providing a Rust library for parsing Go code, which may be useful for tool
-  writers
-- being a production-ready alternate implementation of the Go compiler, using
-  LLVM as a backend
+I chose Go as the source language because C compilers have been written over and
+over, and I wanted to do something new. Go's spec is pretty simple, so it seemed
+like a good choice. The fact that is has a GC also makes implementing a compiler
+for it more challenging and, therefore, more interesting.
 
-## Why?
-
-- writing compilers is fun, and a good way to learn new things
-- Go's reference implementation uses a custom backend for optimization and
-  codegen, while `rgo` will use LLVM
-- competition is healthy, and should `rgo` grow into a production-ready
-  alternative to the official Go toolchain, it might serve as a testing ground
-  for new features.
-- I chose to target Go specifically because C compilers have been written over
-  and over, and Go's spec is pretty simple.
+Additionally, Go's reference implementation uses a custom backend for
+optimization and codegen, while `rgo` will use LLVM for optimization and machine
+code generation.
 
 ## License
 
