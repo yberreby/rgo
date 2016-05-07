@@ -16,7 +16,8 @@ macro_rules! bench_lex {
 
             fn test_path<P: AsRef<Path>>(path: P) -> PathBuf {
                 let mut new = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-                new.push("test-data");
+                new.push("tests");
+                new.push("data");
                 new.push(path.as_ref());
                 new
             }
@@ -34,7 +35,7 @@ macro_rules! bench_lex {
     }
 }
 
-bench_lex!(viper, "viper.go");
-bench_lex!(hello, "hello.go");
-bench_lex!(arithConst_ssa, "arithConst_ssa.go");
-bench_lex!(rewriteAMD64, "rewriteAMD64.go");
+bench_lex!(viper, "pass/viper.go");
+bench_lex!(hello, "pass/hello.go");
+bench_lex!(arithConst_ssa, "pass/arithConst_ssa.go");
+bench_lex!(rewriteAMD64, "pass/rewriteAMD64.go");
