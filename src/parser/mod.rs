@@ -437,19 +437,21 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         //  ShortVarDecl .
 
         Ok(match self.token.kind {
-            TokenKind::Keyword(key) => match key {
-                Keyword::Type |
-                Keyword::Var |
-                Keyword::Const => try!(self.parse_decl_stmt()).into(),
-                Keyword::Go => try!(self.parse_go_stmt()).into(),
-                Keyword::Defer => try!(self.parse_defer_stmt()).into(),
-                Keyword::Return => try!(self.parse_return_stmt()).into(),
-                Keyword::If => try!(self.parse_if_stmt()).into(),
-                Keyword::Switch => try!(self.parse_switch_stmt()).into(),
-                Keyword::Select => try!(self.parse_select_stmt()).into(),
-                Keyword::For => try!(self.parse_for_stmt()).into(),
-                _ => panic!("unexpected token"),
-            },
+            TokenKind::Keyword(key) => {
+                match key {
+                    Keyword::Type |
+                    Keyword::Var |
+                    Keyword::Const => try!(self.parse_decl_stmt()).into(),
+                    Keyword::Go => try!(self.parse_go_stmt()).into(),
+                    Keyword::Defer => try!(self.parse_defer_stmt()).into(),
+                    Keyword::Return => try!(self.parse_return_stmt()).into(),
+                    Keyword::If => try!(self.parse_if_stmt()).into(),
+                    Keyword::Switch => try!(self.parse_switch_stmt()).into(),
+                    Keyword::Select => try!(self.parse_select_stmt()).into(),
+                    Keyword::For => try!(self.parse_for_stmt()).into(),
+                    _ => panic!("unexpected token"),
+                }
+            }
             // All simple statements start with something expression-like.
             t if t.can_start_expr() => try!(self.parse_simple_stmt()).into(),
             TokenKind::Delim(Delim::LBrace) => ast::Block(try!(self.parse_block())).into(),
@@ -463,12 +465,18 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     fn parse_go_stmt(&mut self) -> PResult<ast::GoStmt> {
         trace!("parse_go_stmt");
-        unimplemented!()
+
+        try!(self.eat(TokenKind::Keyword(Keyword::Go)));
+        Ok(ast::GoStmt { call: try!(self.parse_expr()) })
     }
+
     fn parse_defer_stmt(&mut self) -> PResult<ast::DeferStmt> {
         trace!("parse_defer_stmt");
-        unimplemented!()
+
+        try!(self.eat(TokenKind::Keyword(Keyword::Defer)));
+        Ok(ast::DeferStmt { call: try!(self.parse_expr()) })
     }
+
     fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
         trace!("parse_return_stmt");
         try!(self.eat(TokenKind::Keyword(Keyword::Return)));

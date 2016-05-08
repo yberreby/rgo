@@ -449,13 +449,32 @@ pub enum SimpleStmt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LabeledStmt;
+
+/// A "go" statement starts the execution of a function call as an independent concurrent thread of
+/// control, or goroutine, within the same address space.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GoStmt;
+pub struct GoStmt {
+    /// The function or method call being started.
+    pub call: Expr,
+}
+
+/// A "defer" statement invokes a function whose execution is deferred to the moment the
+/// surrounding function returns, either because the surrounding function executed a return
+/// statement, reached the end of its function body, or because the corresponding goroutine is
+/// panicking.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeferStmt {
+    /// The function or method call being deferred.
+    pub call: Expr,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReturnStmt {
     /// The expression being returned.
     pub expr: Expr,
 }
+
+
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -466,16 +485,39 @@ pub struct ContinueStmt;
 pub struct GotoStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FallthroughStmt;
+
+
+/// "If" statements specify the conditional execution of two branches according to the value of a
+/// boolean expression. If the expression evaluates to true, the "if" branch is executed,
+/// otherwise, if present, the "else" branch is executed.
+///
+/// The expression may be preceded by a simple statement, which executes before the expression is
+/// evaluated.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IfStmt;
+pub struct IfStmt {
+    pub before_stmt: Option<SimpleStmt>,
+    pub condition: Expr,
+    pub block: Block,
+    pub opt_else: Option<Box<Else>>,
+}
+
+/// The "else" portion of an if statement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Else {
+    /// `else if <condition> { ... }`
+    If(IfStmt),
+    /// `else { ... }`
+    Block(Block),
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SwitchStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DeferStmt;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SendStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
