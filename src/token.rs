@@ -148,8 +148,12 @@ pub enum Operator {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Literal {
-    /// Integer literal.
-    Integer,
+    /// Decimal integer literal.
+    Decimal,
+    /// Octal integer literal.
+    Octal,
+    /// Hex integer literal.
+    Hex,
     /// Floating-point literal.
     Float,
     /// Imaginary literal (e.g. `6.67428e-11i`).

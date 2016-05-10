@@ -71,7 +71,7 @@ impl<'src> Lexer<'src> {
     }
 
     /// Scan a number literal (integer or float).
-    // FIXME: ONLY supports integers in base 10 for now.
+    // FIXME: ONLY supports integers for now.
     fn scan_number(&mut self) -> Token {
         // Integer literal grammar:
         //
@@ -82,10 +82,46 @@ impl<'src> Lexer<'src> {
 
         let start = self.offset;
 
-        while let Some(c) = self.current_char {
-            // Base 10.
-            if c.is_digit(10) {
+        // Figure out what kind of literal we can expect based on the first characters.
+        // Note that if this tels us we have a Decimal literal, it could still turn out
+        // to be a float or imaginary literal.
+        let (mut kind, base) = if self.current_char == Some('0') {
+            self.bump();
+            let next_c = self.next_char();
+            if next_c == Some('x') || next_c == Some('X') {
                 self.bump();
+                (Literal::Hex, 16)
+            } else {
+                (Literal::Octal, 8)
+            }
+        } else {
+            (Literal::Decimal, 10)
+        };
+
+        'outer: while let Some(c) = self.current_char {
+            if c.is_digit(base) {
+                self.bump();
+            } else if kind == Literal::Decimal {
+                let mut had_e = false;
+
+                while let Some(c) = self.current_char {
+                    if c.is_digit(10) {
+                        self.bump();
+                    } else if c == 'e' || c == 'E' {
+                        kind = Literal::Float;
+                        self.bump();
+                        had_e = true;
+                    } else if !had_e && c == '.' {
+                        kind = Literal::Float;
+                        self.bump();
+                    } else if c == 'i' {
+                        self.bump();
+                        kind = Literal::Imaginary;
+                        break 'outer;
+                    } else {
+                        break 'outer;
+                    }
+                }
             } else {
                 break;
             }
@@ -95,7 +131,7 @@ impl<'src> Lexer<'src> {
 
         Token {
             value: Some(s.into()),
-            kind: TokenKind::Literal(Literal::Integer), // FIXME
+            kind: TokenKind::Literal(kind),
         }
     }
 
