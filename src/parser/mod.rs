@@ -1,7 +1,7 @@
 use std::mem;
 use std::iter::Peekable;
 use std::collections::HashMap;
-use token::{Token, TokenAndOffset, TokenKind};
+use token::*;
 use ast;
 
 mod error;
@@ -73,7 +73,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // The star is used a dummy token and replaced immediately.
         let old_token = mem::replace(&mut self.token,
                                      Token {
-                                         kind: TokenKind::Star,
+                                         kind: TokenKind::Operator(Operator::Star),
                                          value: None,
                                      });
         self.bump();
@@ -98,7 +98,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     fn parse_package_clause(&mut self) -> PResult<String> {
         trace!("parse_package_clause");
 
-        try!(self.eat(TokenKind::Package));
+        try!(self.eat(TokenKind::Keyword(Keyword::Package)));
 
         let package_name = try!(self.parse_ident());
         try!(self.eat(TokenKind::Semicolon));
@@ -112,7 +112,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
         loop {
             match self.token.kind {
-                TokenKind::Import => {
+                TokenKind::Keyword(Keyword::Import) => {
                     decls.push(try!(self.parse_import_decl()));
                 }
                 _ => return Ok(decls),
@@ -130,12 +130,12 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
         // ```
 
-        try!(self.eat(TokenKind::Import));
+        try!(self.eat(TokenKind::Keyword(Keyword::Import)));
         let mut specs = Vec::new();
 
         match self.token.kind {
             // Long import declaration.
-            TokenKind::LParen => {
+            TokenKind::Delim(Delim::LParen) => {
                 self.bump();
 
                 // There may be multiple `ImportSpec`s in a single "long" import declaration.
@@ -143,7 +143,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                     match self.token.kind {
                         // XXX: Should we _know_ that import specs always start with a string
                         // literal? I'm not sure.
-                        TokenKind::RParen => {
+                        TokenKind::Delim(Delim::RParen) => {
                             break;
                         }
                         _ => {
@@ -201,12 +201,12 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
         match self.token.kind {
             // FunctionDecl
-            TokenKind::Func => {
+            TokenKind::Keyword(Keyword::Func) => {
                 let fd = try!(self.parse_func_decl());
                 decls.push(ast::TopLevelDecl::Func(fd));
             }
             _ => {
-                return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Func],
+                return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Keyword(Keyword::Func)],
                                                                 self.token.clone())));
             }
         }
@@ -223,13 +223,13 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // Function     = Signature FunctionBody .
         // FunctionBody = Block .
 
-        try!(self.eat(TokenKind::Func));
+        try!(self.eat(TokenKind::Keyword(Keyword::Func)));
         let name = try!(self.parse_ident());
         let signature = try!(self.parse_func_signature());
 
         let body = match self.token.kind {
             // This function has a body, parse it.
-            TokenKind::LBrace => try!(self.parse_block()),
+            TokenKind::Delim(Delim::LBrace) => try!(self.parse_block()),
             // Empty body.
             _ => vec![],
         };
@@ -263,10 +263,10 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
 
         let result = match self.token.kind {
             // An opening parenthesis! We can parse an output parameter list.
-            TokenKind::LParen => try!(self.parse_func_params()),
+            TokenKind::Delim(Delim::LParen) => try!(self.parse_func_params()),
             // Brace = no return type, but a body. We don't care about the body in this function.
             // Semicolon = no return type and no body.
-            TokenKind::LBrace | TokenKind::Semicolon => ast::Parameters::empty(),
+            TokenKind::Delim(Delim::LBrace) | TokenKind::Semicolon => ast::Parameters::empty(),
             // Otherwise, a single, unnamed return type.
             _ => ast::Parameters::from_single_type(try!(self.parse_type())),
         };
@@ -289,7 +289,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
         // ParameterList  = ParameterDecl { "," ParameterDecl } .
         // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
-        try!(self.eat(TokenKind::LParen));
+        try!(self.eat(TokenKind::Delim(Delim::LParen)));
 
         let mut decls = Vec::new();
 
@@ -305,7 +305,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             }
             _ => {}
         }
-        try!(self.eat(TokenKind::RParen));
+        try!(self.eat(TokenKind::Delim(Delim::RParen)));
 
         // XXX: do we _need_ Parameters to be a type by itself?
         Ok(ast::Parameters { decls: decls })
@@ -365,10 +365,10 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         match self.token.kind {
             // A Type may be surrounded in parentheses, in which case we simply eat the
             // parentheses and recurse.
-            TokenKind::LParen => {
-                try!(self.eat(TokenKind::LParen));
+            TokenKind::Delim(Delim::LParen) => {
+                try!(self.eat(TokenKind::Delim(Delim::LParen)));
                 let typ = try!(self.parse_type());
-                try!(self.eat(TokenKind::RParen));
+                try!(self.eat(TokenKind::Delim(Delim::RParen)));
                 Ok(typ)
             }
             // If a Type starts with an identifier, it can only be a TypeName.
@@ -412,7 +412,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // Grammar:
         // Block = "{" StatementList "}" .
         // StatementList = { Statement ";" } .
-        try!(self.eat(TokenKind::LBrace));
+        try!(self.eat(TokenKind::Delim(Delim::LBrace)));
 
         let mut statements = Vec::new();
         while self.token.kind.can_start_statement() {
@@ -420,7 +420,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
             try!(self.eat(TokenKind::Semicolon));
         }
 
-        try!(self.eat(TokenKind::RBrace));
+        try!(self.eat(TokenKind::Delim(Delim::RBrace)));
         Ok(statements)
     }
 
@@ -437,20 +437,23 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         //  ShortVarDecl .
 
         Ok(match self.token.kind {
-            TokenKind::Type |
-            TokenKind::Var |
-            TokenKind::Const => try!(self.parse_decl_stmt()).into(),
-            TokenKind::Go => try!(self.parse_go_stmt()).into(),
-            TokenKind::Defer => try!(self.parse_defer_stmt()).into(),
-            TokenKind::Return => try!(self.parse_return_stmt()).into(),
-            TokenKind::If => try!(self.parse_if_stmt()).into(),
-            TokenKind::Switch => try!(self.parse_switch_stmt()).into(),
-            TokenKind::Select => try!(self.parse_select_stmt()).into(),
-            TokenKind::For => try!(self.parse_for_stmt()).into(),
+            TokenKind::Keyword(key) => match key {
+                Keyword::Type |
+                Keyword::Var |
+                Keyword::Const => try!(self.parse_decl_stmt()).into(),
+                Keyword::Go => try!(self.parse_go_stmt()).into(),
+                Keyword::Defer => try!(self.parse_defer_stmt()).into(),
+                Keyword::Return => try!(self.parse_return_stmt()).into(),
+                Keyword::If => try!(self.parse_if_stmt()).into(),
+                Keyword::Switch => try!(self.parse_switch_stmt()).into(),
+                Keyword::Select => try!(self.parse_select_stmt()).into(),
+                Keyword::For => try!(self.parse_for_stmt()).into(),
+                _ => panic!("unexpected token"),
+            },
             // All simple statements start with something expression-like.
             t if t.can_start_expr() => try!(self.parse_simple_stmt()).into(),
-            TokenKind::LBrace => ast::Block(try!(self.parse_block())).into(),
-            TokenKind::RBrace => {
+            TokenKind::Delim(Delim::LBrace) => ast::Block(try!(self.parse_block())).into(),
+            TokenKind::Delim(Delim::RBrace) => {
                 // a semicolon may be omitted before a closing "}"
                 ast::EmptyStmt.into()
             }
@@ -468,7 +471,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
     fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
         trace!("parse_return_stmt");
-        try!(self.eat(TokenKind::Return));
+        try!(self.eat(TokenKind::Keyword(Keyword::Return)));
         Ok(ast::ReturnStmt { expr: try!(self.parse_expr()) })
     }
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
@@ -513,7 +516,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
                 operator: try!(self.parse_unary_operator()),
                 operand: Box::new(try!(self.parse_unary_expr())),
             }))
-        } else if self.token.kind == TokenKind::Arrow {
+        } else if self.token.kind == TokenKind::Operator(Operator::Arrow) {
             unimplemented!()
         } else {
             unimplemented!()
@@ -591,18 +594,19 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         // ```
 
         match self.token.kind {
-            TokenKind::Str => {
+            TokenKind::Literal(Literal::Str) => {
                 // XXX TODO FIXME: we HAVE to interpret escape sequences!
                 // For now, do nothing.
                 Ok(self.bump_and_get().value.expect("BUG: missing Str value"))
             }
-            TokenKind::StrRaw => {
+            TokenKind::Literal(Literal::StrRaw) => {
                 // Nothing to interpret, move along.
                 Ok(self.bump_and_get().value.expect("BUG: missing StrRaw value"))
             }
             _ => {
-                Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Str, TokenKind::StrRaw],
-                                                         self.token.clone())))
+                Err(self.err(ErrorKind::unexpected_token(
+                        vec![TokenKind::Literal(Literal::Str), TokenKind::Literal(Literal::StrRaw)],
+                        self.token.clone())))
             }
         }
     }

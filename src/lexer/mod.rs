@@ -95,7 +95,7 @@ impl<'src> Lexer<'src> {
 
         Token {
             value: Some(s.into()),
-            kind: TokenKind::Integer, // FIXME
+            kind: TokenKind::Literal(Literal::Integer), // FIXME
         }
     }
 
@@ -174,32 +174,34 @@ impl<'src> Lexer<'src> {
         let ident = self.scan_ident();
         let mut value = None;
 
+        use token::TokenKind::Keyword;
+        use token::Keyword::*;
         let kind = match &*ident {
-            "break" => TokenKind::Break,
-            "case" => TokenKind::Case,
-            "chan" => TokenKind::Chan,
-            "const" => TokenKind::Const,
-            "continue" => TokenKind::Continue,
-            "default" => TokenKind::Default,
-            "defer" => TokenKind::Defer,
-            "else" => TokenKind::Else,
-            "fallthrough" => TokenKind::Fallthrough,
-            "for" => TokenKind::For,
-            "func" => TokenKind::Func,
-            "go" => TokenKind::Go,
-            "goto" => TokenKind::Goto,
-            "if" => TokenKind::If,
-            "import" => TokenKind::Import,
-            "interface" => TokenKind::Interface,
-            "map" => TokenKind::Map,
-            "package" => TokenKind::Package,
-            "range" => TokenKind::Range,
-            "return" => TokenKind::Return,
-            "select" => TokenKind::Select,
-            "struct" => TokenKind::Struct,
-            "switch" => TokenKind::Switch,
-            "type" => TokenKind::Type,
-            "var" => TokenKind::Var,
+            "break" => Keyword(Break),
+            "case" => Keyword(Case),
+            "chan" => Keyword(Chan),
+            "const" => Keyword(Const),
+            "continue" => Keyword(Continue),
+            "default" => Keyword(Default),
+            "defer" => Keyword(Defer),
+            "else" => Keyword(Else),
+            "fallthrough" => Keyword(Fallthrough),
+            "for" => Keyword(For),
+            "func" => Keyword(Func),
+            "go" => Keyword(Go),
+            "goto" => Keyword(Goto),
+            "if" => Keyword(If),
+            "import" => Keyword(Import),
+            "interface" => Keyword(Interface),
+            "map" => Keyword(Map),
+            "package" => Keyword(Package),
+            "range" => Keyword(Range),
+            "return" => Keyword(Return),
+            "select" => Keyword(Select),
+            "struct" => Keyword(Struct),
+            "switch" => Keyword(Switch),
+            "type" => Keyword(Type),
+            "var" => Keyword(Var),
             // XXX(perf): unnecessary alloc.
             _ => {
                 value = Some(ident.into());
@@ -237,31 +239,35 @@ impl<'src> Lexer<'src> {
             None => return None,
         };
 
+        use token::Operator::*;
+        use token::Delim::*;
+        use token::TokenKind::{Delim, Operator};
+
         let kind = match c {
             // Single-character tokens.
             '(' => {
                 self.bump();
-                TokenKind::LParen
+                Delim(LParen)
             }
             ')' => {
                 self.bump();
-                TokenKind::RParen
+                Delim(RParen)
             }
             '{' => {
                 self.bump();
-                TokenKind::LBrace
+                Delim(LBrace)
             }
             '}' => {
                 self.bump();
-                TokenKind::RBrace
+                Delim(RBrace)
             }
             '[' => {
                 self.bump();
-                TokenKind::LBracket
+                Delim(LBracket)
             }
             ']' => {
                 self.bump();
-                TokenKind::RBracket
+                Delim(RBracket)
             }
             ',' => {
                 self.bump();
@@ -289,7 +295,7 @@ impl<'src> Lexer<'src> {
 
                 if self.current_char == Some('=') {
                     self.bump();
-                    TokenKind::ColonAssign
+                    Operator(ColonAssign)
                 } else {
                     TokenKind::Colon
                 }
@@ -299,9 +305,9 @@ impl<'src> Lexer<'src> {
 
                 if self.current_char == Some('=') {
                     self.bump();
-                    TokenKind::Equals
+                    Operator(Equals)
                 } else {
-                    TokenKind::Assign
+                    Operator(Assign)
                 }
             }
             '+' => {
@@ -310,13 +316,13 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('+') => {
                         self.bump();
-                        TokenKind::Increment
+                        Operator(Increment)
                     }
                     Some('=') => {
                         self.bump();
-                        TokenKind::PlusAssign
+                        Operator(PlusAssign)
                     }
-                    _ => TokenKind::Plus,
+                    _ => Operator(Plus),
                 }
             }
             '-' => {
@@ -325,13 +331,13 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('-') => {
                         self.bump();
-                        TokenKind::Decrement
+                        Operator(Decrement)
                     }
                     Some('=') => {
                         self.bump();
-                        TokenKind::MinusAssign
+                        Operator(MinusAssign)
                     }
-                    _ => TokenKind::Minus,
+                    _ => Operator(Minus),
                 }
             }
             '*' => {
@@ -340,9 +346,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        TokenKind::StarAssign
+                        Operator(StarAssign)
                     }
-                    _ => TokenKind::Star,
+                    _ => Operator(Star),
                 }
             }
             '/' => {
@@ -351,9 +357,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        TokenKind::SlashAssign
+                        Operator(SlashAssign)
                     }
-                    _ => TokenKind::Slash,
+                    _ => Operator(Slash),
                 }
             }
             '<' => {
@@ -365,20 +371,20 @@ impl<'src> Lexer<'src> {
                         match self.current_char {
                             Some('=') => {
                                 self.bump();
-                                TokenKind::LshiftAssign
+                                Operator(LshiftAssign)
                             }
-                            _ => TokenKind::Lshift,
+                            _ => Operator(Lshift),
                         }
                     }
                     Some('=') => {
                         self.bump();
-                        TokenKind::LessThanOrEqual
+                        Operator(LessThanOrEqual)
                     }
                     Some('-') => {
                         self.bump();
-                        TokenKind::Arrow
+                        Operator(Arrow)
                     }
-                    _ => TokenKind::LessThan,
+                    _ => Operator(LessThan),
                 }
             }
             '>' => {
@@ -390,16 +396,16 @@ impl<'src> Lexer<'src> {
                         match self.current_char {
                             Some('=') => {
                                 self.bump();
-                                TokenKind::RshiftAssign
+                                Operator(RshiftAssign)
                             }
-                            _ => TokenKind::Rshift,
+                            _ => Operator(Rshift),
                         }
                     }
                     Some('=') => {
                         self.bump();
-                        TokenKind::GreaterThanOrEqual
+                        Operator(GreaterThanOrEqual)
                     }
-                    _ => TokenKind::GreaterThan,
+                    _ => Operator(GreaterThan),
                 }
             }
             '|' => {
@@ -408,13 +414,13 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('|') => {
                         self.bump();
-                        TokenKind::OrOr
+                        Operator(OrOr)
                     }
                     Some('=') => {
                         self.bump();
-                        TokenKind::OrAssign
+                        Operator(OrAssign)
                     }
-                    _ => TokenKind::Or,
+                    _ => Operator(Or),
                 }
             }
             '&' => {
@@ -423,23 +429,23 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('&') => {
                         self.bump();
-                        TokenKind::AndAnd
+                        Operator(AndAnd)
                     }
                     Some('=') => {
                         self.bump();
-                        TokenKind::AndAssign
+                        Operator(AndAssign)
                     }
                     Some('^') => {
                         self.bump();
                         match self.current_char {
                             Some('=') => {
                                 self.bump();
-                                TokenKind::BitClearAssign
+                                Operator(BitClearAssign)
                             }
-                            _ => TokenKind::BitClear,
+                            _ => Operator(BitClear),
                         }
                     }
-                    _ => TokenKind::And,
+                    _ => Operator(And),
                 }
             }
             '!' => {
@@ -448,9 +454,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        TokenKind::NotEqual
+                        Operator(NotEqual)
                     }
-                    _ => TokenKind::Not,
+                    _ => Operator(Not),
                 }
             }
             '^' => {
@@ -459,9 +465,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        TokenKind::CaretAssign
+                        Operator(CaretAssign)
                     }
-                    _ => TokenKind::Caret,
+                    _ => Operator(Caret),
                 }
             }
             '%' => {
@@ -470,9 +476,9 @@ impl<'src> Lexer<'src> {
                 match self.current_char {
                     Some('=') => {
                         self.bump();
-                        TokenKind::PercentAssign
+                        Operator(PercentAssign)
                     }
-                    _ => TokenKind::Percent,
+                    _ => Operator(Percent),
                 }
             }
             // Scan integer.
@@ -516,7 +522,7 @@ impl<'src> Lexer<'src> {
 
         Token {
             value: Some(s.into()),
-            kind: TokenKind::Str,
+            kind: TokenKind::Literal(Literal::Str),
         }
     }
 
@@ -544,7 +550,7 @@ impl<'src> Lexer<'src> {
 
         Token {
             value: Some(s.into()),
-            kind: TokenKind::StrRaw,
+            kind: TokenKind::Literal(Literal::StrRaw),
         }
     }
 }
@@ -608,16 +614,25 @@ fn may_terminate_statement(t: Option<TokenKind>) -> bool {
     // - one of the keywords break, continue, fallthrough, or return
     // - one of the operators and delimiters ++, --, ), ], or }
     match t {
-        TokenKind::Ident |
-        TokenKind::Break |
-        TokenKind::Continue |
-        TokenKind::Fallthrough |
-        TokenKind::Return |
-        TokenKind::Increment |
-        TokenKind::Decrement |
-        TokenKind::RParen |
-        TokenKind::RBracket |
-        TokenKind::RBrace => true,
+        TokenKind::Ident => true,
+        TokenKind::Operator(op) => match op {
+            Operator::Increment |
+            Operator::Decrement => true,
+            _ => false,
+        },
+        TokenKind::Keyword(key) => match key {
+            Keyword::Break |
+            Keyword::Continue |
+            Keyword::Fallthrough |
+            Keyword::Return => true,
+            _ => false,
+        },
+        TokenKind::Delim(delim) => match delim {
+            Delim::RParen |
+            Delim::RBracket |
+            Delim::RBrace => true,
+            _ => false,
+        },
         t if t.is_literal() => true,
         _ => false,
     }
