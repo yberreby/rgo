@@ -190,7 +190,7 @@ impl fmt::Display for TokenKind {
 
 
 impl TokenKind {
-    pub fn precedence(&self) -> i32 {
+    pub fn precedence(self) -> i32 {
         // Precedence    Operator
         //    5             *  /  %  <<  >>  &  &^
         //    4             +  -  |  ^
@@ -198,7 +198,7 @@ impl TokenKind {
         //    2             &&
         //    1             ||
         use self::Operator::*;
-        if let &TokenKind::Operator(op) = self {
+        if let TokenKind::Operator(op) = self {
             match op {
                 Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
                 Plus | Minus | Or | Caret => 4,
@@ -212,13 +212,13 @@ impl TokenKind {
         }
     }
 
-    pub fn is_ident(&self) -> bool {
-        *self == TokenKind::Ident
+    pub fn is_ident(self) -> bool {
+        self == TokenKind::Ident
     }
 
-    pub fn is_unary_op(&self) -> bool {
+    pub fn is_unary_op(self) -> bool {
         // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
-        if let &TokenKind::Operator(op) = self {
+        if let TokenKind::Operator(op) = self {
             use self::Operator::*;
             match op {
                 Plus |
@@ -235,14 +235,14 @@ impl TokenKind {
         }
     }
 
-    pub fn is_literal(&self) -> bool {
-        match *self {
+    pub fn is_literal(self) -> bool {
+        match self {
             TokenKind::Literal(_) => true,
             _ => false,
         }
     }
 
-    pub fn can_start_statement(&self) -> bool {
+    pub fn can_start_statement(self) -> bool {
         // Grammar:
         // Statement =
         //      Declaration | LabeledStmt | SimpleStmt |
@@ -260,7 +260,7 @@ impl TokenKind {
 
         use self::Keyword::*;
 
-        if let &TokenKind::Keyword(key) = self {
+        if let TokenKind::Keyword(key) = self {
             match key {
                 Return | Break | Continue | Goto | Fallthrough | If |
                 // XXX/TODO: double check this is correct.
@@ -272,39 +272,39 @@ impl TokenKind {
         }
     }
 
-    pub fn can_start_block(&self) -> bool {
-        *self == TokenKind::Delim(Delim::LBrace)
+    pub fn can_start_block(self) -> bool {
+        self == TokenKind::Delim(Delim::LBrace)
     }
 
-    pub fn can_start_return_stmt(&self) -> bool {
-        *self == TokenKind::Keyword(Keyword::Return)
+    pub fn can_start_return_stmt(self) -> bool {
+        self == TokenKind::Keyword(Keyword::Return)
     }
 
-    pub fn can_start_labeled_stmt(&self) -> bool {
+    pub fn can_start_labeled_stmt(self) -> bool {
         // LabeledStmt = Label ":" Statement .
         // Label       = identifier .
         self.is_ident()
     }
 
-    pub fn can_start_go_stmt(&self) -> bool {
-        *self == TokenKind::Keyword(Keyword::Go)
+    pub fn can_start_go_stmt(self) -> bool {
+        self == TokenKind::Keyword(Keyword::Go)
     }
 
-    pub fn can_start_decl(&self) -> bool {
+    pub fn can_start_decl(self) -> bool {
         trace!("can_start_decl");
         // Declaration   = ConstDecl | TypeDecl | VarDecl .
-        *self == TokenKind::Keyword(Keyword::Const) ||
-        *self == TokenKind::Keyword(Keyword::Type) ||
-        *self == TokenKind::Keyword(Keyword::Var)
+        self == TokenKind::Keyword(Keyword::Const) ||
+        self == TokenKind::Keyword(Keyword::Type) ||
+        self == TokenKind::Keyword(Keyword::Var)
     }
 
-    pub fn can_start_simple_stmt(&self) -> bool {
-        *self == TokenKind::Semicolon || self.can_start_expr() || self.can_start_send_stmt() ||
+    pub fn can_start_simple_stmt(self) -> bool {
+        self == TokenKind::Semicolon || self.can_start_expr() || self.can_start_send_stmt() ||
         self.can_start_inc_dec_stmt() ||
         self.can_start_assignment() || self.can_start_short_var_decl()
     }
 
-    pub fn can_start_expr(&self) -> bool {
+    pub fn can_start_expr(self) -> bool {
         // Expression = UnaryExpr | Expression binary_op Expression .
         // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
         //
@@ -343,15 +343,15 @@ impl TokenKind {
         self.can_start_unary_expr()
     }
 
-    pub fn can_start_unary_expr(&self) -> bool {
+    pub fn can_start_unary_expr(self) -> bool {
         self.can_start_primary_expr() || self.is_unary_op()
     }
 
-    pub fn can_start_primary_expr(&self) -> bool {
+    pub fn can_start_primary_expr(self) -> bool {
         self.can_start_operand() || self.can_start_conversion()
     }
 
-    pub fn can_start_operand(&self) -> bool {
+    pub fn can_start_operand(self) -> bool {
         // Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
         // OperandName = identifier | QualifiedIdent.
         // MethodExpr    = ReceiverType "." MethodName .
@@ -359,22 +359,22 @@ impl TokenKind {
         //
         // QualifiedIdent starts with an identifier.
         // So does MethodExpr.
-        self.can_start_lit() || self.is_ident() || *self == TokenKind::Delim(Delim::LParen)
+        self.can_start_lit() || self.is_ident() || self == TokenKind::Delim(Delim::LParen)
     }
 
-    pub fn can_start_conversion(&self) -> bool {
+    pub fn can_start_conversion(self) -> bool {
         self.can_start_type()
     }
 
-    pub fn can_start_type(&self) -> bool {
+    pub fn can_start_type(self) -> bool {
         // Type      = TypeName | TypeLit | "(" Type ")" .
         // TypeName  = identifier | QualifiedIdent .
         // TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
         //      SliceType | MapType | ChannelType .
-        self.is_ident() || self.can_start_type_lit() || *self == TokenKind::Delim(Delim::LParen)
+        self.is_ident() || self.can_start_type_lit() || self == TokenKind::Delim(Delim::LParen)
     }
 
-    pub fn can_start_type_lit(&self) -> bool {
+    pub fn can_start_type_lit(self) -> bool {
         // TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
         //             SliceType | MapType | ChannelType .
         self.can_start_array_type() || self.can_start_struct_type() ||
@@ -383,87 +383,87 @@ impl TokenKind {
         self.can_start_map_type() || self.can_start_chan_type()
     }
 
-    pub fn can_start_pointer_type(&self) -> bool {
-        *self == TokenKind::Operator(Operator::Star)
+    pub fn can_start_pointer_type(self) -> bool {
+        self == TokenKind::Operator(Operator::Star)
     }
 
-    pub fn can_start_func_type(&self) -> bool {
+    pub fn can_start_func_type(self) -> bool {
         // FunctionType   = "func" Signature .
-        *self == TokenKind::Keyword(Keyword::Func)
+        self == TokenKind::Keyword(Keyword::Func)
     }
 
-    pub fn can_start_interface_type(&self) -> bool {
+    pub fn can_start_interface_type(self) -> bool {
         // InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
-        *self == TokenKind::Keyword(Keyword::Interface)
+        self == TokenKind::Keyword(Keyword::Interface)
     }
 
-    pub fn can_start_chan_type(&self) -> bool {
+    pub fn can_start_chan_type(self) -> bool {
         // ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
-        *self == TokenKind::Keyword(Keyword::Chan) || *self == TokenKind::Operator(Operator::Arrow)
+        self == TokenKind::Keyword(Keyword::Chan) || self == TokenKind::Operator(Operator::Arrow)
     }
 
-    pub fn can_start_lit(&self) -> bool {
+    pub fn can_start_lit(self) -> bool {
         // Literal     = BasicLit | CompositeLit | FunctionLit .
         // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
         self.can_start_basic_lit() || self.can_start_composite_lit() || self.can_start_func_lit()
     }
 
-    pub fn can_start_basic_lit(&self) -> bool {
+    pub fn can_start_basic_lit(self) -> bool {
         self.is_literal()
     }
 
-    pub fn can_start_composite_lit(&self) -> bool {
+    pub fn can_start_composite_lit(self) -> bool {
         // CompositeLit  = LiteralType LiteralValue .
         self.can_start_lit_type()
     }
 
-    pub fn can_start_lit_type(&self) -> bool {
+    pub fn can_start_lit_type(self) -> bool {
         // LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
         //                 SliceType | MapType | TypeName .
         self.can_start_struct_type() || self.can_start_array_type() ||
-        *self == TokenKind::Delim(Delim::RBracket) || self.can_start_slice_type() ||
+        self == TokenKind::Delim(Delim::RBracket) || self.can_start_slice_type() ||
         self.can_start_map_type() || self.is_ident()
     }
 
-    pub fn can_start_func_lit(&self) -> bool {
+    pub fn can_start_func_lit(self) -> bool {
         // FunctionLit = "func" Function .
-        *self == TokenKind::Keyword(Keyword::Func)
+        self == TokenKind::Keyword(Keyword::Func)
     }
 
-    pub fn can_start_struct_type(&self) -> bool {
-        *self == TokenKind::Keyword(Keyword::Struct)
+    pub fn can_start_struct_type(self) -> bool {
+        self == TokenKind::Keyword(Keyword::Struct)
     }
 
-    pub fn can_start_array_type(&self) -> bool {
-        *self == TokenKind::Delim(Delim::RBracket)
+    pub fn can_start_array_type(self) -> bool {
+        self == TokenKind::Delim(Delim::RBracket)
     }
 
-    pub fn can_start_slice_type(&self) -> bool {
-        *self == TokenKind::Delim(Delim::RBracket)
+    pub fn can_start_slice_type(self) -> bool {
+        self == TokenKind::Delim(Delim::RBracket)
     }
 
-    pub fn can_start_map_type(&self) -> bool {
-        *self == TokenKind::Keyword(Keyword::Map)
+    pub fn can_start_map_type(self) -> bool {
+        self == TokenKind::Keyword(Keyword::Map)
     }
 
-    pub fn can_start_send_stmt(&self) -> bool {
+    pub fn can_start_send_stmt(self) -> bool {
         // SendStmt = Channel "<-" Expression .
         // Channel  = Expression .
         self.can_start_expr()
     }
 
-    pub fn can_start_inc_dec_stmt(&self) -> bool {
+    pub fn can_start_inc_dec_stmt(self) -> bool {
         // IncDecStmt = Expression ( "++" | "--" ) .
         self.can_start_expr()
     }
 
-    pub fn can_start_assignment(&self) -> bool {
+    pub fn can_start_assignment(self) -> bool {
         // Assignment = ExpressionList assign_op ExpressionList .
         // ExpressionList = Expression { "," Expression } .
         self.can_start_expr()
     }
 
-    pub fn can_start_short_var_decl(&self) -> bool {
+    pub fn can_start_short_var_decl(self) -> bool {
         // ShortVarDecl = IdentifierList ":=" ExpressionList .
         // IdentifierList = identifier { "," identifier } .
         self.is_ident()
