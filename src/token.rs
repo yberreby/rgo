@@ -1,9 +1,15 @@
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TokenAndOffset {
+pub struct TokenAndSpan {
     pub token: Token,
-    pub offset: u32,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Span {
+    pub start: u32,
+    pub end: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

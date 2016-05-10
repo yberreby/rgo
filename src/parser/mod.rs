@@ -7,7 +7,7 @@ use ast;
 mod error;
 pub use self::error::{PResult, Error, ErrorKind};
 
-pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
+pub struct Parser<R: Iterator<Item = TokenAndSpan>> {
     /// Our source of tokens.
     /// Users can choose to read all the tokens up-front, or to read them lazily.
     reader: Peekable<R>,
@@ -17,14 +17,14 @@ pub struct Parser<R: Iterator<Item = TokenAndOffset>> {
     offset: u32,
 }
 
-impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
+impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     pub fn new(mut it: R) -> Parser<R> {
         // TODO: handle missing tok gracefully.
         let first_tok_and_pos = it.next().expect("missing first token");
         debug!("first_tok_and_pos: {:?}", first_tok_and_pos);
         Parser {
             token: first_tok_and_pos.token,
-            offset: first_tok_and_pos.offset,
+            offset: first_tok_and_pos.span.start,
             reader: it.peekable(),
         }
     }
@@ -58,7 +58,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
         let next = self.reader.next();
 
         if let Some(ref tap) = next {
-            self.offset = tap.offset;
+            self.offset = tap.span.start;
         }
 
         let next_tok = next.map(|x| x.token).unwrap_or(Token {
@@ -612,7 +612,7 @@ impl<R: Iterator<Item = TokenAndOffset>> Parser<R> {
     }
 }
 
-pub fn parse_tokens(tokens: Vec<TokenAndOffset>) -> ast::SourceFile {
+pub fn parse_tokens(tokens: Vec<TokenAndSpan>) -> ast::SourceFile {
     let parser = Parser::new(tokens.into_iter());
     // XXX: unwrapping
     parser.parse().unwrap()

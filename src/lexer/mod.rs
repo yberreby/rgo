@@ -556,24 +556,27 @@ impl<'src> Lexer<'src> {
 }
 
 impl<'src> Iterator for Lexer<'src> {
-    type Item = TokenAndOffset;
+    type Item = TokenAndSpan;
 
-    fn next(&mut self) -> Option<TokenAndOffset> {
+    fn next(&mut self) -> Option<TokenAndSpan> {
         let start = self.offset as u32;
         let t = self.next_token_inner();
         self.last_token_kind = t.as_ref().map(|t| t.kind);
 
         t.map(|t| {
-            TokenAndOffset {
+            TokenAndSpan {
                 token: t,
-                offset: start,
+                span: Span {
+                    start: start,
+                    end: self.offset as u32,
+                },
             }
         })
     }
 }
 
 /// Convenience function to collect all the tokens from a string.
-pub fn tokenize(s: &str) -> Vec<TokenAndOffset> {
+pub fn tokenize(s: &str) -> Vec<TokenAndSpan> {
     let lexer = Lexer::new(s);
     lexer.collect()
 }
