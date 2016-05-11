@@ -628,7 +628,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     fn interpret_unicode_escape(&self,
                                 long: bool,
-                                chars: &mut CharIndices,
+                                chars: &mut Iterator<Item = (usize, char)>,
                                 buf: &mut Vec<u8>)
                                 -> PResult<()> {
         let num_digits = if long {
@@ -665,7 +665,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         };
     }
 
-    fn interpret_octal_escape(&self, chars: &mut CharIndices, buf: &mut Vec<u8>) -> PResult<()> {
+    fn interpret_octal_escape(&self,
+                              chars: &mut Iterator<Item = (usize, char)>,
+                              buf: &mut Vec<u8>)
+                              -> PResult<()> {
         let mut value = 0u16;
 
         for _ in 0..3 {
@@ -692,7 +695,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         };
     }
 
-    fn interpret_hex_escape(&self, chars: &mut CharIndices, buf: &mut Vec<u8>) -> PResult<()> {
+    fn interpret_hex_escape(&self,
+                            chars: &mut Iterator<Item = (usize, char)>,
+                            buf: &mut Vec<u8>)
+                            -> PResult<()> {
         let mut value = 0u8;
 
         for _ in 0..2 {
@@ -740,28 +746,32 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn interpret_string_lit(&mut self, lit: String) -> PResult<Vec<u8>> {
         let mut result = Vec::new();
 
-        let mut char_indices = lit.char_indices();
+        let mut char_indices = lit.char_indices().peekable();
 
         while let Some((offset, c)) = char_indices.next() {
             if c == '\\' {
                 // A string literal with a value ending with \ shouldn't get past the lexer.
-                let (_, c) = char_indices.next()
-                                         .expect("unexpected end of string: this is a bug!");
+                let &(_, pc) = char_indices.peek()
+                                           .expect("unexpected end of string: this is a bug!");
 
                 // First check to see if we have a simple escape.
-                if let Some(escape_byte) = self.get_simple_escape(c) {
+                if let Some(escape_byte) = self.get_simple_escape(pc) {
+                    char_indices.next();
                     result.push(escape_byte);
-                } else if c == '"' {
+                } else if pc == '"' {
+                    char_indices.next();
                     // \" is only valid in strings
                     result.push(b'"');
-                } else if c == 'x' {
+                } else if pc == 'x' {
+                    char_indices.next();
                     try!(self.interpret_hex_escape(&mut char_indices, &mut result));
-                } else if c == 'u' || c == 'U' {
-                    try!(self.interpret_unicode_escape(c == 'U', &mut char_indices, &mut result));
-                } else if c.is_digit(8) {
+                } else if pc == 'u' || pc == 'U' {
+                    char_indices.next();
+                    try!(self.interpret_unicode_escape(pc == 'U', &mut char_indices, &mut result));
+                } else if pc.is_digit(8) {
                     try!(self.interpret_octal_escape(&mut char_indices, &mut result));
                 } else {
-                    let msg = format!("unknown escape sequence: {}", c);
+                    let msg = format!("unknown escape sequence: {}", pc);
                     return Err(self.err(ErrorKind::other(msg)));
                 }
             } else {
