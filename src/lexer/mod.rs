@@ -731,22 +731,4 @@ fn may_terminate_statement(t: Option<TokenKind>) -> bool {
         t if t.is_literal() => true,
         _ => false,
     }
-
-    #[test]
-    fn test_text_literals() {
-        use super::TokenKind::Literal;
-        use super::Literal::*;
-
-        assert_token("'a'", Literal(Rune), Some("a"));
-        assert_token("'\\n'", Literal(Rune), Some("\\n"));
-        assert_token("'\\''", Literal(Rune), Some("\\'"));
-
-        assert_token("\"Hello!\"", Literal(Str), Some("Hello!"));
-        assert_token("\"\\n\\n\"", Literal(Str), Some("\\n\\n"));
-        assert_token("\"\\\"\"", Literal(Str), Some("\\\""));
-
-        assert_token("`Hello!`", Literal(StrRaw), Some("Hello!"));
-        assert_token("`\\n\\n`", Literal(StrRaw), Some("\\n\\n"));
-        assert_token("`\\\"`", Literal(StrRaw), Some("\\\""));
-    }
 }
