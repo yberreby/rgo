@@ -1,6 +1,5 @@
 use std::mem;
 use std::iter::Peekable;
-use std::str::CharIndices;
 use token::*;
 use ast;
 
