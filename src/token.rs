@@ -23,9 +23,7 @@ impl fmt::Display for Token {
         use self::TokenKind::*;
 
         match self.kind {
-            Ident | Literal(_) => {
-                write!(f, "{}", self.value.as_ref().unwrap())
-            }
+            Ident | Literal(_) => write!(f, "{}", self.value.as_ref().unwrap()),
             kind => fmt::Debug::fmt(&kind, f), // FIXME: we're just using the Debug impl
         }
     }
@@ -212,7 +210,12 @@ impl TokenKind {
             match op {
                 Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
                 Plus | Minus | Or | Caret => 4,
-                Equals | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => 3,
+                Equals |
+                NotEqual |
+                LessThan |
+                LessThanOrEqual |
+                GreaterThan |
+                GreaterThanOrEqual => 3,
                 AndAnd => 2,
                 OrOr => 1,
                 _ => panic!("BUG: calling .precedence() on a token which is not a binary operator"),
@@ -263,8 +266,9 @@ impl TokenKind {
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         // ShortVarDecl .
 
-        if self.can_start_decl() || self.can_start_labeled_stmt() || self.can_start_simple_stmt() ||
-        self.can_start_go_stmt() || self.can_start_block() {
+        if self.can_start_decl() || self.can_start_labeled_stmt() ||
+           self.can_start_simple_stmt() || self.can_start_go_stmt() ||
+           self.can_start_block() {
             return true;
         }
 
@@ -303,15 +307,14 @@ impl TokenKind {
     pub fn can_start_decl(self) -> bool {
         trace!("can_start_decl");
         // Declaration   = ConstDecl | TypeDecl | VarDecl .
-        self == TokenKind::Keyword(Keyword::Const) ||
-        self == TokenKind::Keyword(Keyword::Type) ||
+        self == TokenKind::Keyword(Keyword::Const) || self == TokenKind::Keyword(Keyword::Type) ||
         self == TokenKind::Keyword(Keyword::Var)
     }
 
     pub fn can_start_simple_stmt(self) -> bool {
         self == TokenKind::Semicolon || self.can_start_expr() || self.can_start_send_stmt() ||
-        self.can_start_inc_dec_stmt() ||
-        self.can_start_assignment() || self.can_start_short_var_decl()
+        self.can_start_inc_dec_stmt() || self.can_start_assignment() ||
+        self.can_start_short_var_decl()
     }
 
     pub fn can_start_expr(self) -> bool {

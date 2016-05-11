@@ -206,8 +206,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 decls.push(ast::TopLevelDecl::Func(fd));
             }
             _ => {
-                return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Keyword(Keyword::Func)],
-                                                                self.token.clone())));
+                let e = ErrorKind::unexpected_token(vec![TokenKind::Keyword(Keyword::Func)],
+                                                    self.token.clone());
+                return Err(self.err(e));
             }
         }
 
