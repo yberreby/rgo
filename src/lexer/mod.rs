@@ -91,6 +91,8 @@ impl<'src> Lexer<'src> {
             while let Some(c) = self.current_char {
                 if c.is_digit(16) {
                     self.bump();
+                } else {
+                    break;
                 }
             }
 
