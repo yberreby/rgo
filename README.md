@@ -16,7 +16,7 @@ code generation.
 
 ## License
 
-Copyright (c) 2016 The rgo Project Developers.
+Copyright (c) 2016 The `rgo` Project Developers.
 
 Licensed under either of
 
