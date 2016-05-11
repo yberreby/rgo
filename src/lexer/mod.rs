@@ -20,6 +20,9 @@
 use std::iter::Iterator;
 pub use token::*;
 
+#[cfg(test)]
+mod test;
+
 pub struct Lexer<'src> {
     /// Byte offset from the start of the source string.
     offset: usize,
@@ -84,7 +87,7 @@ impl<'src> Lexer<'src> {
 
         // If we have a hexadecimal, treat it specially.
         if self.current_char == Some('0') &&
-            (self.next_char() == Some('x') || self.next_char() == Some('x')) {
+           (self.next_char() == Some('x') || self.next_char() == Some('x')) {
             self.bump();
             self.bump();
 
@@ -125,7 +128,7 @@ impl<'src> Lexer<'src> {
                 return Token {
                     value: Some(self.src[start..self.offset].into()),
                     kind: TokenKind::Literal(Literal::Imaginary),
-                }
+                };
             } else {
                 break;
             }
@@ -670,92 +673,31 @@ fn may_terminate_statement(t: Option<TokenKind>) -> bool {
     // - one of the operators and delimiters ++, --, ), ], or }
     match t {
         TokenKind::Ident => true,
-        TokenKind::Operator(op) => match op {
-            Operator::Increment |
-            Operator::Decrement => true,
-            _ => false,
-        },
-        TokenKind::Keyword(key) => match key {
-            Keyword::Break |
-            Keyword::Continue |
-            Keyword::Fallthrough |
-            Keyword::Return => true,
-            _ => false,
-        },
-        TokenKind::Delim(delim) => match delim {
-            Delim::RParen |
-            Delim::RBracket |
-            Delim::RBrace => true,
-            _ => false,
-        },
+        TokenKind::Operator(op) => {
+            match op {
+                Operator::Increment |
+                Operator::Decrement => true,
+                _ => false,
+            }
+        }
+        TokenKind::Keyword(key) => {
+            match key {
+                Keyword::Break |
+                Keyword::Continue |
+                Keyword::Fallthrough |
+                Keyword::Return => true,
+                _ => false,
+            }
+        }
+        TokenKind::Delim(delim) => {
+            match delim {
+                Delim::RParen |
+                Delim::RBracket |
+                Delim::RBrace => true,
+                _ => false,
+            }
+        }
         t if t.is_literal() => true,
         _ => false,
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    fn assert_tokens(code: &str, expect: &[(TokenKind, Option<&str>)]) {
-        let got = tokenize(code);
-
-        assert_eq!(got.len(), expect.len());
-        for (got_t, expect_t) in got.iter().zip(expect) {
-            let nt = Token {
-                kind: expect_t.0,
-                value: expect_t.1.map(|s| s.to_owned()),
-            };
-            assert_eq!(got_t.token, nt);
-        }
-    }
-
-    fn assert_token(code: &str, expect_kind: TokenKind, expect_value: Option<&str>) {
-        assert_tokens(code, &[(expect_kind, expect_value)]);
-    }
-
-    #[test]
-    fn test_numerical_tokens() {
-        use super::TokenKind::Literal;
-        use super::Literal::*;
-
-        // Integer Literals
-        assert_token("42", Literal(Decimal), Some("42"));
-        assert_token("0600", Literal(Octal), Some("0600"));
-        assert_token("0xBadFace", Literal(Hex), Some("0xBadFace"));
-        assert_token("170141183460469231731687303715884105727",
-            Literal(Decimal), Some("170141183460469231731687303715884105727"));
-
-        let float_tests = [
-            "0.",
-            "72.40",
-            "072.40",
-            "2.71828",
-            "1.e+0",
-            "6.67428e-11",
-            "1E6",
-            ".25",
-            ".12345E+5",
-        ];
-
-        for t in &float_tests {
-            assert_token(t, Literal(Float), Some(t));
-        }
-
-        let imaginary_tests = [
-            "0i",
-            "011i",
-            "0.i",
-            "2.71828i",
-            "1.e+0i",
-            "6.67428e-11i",
-            "1E6i",
-            ".25i",
-            ".12345E+5i",
-        ];
-
-        for t in &imaginary_tests {
-            assert_token(t, Literal(Imaginary), Some(t));
-        }
     }
 }
