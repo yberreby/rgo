@@ -14,6 +14,7 @@ If you wish to contribute, please follow these guidelines:
   #[cfg(test)]
   mod test;
   ```
+- when in doubt, [refer to the Go spec](https://golang.org/ref/spec)
 
 You can find sections of the code in need of attention by exploring GitHub
 issues, and/or with the help of grep:
