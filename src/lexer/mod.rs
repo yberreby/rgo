@@ -552,6 +552,7 @@ impl<'src> Lexer<'src> {
         })
     }
 
+    // XXX: add some validity checking.
     fn scan_rune_lit(&mut self) -> Token {
         self.bump();
 
