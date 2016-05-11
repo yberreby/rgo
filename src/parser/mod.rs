@@ -1,8 +1,11 @@
 use std::mem;
 use std::iter::Peekable;
-use std::collections::HashMap;
+use std::str::CharIndices;
 use token::*;
 use ast;
+
+#[cfg(test)]
+mod test;
 
 mod error;
 pub use self::error::{PResult, Error, ErrorKind};
@@ -592,7 +595,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     /// Parse a string literal, whether interpreted or raw.
     /// This is useful because one will often expect a string literal without caring about its
     /// kind.
-    fn parse_string_lit(&mut self) -> PResult<String> {
+    fn parse_string_lit(&mut self) -> PResult<Vec<u8>> {
         trace!("parse_string_lit");
         // Grammar:
         //
@@ -604,13 +607,16 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         match self.token.kind {
             TokenKind::Literal(Literal::Str) => {
-                // XXX TODO FIXME: we HAVE to interpret escape sequences!
-                // For now, do nothing.
-                Ok(self.bump_and_get().value.expect("BUG: missing Str value"))
+                // Interpret the string.
+                let raw_val = self.bump_and_get().value.expect("BUG: missing Str value");
+                Ok(try!(self.interpret_string_lit(raw_val)))
             }
             TokenKind::Literal(Literal::StrRaw) => {
-                // Nothing to interpret, move along.
-                Ok(self.bump_and_get().value.expect("BUG: missing StrRaw value"))
+                // Only interpreting that needs to be done is removing carriage returns.
+                let raw_val = self.bump_and_get().value.expect("BUG: missing StrRaw value");
+                let mut byte_vec = raw_val.into_bytes();
+                byte_vec.retain(|&c| c != b'\r');
+                Ok(byte_vec)
             }
             _ => {
                 Err(self.err(ErrorKind::unexpected_token(
@@ -618,6 +624,153 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                         self.token.clone())))
             }
         }
+    }
+
+    fn interpret_unicode_escape(&self,
+                                long: bool,
+                                chars: &mut CharIndices,
+                                buf: &mut Vec<u8>)
+                                -> PResult<()> {
+        let num_digits = if long {
+            8
+        } else {
+            4
+        };
+
+        let mut value = 0u32;
+
+        for _ in 0..num_digits {
+            if let Some((_, c)) = chars.next() {
+                if let Some(number) = c.to_digit(16) {
+                    value *= 16;
+                    value += number;
+                } else {
+                    let msg = format!("illegal character in unicode escape: '{}'", c);
+                    return Err(self.err(ErrorKind::other(msg)));
+                }
+            } else {
+                let msg = "unexpected end of string in unicode escape";
+                return Err(self.err(ErrorKind::other(msg)));
+            }
+        }
+
+        return if let Some(value_char) = ::std::char::from_u32(value) {
+            let mut tmp = String::with_capacity(4);
+            tmp.push(value_char);
+            buf.extend_from_slice(tmp.as_bytes());
+            Ok(())
+        } else {
+            let msg = format!("escape sequence is invalid unicode codepoint: {:#x}", value);
+            Err(self.err(ErrorKind::other(msg)))
+        };
+    }
+
+    fn interpret_octal_escape(&self, chars: &mut CharIndices, buf: &mut Vec<u8>) -> PResult<()> {
+        let mut value = 0u16;
+
+        for _ in 0..3 {
+            if let Some((_, c)) = chars.next() {
+                if let Some(number) = c.to_digit(8) {
+                    value *= 8;
+                    value += number as u16;
+                } else {
+                    let msg = format!("illegal character in octal escape: '{}'", c);
+                    return Err(self.err(ErrorKind::other(msg)));
+                }
+            } else {
+                let msg = "unexpected end of string in octal escape";
+                return Err(self.err(ErrorKind::other(msg)));
+            }
+        }
+
+        return if value > 255 {
+            let msg = format!("illegal octal escape value > 255: {}", value);
+            Err(self.err(ErrorKind::other(msg)))
+        } else {
+            buf.push(value as u8);
+            Ok(())
+        };
+    }
+
+    fn interpret_hex_escape(&self, chars: &mut CharIndices, buf: &mut Vec<u8>) -> PResult<()> {
+        let mut value = 0u8;
+
+        for _ in 0..2 {
+            if let Some((_, c)) = chars.next() {
+                if let Some(number) = c.to_digit(16) {
+                    value *= 16;
+                    value += number as u8;
+                } else {
+                    let msg = format!("illegal character in hex escape: '{}'", c);
+                    return Err(self.err(ErrorKind::other(msg)));
+                }
+            } else {
+                let msg = "unexpected end of string in hex escape";
+                return Err(self.err(ErrorKind::other(msg)));
+            }
+        }
+
+        buf.push(value);
+
+        Ok(())
+    }
+
+    fn get_simple_escape(&self, c: char) -> Option<u8> {
+        // The escapes are roughly sorted by most common first.
+        // XXX: actually find out exact ordering
+        let simple_escapes = [('\\', b'\\'),
+                              ('n', b'\n'),
+                              ('t', b'\t'),
+                              ('v', b'\x0b'),
+                              ('r', b'\r'),
+                              ('b', b'\x08'),
+                              ('f', b'\x0c'),
+                              ('a', b'\x07')];
+
+        return if let Some(escape) = simple_escapes.iter().find(|escape| escape.0 == c) {
+            Some(escape.1)
+        } else {
+            None
+        };
+    }
+
+    /// Interpret a string literal, converting escape patterns to bytes.
+    /// Note that it returns a Vec<u8> rather than a String. This is because Go string literals
+    /// are allowed to contain invalid ASCII/UTF-8 through the use of octal and hex escapes.
+    fn interpret_string_lit(&mut self, lit: String) -> PResult<Vec<u8>> {
+        let mut result = Vec::new();
+
+        let mut char_indices = lit.char_indices();
+
+        while let Some((offset, c)) = char_indices.next() {
+            if c == '\\' {
+                // A string literal with a value ending with \ shouldn't get past the lexer.
+                let (_, c) = char_indices.next()
+                                         .expect("unexpected end of string: this is a bug!");
+
+                // First check to see if we have a simple escape.
+                if let Some(escape_byte) = self.get_simple_escape(c) {
+                    result.push(escape_byte);
+                } else if c == '"' {
+                    // \" is only valid in strings
+                    result.push(b'"');
+                } else if c == 'x' {
+                    try!(self.interpret_hex_escape(&mut char_indices, &mut result));
+                } else if c == 'u' || c == 'U' {
+                    try!(self.interpret_unicode_escape(c == 'U', &mut char_indices, &mut result));
+                } else if c.is_digit(8) {
+                    try!(self.interpret_octal_escape(&mut char_indices, &mut result));
+                } else {
+                    let msg = format!("unknown escape sequence: {}", c);
+                    return Err(self.err(ErrorKind::other(msg)));
+                }
+            } else {
+                let orig_str = &lit[offset..offset + c.len_utf8()];
+                result.extend_from_slice(orig_str.as_bytes());
+            }
+        }
+
+        Ok(result)
     }
 }
 

@@ -41,7 +41,7 @@ pub struct ImportDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSpec {
     pub kind: ImportKind,
-    pub path: String,
+    pub path: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -546,9 +546,7 @@ pub enum BasicLit {
     Float,
     Imaginary,
     Rune,
-    // XXX: interpreted/raw strings?
-    // Possible solution: all strings are interpreted by the time they are put into the AST.
-    Str(String),
+    Str(Vec<u8>),
 }
 
 impl From<u64> for BasicLit {
