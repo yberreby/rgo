@@ -82,45 +82,47 @@ impl<'src> Lexer<'src> {
 
         let start = self.offset;
 
-        // Figure out what kind of literal we can expect based on the first characters.
-        // Note that if this tels us we have a Decimal literal, it could still turn out
-        // to be a float or imaginary literal.
-        let (mut kind, base) = if self.current_char == Some('0') {
+        // If we have a hexadecimal, treat it specially.
+        if self.current_char == Some('0') &&
+            (self.next_char() == Some('x') || self.next_char() == Some('x')) {
             self.bump();
-            let next_c = self.next_char();
-            if next_c == Some('x') || next_c == Some('X') {
-                self.bump();
-                (Literal::Hex, 16)
-            } else {
-                (Literal::Octal, 8)
+            self.bump();
+
+            while let Some(c) = self.current_char {
+                if c.is_digit(16) {
+                    self.bump();
+                }
             }
-        } else {
-            (Literal::Decimal, 10)
-        };
+
+            return Token {
+                value: Some(self.src[start..self.offset].into()),
+                kind: TokenKind::Literal(Literal::Hex),
+            };
+        }
+
+        let has_leading_zero = self.current_char == Some('0');
+        let mut had_e = false;
+        let mut had_dot = false;
 
         'outer: while let Some(c) = self.current_char {
-            if c.is_digit(base) {
+            if c.is_digit(10) {
                 self.bump();
-            } else if kind == Literal::Decimal {
-                let mut had_e = false;
+            } else if !had_e && (c == 'e' || c == 'E') {
+                self.bump();
+                had_e = true;
 
-                while let Some(c) = self.current_char {
-                    if c.is_digit(10) {
-                        self.bump();
-                    } else if c == 'e' || c == 'E' {
-                        kind = Literal::Float;
-                        self.bump();
-                        had_e = true;
-                    } else if !had_e && c == '.' {
-                        kind = Literal::Float;
-                        self.bump();
-                    } else if c == 'i' {
-                        self.bump();
-                        kind = Literal::Imaginary;
-                        break 'outer;
-                    } else {
-                        break 'outer;
-                    }
+                if self.current_char == Some('+') || self.current_char == Some('-') {
+                    self.bump();
+                }
+            } else if !had_e && !had_dot && c == '.' {
+                self.bump();
+                had_dot = true;
+            } else if c == 'i' {
+                self.bump();
+
+                return Token {
+                    value: Some(self.src[start..self.offset].into()),
+                    kind: TokenKind::Literal(Literal::Imaginary),
                 }
             } else {
                 break;
@@ -128,6 +130,14 @@ impl<'src> Lexer<'src> {
         }
 
         let s = &self.src[start..self.offset];
+
+        let kind = if had_e || had_dot {
+            Literal::Float
+        } else if has_leading_zero {
+            Literal::Octal
+        } else {
+            Literal::Decimal
+        };
 
         Token {
             value: Some(s.into()),
@@ -315,6 +325,10 @@ impl<'src> Lexer<'src> {
             }
             // More complex tokens.
             '.' => {
+                if self.next_char().map(|x| x.is_digit(10)) == Some(true) {
+                    return Some(self.scan_number());
+                }
+
                 self.bump();
 
                 // Look for an ellipsis ('...').
@@ -674,5 +688,72 @@ fn may_terminate_statement(t: Option<TokenKind>) -> bool {
         },
         t if t.is_literal() => true,
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn assert_tokens(code: &str, expect: &[(TokenKind, Option<&str>)]) {
+        let got = tokenize(code);
+
+        assert_eq!(got.len(), expect.len());
+        for (got_t, expect_t) in got.iter().zip(expect) {
+            let nt = Token {
+                kind: expect_t.0,
+                value: expect_t.1.map(|s| s.to_owned()),
+            };
+            assert_eq!(got_t.token, nt);
+        }
+    }
+
+    fn assert_token(code: &str, expect_kind: TokenKind, expect_value: Option<&str>) {
+        assert_tokens(code, &[(expect_kind, expect_value)]);
+    }
+
+    #[test]
+    fn test_numerical_tokens() {
+        use super::TokenKind::Literal;
+        use super::Literal::*;
+
+        // Integer Literals
+        assert_token("42", Literal(Decimal), Some("42"));
+        assert_token("0600", Literal(Octal), Some("0600"));
+        assert_token("0xBadFace", Literal(Hex), Some("0xBadFace"));
+        assert_token("170141183460469231731687303715884105727",
+            Literal(Decimal), Some("170141183460469231731687303715884105727"));
+
+        let float_tests = [
+            "0.",
+            "72.40",
+            "072.40",
+            "2.71828",
+            "1.e+0",
+            "6.67428e-11",
+            "1E6",
+            ".25",
+            ".12345E+5",
+        ];
+
+        for t in &float_tests {
+            assert_token(t, Literal(Float), Some(t));
+        }
+
+        let imaginary_tests = [
+            "0i",
+            "011i",
+            "0.i",
+            "2.71828i",
+            "1.e+0i",
+            "6.67428e-11i",
+            "1E6i",
+            ".25i",
+            ".12345E+5i",
+        ];
+
+        for t in &imaginary_tests {
+            assert_token(t, Literal(Imaginary), Some(t));
+        }
     }
 }
