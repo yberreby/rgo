@@ -542,6 +542,7 @@ impl<'src> Lexer<'src> {
             // Start of _interpreted_ string literal.
             '"' => return Some(self.scan_interpreted_str_lit()),
             '`' => return Some(self.scan_raw_str_lit()),
+            '\'' => return Some(self.scan_rune_lit()),
             c => panic!("unexpected start of token: '{}'", c),
         };
 
@@ -549,6 +550,36 @@ impl<'src> Lexer<'src> {
             kind: kind,
             value: None,
         })
+    }
+
+    fn scan_rune_lit(&mut self) -> Token {
+        self.bump();
+
+        let start = self.offset;
+
+        while let Some(c) = self.current_char {
+            // If we encounter a backslash escape, we just skip past the '\' and the
+            // following character.
+            if c == '\\' {
+                self.bump();
+                self.bump();
+            } else if c == '\'' {
+                break;
+            } else {
+                self.bump();
+            }
+        }
+
+        let s = &self.src[start..self.offset];
+
+        // Skip the quote _after_ slicing so that it isn't included
+        // in the slice.
+        self.bump();
+
+        Token {
+            value: Some(s.into()),
+            kind: TokenKind::Literal(Literal::Rune),
+        }
     }
 
     fn scan_interpreted_str_lit(&mut self) -> Token {
@@ -699,5 +730,23 @@ fn may_terminate_statement(t: Option<TokenKind>) -> bool {
         }
         t if t.is_literal() => true,
         _ => false,
+    }
+
+    #[test]
+    fn test_text_literals() {
+        use super::TokenKind::Literal;
+        use super::Literal::*;
+
+        assert_token("'a'", Literal(Rune), Some("a"));
+        assert_token("'\\n'", Literal(Rune), Some("\\n"));
+        assert_token("'\\''", Literal(Rune), Some("\\'"));
+
+        assert_token("\"Hello!\"", Literal(Str), Some("Hello!"));
+        assert_token("\"\\n\\n\"", Literal(Str), Some("\\n\\n"));
+        assert_token("\"\\\"\"", Literal(Str), Some("\\\""));
+
+        assert_token("`Hello!`", Literal(StrRaw), Some("Hello!"));
+        assert_token("`\\n\\n`", Literal(StrRaw), Some("\\n\\n"));
+        assert_token("`\\\"`", Literal(StrRaw), Some("\\\""));
     }
 }
