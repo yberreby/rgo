@@ -773,6 +773,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     let msg = format!("unknown escape sequence: {}", pc);
                     return Err(self.err(ErrorKind::other(msg)));
                 }
+            } else if c == '\n' {
+                let msg = format!("newline in string");
+                return Err(self.err(ErrorKind::other(msg)));
             } else {
                 let orig_str = &lit[offset..offset + c.len_utf8()];
                 result.extend_from_slice(orig_str.as_bytes());
