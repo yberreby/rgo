@@ -18,6 +18,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate quick_error;
 
+extern crate num;
+
 mod pos;
 pub use self::pos::Position;
 

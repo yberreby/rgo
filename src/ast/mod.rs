@@ -1,6 +1,7 @@
 // Go language specification: https://golang.org/ref/spec
 
-use std::mem;
+use num::bigint::BigInt;
+use num::BigRational;
 use token::TokenKind;
 
 // SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
@@ -542,18 +543,11 @@ pub struct Block(pub Vec<Statement>);
 // XXX/FIXME: review and fix this.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BasicLit {
-    Int([u8; 8]),
-    Float,
-    Imaginary,
+    Int(BigInt),
+    Float(BigRational),
+    Imaginary(BigRational),
     Rune,
     Str(Vec<u8>),
-}
-
-impl From<u64> for BasicLit {
-    fn from(x: u64) -> BasicLit {
-        let val = unsafe { mem::transmute(x) };
-        BasicLit::Int(val)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

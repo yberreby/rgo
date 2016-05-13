@@ -1,5 +1,7 @@
 use std::mem;
 use std::iter::Peekable;
+use num::bigint::BigInt;
+use num::BigRational;
 use token::*;
 use ast;
 
@@ -536,6 +538,170 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     fn parse_unary_operator(&mut self) -> PResult<ast::UnaryOperator> {
         unimplemented!()
+    }
+
+    fn parse_basic_lit(&mut self) -> PResult<ast::BasicLit> {
+        // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+        trace!("parse_basic_lit");
+
+        use token::Literal::*;
+
+        let lit;
+
+        if let TokenKind::Literal(x) = self.token.kind {
+            lit = x;
+        } else {
+            let expected = [Decimal, Octal, Hex, Float, Imaginary, Rune, Str, StrRaw]
+                               .iter()
+                               .map(|&k| TokenKind::Literal(k))
+                               .collect();
+            return Err(self.err(ErrorKind::unexpected_token(expected, self.token.clone())));
+        };
+
+        match lit {
+            Decimal | Octal | Hex => Ok(ast::BasicLit::Int(try!(self.parse_int_lit()))),
+            Str | StrRaw => Ok(ast::BasicLit::Str(try!(self.parse_string_lit()))),
+            Float => {
+                let value = self.bump_and_get().value.expect("BUG: missing value in float literal");
+                Ok(ast::BasicLit::Float(try!(self.interpret_float_lit(&value[..],
+                                                                      "float literal"))))
+            }
+            Imaginary => {
+                let value = self.bump_and_get()
+                                .value
+                                .expect("BUG: missing value in imaginary literal");
+                assert!(value.chars().last().unwrap() == 'i',
+                        "BUG: imaginary literal token does not end with i");
+                let value_ref = value.trim_right_matches('i');
+                Ok(ast::BasicLit::Imaginary(try!(self.interpret_float_lit(value_ref,
+                                                                          "imaginary literal"))))
+            }
+            Rune => unimplemented!(),
+        }
+    }
+
+    /// Interpret the value of a float/imaginary literal and return the result as a BigRational.
+    /// If this method is being used to parse an imaginary lit, don't include the trailing `i`.
+    fn interpret_float_lit(&mut self, value: &str, token_name: &str) -> PResult<BigRational> {
+        // float_lit = decimals "." [ decimals ] [ exponent ] |
+        //             decimals exponent |
+        //             "." decimals [ exponent ] .
+        // decimals  = decimal_digit { decimal_digit } .
+        // exponent  = ( "e" | "E" ) [ "+" | "-" ] decimals .
+        trace!("interpret_float_lit");
+
+        let mut res = BigRational::from_integer(BigInt::from(0u8));
+        let mut chars = value.chars().peekable();
+        let mut parse_exponent = false;
+        let mut digits_after_dot = 0u32; // the number of digits after the dot we are
+
+        while let Some(c) = chars.next() {
+            if c == '.' {
+                digits_after_dot = 1;
+            } else if c == 'e' || c == 'E' {
+                parse_exponent = true;
+                break;
+            } else {
+                let digit = c.to_digit(10).expect("BUG: invalid char in float/imag lit");
+                let digit_value = BigRational::from_integer(BigInt::from(digit));
+
+                if digits_after_dot == 0 {
+                    res = res * BigRational::from_integer(BigInt::from(10u8));
+                    res = res + BigRational::from_integer(BigInt::from(digit));
+                } else {
+                    res = res +
+                          digit_value /
+                          BigRational::from_integer(BigInt::from(10u32.pow(digits_after_dot)));
+
+                    digits_after_dot += 1;
+                }
+            }
+        }
+
+        if parse_exponent {
+            let mut negative = false;
+            if let Some(&c) = chars.peek() {
+                if c == '+' {
+                    chars.next();
+                } else if c == '-' {
+                    negative = true;
+                    chars.next();
+                }
+            } else {
+                // Empty exponent
+                return Err(self.err(ErrorKind::other(format!("malformed {} exponent",
+                                                             token_name))));
+            }
+
+            let mut exponent = 0;
+            while let Some(c) = chars.next() {
+                exponent *= 10;
+                exponent += c.to_digit(10).expect("BUG: invalid char in float/imag lit exponent");
+            }
+
+            for _ in 0..exponent {
+                if negative {
+                    res = res / BigRational::from_integer(BigInt::from(10u8));
+                } else {
+                    res = res * BigRational::from_integer(BigInt::from(10u8));
+                }
+            }
+        }
+
+        Ok(res)
+    }
+
+    fn parse_int_lit(&mut self) -> PResult<BigInt> {
+        // int_lit     = decimal_lit | octal_lit | hex_lit .
+        // decimal_lit = ( "1" … "9" ) { decimal_digit } .
+        // octal_lit   = "0" { octal_digit } .
+        // hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
+
+        trace!("parse_int_lit");
+
+        match self.token.kind {
+            TokenKind::Literal(Literal::Decimal) => {
+                let value = self.bump_and_get().value.expect("BUG: missing value in decimal lit");
+                Ok(try!(self.interpret_int(&value[..], 10, "decimal literal")))
+            }
+            TokenKind::Literal(Literal::Octal) => {
+                let value = self.bump_and_get().value.expect("BUG: missing value in octal lit");
+                assert_eq!(value.chars().next(), Some('0'));
+                Ok(try!(self.interpret_int(&value[1..], 8, "octal literal")))
+            }
+            TokenKind::Literal(Literal::Hex) => {
+                let value = self.bump_and_get().value.expect("BUG: missing value in hex lit");
+                assert!(value.starts_with("0x") || value.starts_with("0X"));
+                Ok(try!(self.interpret_int(&value[2..], 16, "hex literal")))
+            }
+            _ => {
+                return Err(self.err(ErrorKind::unexpected_token(
+                    vec![TokenKind::Literal(Literal::Decimal),
+                    TokenKind::Literal(Literal::Octal),
+                    TokenKind::Literal(Literal::Hex)], self.token.clone())));
+            }
+        }
+    }
+
+    // Interpret the value of an int literal and return the result as a BigInt, using the provided base.
+    // Use `token_name` to specify what type of literal this is, for error messages.
+    // To parse an octal or hex literal, do not pass the `0` or `0x` prefixes.
+    fn interpret_int(&mut self, lit: &str, base: u32, token_name: &str) -> PResult<BigInt> {
+        trace!("interpret_int");
+
+        let mut res = BigInt::from(0u8);
+
+        for c in lit.chars() {
+            if let Some(d) = c.to_digit(base) {
+                res = res * BigInt::from(base);
+                res = res + BigInt::from(d);
+            } else {
+                let msg = format!("invalid character in {}: {}", token_name, c);
+                return Err(self.err(ErrorKind::other(msg)));
+            }
+        }
+
+        Ok(res)
     }
 
     fn parse_unary_operation(&mut self) -> PResult<ast::UnaryOperation> {

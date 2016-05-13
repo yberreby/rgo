@@ -1,5 +1,9 @@
 use super::*;
+use std::str::FromStr;
 use lexer;
+use ast;
+use num::bigint::BigInt;
+use num::BigRational;
 
 fn assert_interpret_string_eq(lit: &str, expect: Vec<u8>) {
     let tokens = lexer::tokenize(format!("\"{}\"", lit).as_ref());
@@ -52,4 +56,109 @@ fn test_interpret_string_illegal_surrogate_half() {
 #[should_panic]
 fn test_interpret_string_invalid_codepoint() {
     assert_interpret_string_valid("\\U00110000");
+}
+
+fn assert_interpret_int_eq(lit: &str, expect: BigInt) {
+    let tokens = lexer::tokenize(format!("{}", lit).as_ref());
+
+    assert_eq!(tokens.len(), 1);
+
+    let mut p = Parser::new(tokens.into_iter());
+
+    let got = p.parse_int_lit().unwrap();
+
+    assert_eq!(expect, got);
+}
+
+#[test]
+fn test_interpret_ints() {
+    assert_interpret_int_eq("42", BigInt::from(42));
+    assert_interpret_int_eq("0600", BigInt::from(0o600));
+    assert_interpret_int_eq("0xBadFace", BigInt::from(0xbadface));
+    assert_interpret_int_eq("170141183460469231731687303715884105727",
+                            BigInt::from_str("170141183460469231731687303715884105727").unwrap());
+}
+
+fn assert_interpret_float_eq(lit: &str, expect: BigRational) {
+    let tokens = lexer::tokenize(format!("{}", lit).as_ref());
+
+    assert_eq!(tokens.len(), 1);
+
+    let mut p = Parser::new(tokens.into_iter());
+
+    let got = p.parse_basic_lit().unwrap();
+
+    if let ast::BasicLit::Float(val) = got {
+        assert_eq!(expect, val);
+    } else {
+        panic!(format!("expected float basic lit, found {:?}", got));
+    }
+}
+
+fn assert_interpret_imaginary_eq(lit: &str, expect: BigRational) {
+    let tokens = lexer::tokenize(format!("{}", lit).as_ref());
+
+    assert_eq!(tokens.len(), 1);
+
+    let mut p = Parser::new(tokens.into_iter());
+
+    let got = p.parse_basic_lit().unwrap();
+
+    if let ast::BasicLit::Imaginary(val) = got {
+        assert_eq!(expect, val);
+    } else {
+        panic!(format!("expected imaginary basic lit, found {:?}", got));
+    }
+}
+
+fn bigrat_from_int(value: u64) -> BigRational {
+    BigRational::from_integer(BigInt::from(value))
+}
+
+fn bigrat_from_ints(numerator: u64, denominator: u64) -> BigRational {
+    BigRational::from_integer(BigInt::from(numerator)) /
+    BigRational::from_integer(BigInt::from(denominator))
+}
+
+#[test]
+fn test_interpret_floats() {
+    let float_tests = [("13e0", bigrat_from_int(13)),
+                       ("13e4", bigrat_from_int(130000)),
+                       ("13E4", bigrat_from_int(130000)),
+                       ("13e+4", bigrat_from_int(130000)),
+                       ("130000e-4", bigrat_from_int(13)),
+                       ("1.5", bigrat_from_ints(3, 2)),
+
+                       ("0.", bigrat_from_int(0)),
+                       ("72.40", bigrat_from_ints(724, 10)),
+                       ("072.40", bigrat_from_ints(724, 10)),
+                       ("2.71828", bigrat_from_ints(271828, 100000)),
+                       ("1.e+0", bigrat_from_int(1)),
+                       ("6.67428e-11", bigrat_from_ints(667428, 10000000000000000)),
+                       ("1E6", bigrat_from_int(1000000)),
+                       (".25", bigrat_from_ints(25, 100)),
+                       (".12345E+5", bigrat_from_int(12345))];
+
+    for t in &float_tests {
+        assert_interpret_float_eq(t.0, t.1.clone());
+    }
+}
+
+
+
+#[test]
+fn test_interpret_imaginaries() {
+    let float_tests = [("0i", bigrat_from_int(0)),
+                       ("011i", bigrat_from_int(11)),
+                       ("0.i", bigrat_from_int(0)),
+                       ("2.71828i", bigrat_from_ints(271828, 100000)),
+                       ("1.e+0i", bigrat_from_int(1)),
+                       ("6.67428e-11i", bigrat_from_ints(667428, 10000000000000000)),
+                       ("1E6i", bigrat_from_int(1000000)),
+                       (".25i", bigrat_from_ints(25, 100)),
+                       (".12345E+5i", bigrat_from_int(12345))];
+
+    for t in &float_tests {
+        assert_interpret_imaginary_eq(t.0, t.1.clone());
+    }
 }
