@@ -22,25 +22,51 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::TokenKind::*;
 
-        match self.kind {
-            Ident | Literal(_) => write!(f, "{}", self.value.as_ref().unwrap()),
-            kind => fmt::Debug::fmt(&kind, f), // FIXME: we're just using the Debug impl
+        if self.kind == Ident || self.kind.is_literal() {
+            write!(f, "{}", self.value.as_ref().unwrap())
+        } else {
+            fmt::Debug::fmt(&self.kind, f) // FIXME: we're just using the Debug impl
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Delim {
-    LParen,
-    RParen,
-    LBracket,
-    RBracket,
-    LBrace,
-    RBrace,
-}
+pub enum TokenKind {
+    Ident,
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Keyword {
+    // Delimiters.
+    /// (
+    LParen,
+    /// )
+    RParen,
+    /// [
+    LBracket,
+    /// ]
+    RBracket,
+    /// {
+    LBrace,
+    /// }
+    RBrace,
+
+    // Literals.
+    /// Decimal integer literal.
+    Decimal,
+    /// Octal integer literal.
+    Octal,
+    /// Hex integer literal.
+    Hex,
+    /// Floating-point literal.
+    Float,
+    /// Imaginary literal (e.g. `6.67428e-11i`).
+    Imaginary,
+    /// Rune literal (e.g. `'本'`, `'\U00101234'`).
+    Rune,
+    /// Interpreted string literal.
+    Str,
+    /// Raw string literal.
+    StrRaw,
+
+    // Keywords.
     Break,
     Case,
     Chan,
@@ -66,10 +92,9 @@ pub enum Keyword {
     Switch,
     Type,
     Var,
-}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Operator {
+    // -----
+    // Operators.
     /// +
     Plus,
     /// -
@@ -142,39 +167,8 @@ pub enum Operator {
     ColonAssign,
     /// <-
     Arrow,
-}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Literal {
-    /// Decimal integer literal.
-    Decimal,
-    /// Octal integer literal.
-    Octal,
-    /// Hex integer literal.
-    Hex,
-    /// Floating-point literal.
-    Float,
-    /// Imaginary literal (e.g. `6.67428e-11i`).
-    Imaginary,
-    /// Rune literal (e.g. `'本'`, `'\U00101234'`).
-    Rune,
-    /// Interpreted string literal.
-    Str,
-    /// Raw string literal.
-    StrRaw,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenKind {
-    Ident,
-    // Delimiters.
-    Delim(Delim),
-    // Literals.
-    Literal(Literal),
-    // Keywords.
-    Keyword(Keyword),
-    // -----
-    Operator(Operator),
+    // Misc.
     /// ...
     Ellipsis,
     /// ,
@@ -205,23 +199,19 @@ impl TokenKind {
         //    3             ==  !=  <  <=  >  >=
         //    2             &&
         //    1             ||
-        use self::Operator::*;
-        if let TokenKind::Operator(op) = self {
-            match op {
-                Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
-                Plus | Minus | Or | Caret => 4,
-                Equals |
-                NotEqual |
-                LessThan |
-                LessThanOrEqual |
-                GreaterThan |
-                GreaterThanOrEqual => 3,
-                AndAnd => 2,
-                OrOr => 1,
-                _ => panic!("BUG: calling .precedence() on a token which is not a binary operator"),
-            }
-        } else {
-            panic!("BUG: calling .precedence() on a token which is not a binary operator");
+        use self::TokenKind::*;
+        match self {
+            Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
+            Plus | Minus | Or | Caret => 4,
+            Equals |
+            NotEqual |
+            LessThan |
+            LessThanOrEqual |
+            GreaterThan |
+            GreaterThanOrEqual => 3,
+            AndAnd => 2,
+            OrOr => 1,
+            _ => panic!("BUG: calling .precedence() on a token which is not a binary operator"),
         }
     }
 
@@ -231,26 +221,17 @@ impl TokenKind {
 
     pub fn is_unary_op(self) -> bool {
         // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
-        if let TokenKind::Operator(op) = self {
-            use self::Operator::*;
-            match op {
-                Plus |
-                Minus |
-                Not |
-                Caret |
-                Star |
-                And |
-                Arrow => true,
-                _ => false,
-            }
-        } else {
-            false
+        use self::TokenKind::*;
+        match self {
+            Plus | Minus | Not | Caret | Star | And | Arrow => true,
+            _ => false,
         }
     }
 
     pub fn is_literal(self) -> bool {
+        use self::TokenKind::*;
         match self {
-            TokenKind::Literal(_) => true,
+            Str | StrRaw | Decimal | Octal | Hex | Float | Imaginary | Rune => true,
             _ => false,
         }
     }
@@ -272,26 +253,22 @@ impl TokenKind {
             return true;
         }
 
-        use self::Keyword::*;
+        use self::TokenKind::*;
 
-        if let TokenKind::Keyword(key) = self {
-            match key {
-                Return | Break | Continue | Goto | Fallthrough | If |
-                // XXX/TODO: double check this is correct.
-                Switch | Select | For | Defer => true,
-                _ => false,
-            }
-        } else {
-            false
+        match self {
+            Return | Break | Continue | Goto | Fallthrough | If |
+            // XXX/TODO: double check this is correct.
+            Switch | Select | For | Defer => true,
+            _ => false,
         }
     }
 
     pub fn can_start_block(self) -> bool {
-        self == TokenKind::Delim(Delim::LBrace)
+        self == TokenKind::LBrace
     }
 
     pub fn can_start_return_stmt(self) -> bool {
-        self == TokenKind::Keyword(Keyword::Return)
+        self == TokenKind::Return
     }
 
     pub fn can_start_labeled_stmt(self) -> bool {
@@ -301,14 +278,13 @@ impl TokenKind {
     }
 
     pub fn can_start_go_stmt(self) -> bool {
-        self == TokenKind::Keyword(Keyword::Go)
+        self == TokenKind::Go
     }
 
     pub fn can_start_decl(self) -> bool {
         trace!("can_start_decl");
         // Declaration   = ConstDecl | TypeDecl | VarDecl .
-        self == TokenKind::Keyword(Keyword::Const) || self == TokenKind::Keyword(Keyword::Type) ||
-        self == TokenKind::Keyword(Keyword::Var)
+        self == TokenKind::Const || self == TokenKind::Type || self == TokenKind::Var
     }
 
     pub fn can_start_simple_stmt(self) -> bool {
@@ -372,7 +348,7 @@ impl TokenKind {
         //
         // QualifiedIdent starts with an identifier.
         // So does MethodExpr.
-        self.can_start_lit() || self.is_ident() || self == TokenKind::Delim(Delim::LParen)
+        self.can_start_lit() || self.is_ident() || self == TokenKind::LParen
     }
 
     pub fn can_start_conversion(self) -> bool {
@@ -384,7 +360,7 @@ impl TokenKind {
         // TypeName  = identifier | QualifiedIdent .
         // TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
         //      SliceType | MapType | ChannelType .
-        self.is_ident() || self.can_start_type_lit() || self == TokenKind::Delim(Delim::LParen)
+        self.is_ident() || self.can_start_type_lit() || self == TokenKind::LParen
     }
 
     pub fn can_start_type_lit(self) -> bool {
@@ -397,22 +373,22 @@ impl TokenKind {
     }
 
     pub fn can_start_pointer_type(self) -> bool {
-        self == TokenKind::Operator(Operator::Star)
+        self == TokenKind::Star
     }
 
     pub fn can_start_func_type(self) -> bool {
         // FunctionType   = "func" Signature .
-        self == TokenKind::Keyword(Keyword::Func)
+        self == TokenKind::Func
     }
 
     pub fn can_start_interface_type(self) -> bool {
         // InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
-        self == TokenKind::Keyword(Keyword::Interface)
+        self == TokenKind::Interface
     }
 
     pub fn can_start_chan_type(self) -> bool {
         // ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
-        self == TokenKind::Keyword(Keyword::Chan) || self == TokenKind::Operator(Operator::Arrow)
+        self == TokenKind::Chan || self == TokenKind::Arrow
     }
 
     pub fn can_start_lit(self) -> bool {
@@ -434,29 +410,29 @@ impl TokenKind {
         // LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
         //                 SliceType | MapType | TypeName .
         self.can_start_struct_type() || self.can_start_array_type() ||
-        self == TokenKind::Delim(Delim::RBracket) || self.can_start_slice_type() ||
+        self == TokenKind::RBracket || self.can_start_slice_type() ||
         self.can_start_map_type() || self.is_ident()
     }
 
     pub fn can_start_func_lit(self) -> bool {
         // FunctionLit = "func" Function .
-        self == TokenKind::Keyword(Keyword::Func)
+        self == TokenKind::Func
     }
 
     pub fn can_start_struct_type(self) -> bool {
-        self == TokenKind::Keyword(Keyword::Struct)
+        self == TokenKind::Struct
     }
 
     pub fn can_start_array_type(self) -> bool {
-        self == TokenKind::Delim(Delim::RBracket)
+        self == TokenKind::RBracket
     }
 
     pub fn can_start_slice_type(self) -> bool {
-        self == TokenKind::Delim(Delim::RBracket)
+        self == TokenKind::RBracket
     }
 
     pub fn can_start_map_type(self) -> bool {
-        self == TokenKind::Keyword(Keyword::Map)
+        self == TokenKind::Map
     }
 
     pub fn can_start_send_stmt(self) -> bool {

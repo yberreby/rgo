@@ -77,7 +77,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // The star is used a dummy token and replaced immediately.
         let old_token = mem::replace(&mut self.token,
                                      Token {
-                                         kind: TokenKind::Operator(Operator::Star),
+                                         kind: TokenKind::Star,
                                          value: None,
                                      });
         self.bump();
@@ -102,7 +102,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn parse_package_clause(&mut self) -> PResult<String> {
         trace!("parse_package_clause");
 
-        try!(self.eat(TokenKind::Keyword(Keyword::Package)));
+        try!(self.eat(TokenKind::Package));
 
         let package_name = try!(self.parse_ident());
         try!(self.eat(TokenKind::Semicolon));
@@ -116,7 +116,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         loop {
             match self.token.kind {
-                TokenKind::Keyword(Keyword::Import) => {
+                TokenKind::Import => {
                     decls.push(try!(self.parse_import_decl()));
                 }
                 _ => return Ok(decls),
@@ -134,12 +134,12 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
         // ```
 
-        try!(self.eat(TokenKind::Keyword(Keyword::Import)));
+        try!(self.eat(TokenKind::Import));
         let mut specs = Vec::new();
 
         match self.token.kind {
             // Long import declaration.
-            TokenKind::Delim(Delim::LParen) => {
+            TokenKind::LParen => {
                 self.bump();
 
                 // There may be multiple `ImportSpec`s in a single "long" import declaration.
@@ -147,7 +147,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     match self.token.kind {
                         // XXX: Should we _know_ that import specs always start with a string
                         // literal? I'm not sure.
-                        TokenKind::Delim(Delim::RParen) => {
+                        TokenKind::RParen => {
                             break;
                         }
                         _ => {
@@ -205,13 +205,12 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         match self.token.kind {
             // FunctionDecl
-            TokenKind::Keyword(Keyword::Func) => {
+            TokenKind::Func => {
                 let fd = try!(self.parse_func_decl());
                 decls.push(ast::TopLevelDecl::Func(fd));
             }
             _ => {
-                let e = ErrorKind::unexpected_token(vec![TokenKind::Keyword(Keyword::Func)],
-                                                    self.token.clone());
+                let e = ErrorKind::unexpected_token(vec![TokenKind::Func], self.token.clone());
                 return Err(self.err(e));
             }
         }
@@ -228,13 +227,13 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // Function     = Signature FunctionBody .
         // FunctionBody = Block .
 
-        try!(self.eat(TokenKind::Keyword(Keyword::Func)));
+        try!(self.eat(TokenKind::Func));
         let name = try!(self.parse_ident());
         let signature = try!(self.parse_func_signature());
 
         let body = match self.token.kind {
             // This function has a body, parse it.
-            TokenKind::Delim(Delim::LBrace) => try!(self.parse_block()),
+            TokenKind::LBrace => try!(self.parse_block()),
             // Empty body.
             _ => vec![],
         };
@@ -268,10 +267,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         let result = match self.token.kind {
             // An opening parenthesis! We can parse an output parameter list.
-            TokenKind::Delim(Delim::LParen) => try!(self.parse_func_params()),
+            TokenKind::LParen => try!(self.parse_func_params()),
             // Brace = no return type, but a body. We don't care about the body in this function.
             // Semicolon = no return type and no body.
-            TokenKind::Delim(Delim::LBrace) | TokenKind::Semicolon => ast::Parameters::empty(),
+            TokenKind::LBrace | TokenKind::Semicolon => ast::Parameters::empty(),
             // Otherwise, a single, unnamed return type.
             _ => ast::Parameters::from_single_type(try!(self.parse_type())),
         };
@@ -294,7 +293,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // Parameters     = "(" [ ParameterList [ "," ] ] ")" .
         // ParameterList  = ParameterDecl { "," ParameterDecl } .
         // ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
-        try!(self.eat(TokenKind::Delim(Delim::LParen)));
+        try!(self.eat(TokenKind::LParen));
 
         let mut decls = Vec::new();
 
@@ -310,7 +309,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             }
             _ => {}
         }
-        try!(self.eat(TokenKind::Delim(Delim::RParen)));
+        try!(self.eat(TokenKind::RParen));
 
         // XXX: do we _need_ Parameters to be a type by itself?
         Ok(ast::Parameters { decls: decls })
@@ -370,10 +369,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         match self.token.kind {
             // A Type may be surrounded in parentheses, in which case we simply eat the
             // parentheses and recurse.
-            TokenKind::Delim(Delim::LParen) => {
-                try!(self.eat(TokenKind::Delim(Delim::LParen)));
+            TokenKind::LParen => {
+                try!(self.eat(TokenKind::LParen));
                 let typ = try!(self.parse_type());
-                try!(self.eat(TokenKind::Delim(Delim::RParen)));
+                try!(self.eat(TokenKind::RParen));
                 Ok(typ)
             }
             // If a Type starts with an identifier, it can only be a TypeName.
@@ -417,7 +416,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // Grammar:
         // Block = "{" StatementList "}" .
         // StatementList = { Statement ";" } .
-        try!(self.eat(TokenKind::Delim(Delim::LBrace)));
+        try!(self.eat(TokenKind::LBrace));
 
         let mut statements = Vec::new();
         while self.token.kind.can_start_statement() {
@@ -425,7 +424,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             try!(self.eat(TokenKind::Semicolon));
         }
 
-        try!(self.eat(TokenKind::Delim(Delim::RBrace)));
+        try!(self.eat(TokenKind::RBrace));
         Ok(statements)
     }
 
@@ -441,29 +440,23 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
 
+        use token::TokenKind::*;
         Ok(match self.token.kind {
-            TokenKind::Keyword(key) => {
-                match key {
-                    Keyword::Type |
-                    Keyword::Var |
-                    Keyword::Const => try!(self.parse_decl_stmt()).into(),
-                    Keyword::Go => try!(self.parse_go_stmt()).into(),
-                    Keyword::Defer => try!(self.parse_defer_stmt()).into(),
-                    Keyword::Return => try!(self.parse_return_stmt()).into(),
-                    Keyword::If => try!(self.parse_if_stmt()).into(),
-                    Keyword::Switch => try!(self.parse_switch_stmt()).into(),
-                    Keyword::Select => try!(self.parse_select_stmt()).into(),
-                    Keyword::For => try!(self.parse_for_stmt()).into(),
-                    _ => panic!("unexpected token"),
-                }
-            }
-            // All simple statements start with something expression-like.
-            t if t.can_start_expr() => try!(self.parse_simple_stmt()).into(),
-            TokenKind::Delim(Delim::LBrace) => ast::Block(try!(self.parse_block())).into(),
-            TokenKind::Delim(Delim::RBrace) => {
+            Type | Var | Const => try!(self.parse_decl_stmt()).into(),
+            Go => try!(self.parse_go_stmt()).into(),
+            Defer => try!(self.parse_defer_stmt()).into(),
+            Return => try!(self.parse_return_stmt()).into(),
+            If => try!(self.parse_if_stmt()).into(),
+            Switch => try!(self.parse_switch_stmt()).into(),
+            Select => try!(self.parse_select_stmt()).into(),
+            For => try!(self.parse_for_stmt()).into(),
+            LBrace => ast::Block(try!(self.parse_block())).into(),
+            RBrace => {
                 // a semicolon may be omitted before a closing "}"
                 ast::EmptyStmt.into()
             }
+            // All simple statements start with something expression-like.
+            t if t.can_start_expr() => try!(self.parse_simple_stmt()).into(),
             _ => panic!("unexpected token"),
         })
     }
@@ -471,20 +464,20 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn parse_go_stmt(&mut self) -> PResult<ast::GoStmt> {
         trace!("parse_go_stmt");
 
-        try!(self.eat(TokenKind::Keyword(Keyword::Go)));
+        try!(self.eat(TokenKind::Go));
         Ok(ast::GoStmt { call: try!(self.parse_expr()) })
     }
 
     fn parse_defer_stmt(&mut self) -> PResult<ast::DeferStmt> {
         trace!("parse_defer_stmt");
 
-        try!(self.eat(TokenKind::Keyword(Keyword::Defer)));
+        try!(self.eat(TokenKind::Defer));
         Ok(ast::DeferStmt { call: try!(self.parse_expr()) })
     }
 
     fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
         trace!("parse_return_stmt");
-        try!(self.eat(TokenKind::Keyword(Keyword::Return)));
+        try!(self.eat(TokenKind::Return));
         Ok(ast::ReturnStmt { expr: try!(self.parse_expr()) })
     }
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
@@ -529,7 +522,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 operator: try!(self.parse_unary_operator()),
                 operand: Box::new(try!(self.parse_unary_expr())),
             }))
-        } else if self.token.kind == TokenKind::Operator(Operator::Arrow) {
+        } else if self.token.kind == TokenKind::Arrow {
             unimplemented!()
         } else {
             unimplemented!()
@@ -544,21 +537,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
         trace!("parse_basic_lit");
 
-        use token::Literal::*;
+        use token::TokenKind::*;
 
-        let lit;
-
-        if let TokenKind::Literal(x) = self.token.kind {
-            lit = x;
-        } else {
-            let expected = [Decimal, Octal, Hex, Float, Imaginary, Rune, Str, StrRaw]
-                               .iter()
-                               .map(|&k| TokenKind::Literal(k))
-                               .collect();
-            return Err(self.err(ErrorKind::unexpected_token(expected, self.token.clone())));
-        };
-
-        match lit {
+        match self.token.kind {
             Decimal | Octal | Hex => Ok(ast::BasicLit::Int(try!(self.parse_int_lit()))),
             Str | StrRaw => Ok(ast::BasicLit::Str(try!(self.parse_string_lit()))),
             Float => {
@@ -577,6 +558,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                                                                           "imaginary literal"))))
             }
             Rune => unimplemented!(),
+            _ => {
+                let expected = vec![Decimal, Octal, Hex, Float, Imaginary, Rune, Str, StrRaw];
+                return Err(self.err(ErrorKind::unexpected_token(expected, self.token.clone())));
+            }
         }
     }
 
@@ -660,25 +645,25 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         trace!("parse_int_lit");
 
         match self.token.kind {
-            TokenKind::Literal(Literal::Decimal) => {
+            TokenKind::Decimal => {
                 let value = self.bump_and_get().value.expect("BUG: missing value in decimal lit");
                 Ok(try!(self.interpret_int(&value[..], 10, "decimal literal")))
             }
-            TokenKind::Literal(Literal::Octal) => {
+            TokenKind::Octal => {
                 let value = self.bump_and_get().value.expect("BUG: missing value in octal lit");
                 assert_eq!(value.chars().next(), Some('0'));
                 Ok(try!(self.interpret_int(&value[1..], 8, "octal literal")))
             }
-            TokenKind::Literal(Literal::Hex) => {
+            TokenKind::Hex => {
                 let value = self.bump_and_get().value.expect("BUG: missing value in hex lit");
                 assert!(value.starts_with("0x") || value.starts_with("0X"));
                 Ok(try!(self.interpret_int(&value[2..], 16, "hex literal")))
             }
             _ => {
-                return Err(self.err(ErrorKind::unexpected_token(
-                    vec![TokenKind::Literal(Literal::Decimal),
-                    TokenKind::Literal(Literal::Octal),
-                    TokenKind::Literal(Literal::Hex)], self.token.clone())));
+                return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Decimal,
+                                                                     TokenKind::Octal,
+                                                                     TokenKind::Hex],
+                                                                self.token.clone())));
             }
         }
     }
@@ -722,7 +707,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         let mut x = ast::Expr::Unary(try!(self.parse_unary_expr()));
 
         loop {
-            let op_kind = self.token.kind;
+            let op_kind = ast::BinaryOperation::from_token_kind(self.token.kind).unwrap();
             let precedence = op_kind.precedence();
             if precedence < prec1 {
                 return Ok(x);
@@ -733,7 +718,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             let y = try!(self.parse_potential_binary_expr(precedence + 1));
             x = ast::Expr::Binary(ast::BinaryExpr {
                 lhs: Box::new(x),
-                operator: op_kind,
+                op: op_kind,
                 rhs: Box::new(y),
             });
         }
@@ -771,12 +756,12 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // ```
 
         match self.token.kind {
-            TokenKind::Literal(Literal::Str) => {
+            TokenKind::Str => {
                 // Interpret the string.
                 let raw_val = self.bump_and_get().value.expect("BUG: missing Str value");
                 Ok(try!(self.interpret_string_lit(raw_val)))
             }
-            TokenKind::Literal(Literal::StrRaw) => {
+            TokenKind::StrRaw => {
                 // Only interpreting that needs to be done is removing carriage returns.
                 let raw_val = self.bump_and_get().value.expect("BUG: missing StrRaw value");
                 let mut byte_vec = raw_val.into_bytes();
@@ -784,9 +769,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 Ok(byte_vec)
             }
             _ => {
-                Err(self.err(ErrorKind::unexpected_token(
-                        vec![TokenKind::Literal(Literal::Str), TokenKind::Literal(Literal::StrRaw)],
-                        self.token.clone())))
+                Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Str, TokenKind::StrRaw],
+                                                         self.token.clone())))
             }
         }
     }

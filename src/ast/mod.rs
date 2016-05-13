@@ -112,11 +112,80 @@ pub enum Expr {
     Binary(BinaryExpr),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOperation {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+
+    BitAnd,
+    BitOr,
+    BitXor,
+    BitClear,
+
+    LeftShift,
+    RightShift,
+
+    Equals,
+    NotEqual,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LogAnd,
+    LogOr,
+}
+
+impl BinaryOperation {
+    pub fn from_token_kind(tok: TokenKind) -> Option<BinaryOperation> {
+        use self::BinaryOperation::*;
+        Some(match tok {
+            TokenKind::Plus => Add,
+            TokenKind::Minus => Sub,
+            TokenKind::Star => Mul,
+            TokenKind::Slash => Div,
+            TokenKind::Percent => Rem,
+
+            TokenKind::And => BitAnd,
+            TokenKind::Or => BitOr,
+            TokenKind::Caret => BitXor,
+            TokenKind::BitClear => BitClear,
+
+            TokenKind::Lshift => LeftShift,
+            TokenKind::Rshift => RightShift,
+
+            TokenKind::Equals => Equals,
+            TokenKind::NotEqual => NotEqual,
+            TokenKind::LessThan => LessThan,
+            TokenKind::LessThanOrEqual => LessThanOrEqual,
+            TokenKind::GreaterThan => GreaterThan,
+            TokenKind::GreaterThanOrEqual => GreaterThanOrEqual,
+            TokenKind::AndAnd => LogAnd,
+            TokenKind::OrOr => LogOr,
+
+            _ => return None,
+        })
+    }
+
+    pub fn precedence(self) -> i32 {
+        use self::BinaryOperation::*;
+
+        match self {
+            Mul | Div | Rem | LeftShift | RightShift | BitAnd | BitClear => 5,
+            Add | Sub | BitOr | BitXor => 4,
+            Equals | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => 3,
+            LogAnd => 2,
+            LogOr => 1,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BinaryExpr {
     pub lhs: Box<Expr>,
-    // TODO: type safety (OperatorKind or something)
-    pub operator: TokenKind,
+    pub op: BinaryOperation,
     pub rhs: Box<Expr>,
 }
 

@@ -19,15 +19,14 @@ fn assert_token(code: &str, expect_kind: TokenKind, expect_value: Option<&str>) 
 
 #[test]
 fn test_numerical_tokens() {
-    use super::TokenKind::Literal;
-    use super::Literal::*;
+    use super::TokenKind::{Decimal, Octal, Hex, Float, Imaginary};
 
     // Integer Literals
-    assert_token("42", Literal(Decimal), Some("42"));
-    assert_token("0600", Literal(Octal), Some("0600"));
-    assert_token("0xBadFace", Literal(Hex), Some("0xBadFace"));
+    assert_token("42", Decimal, Some("42"));
+    assert_token("0600", Octal, Some("0600"));
+    assert_token("0xBadFace", Hex, Some("0xBadFace"));
     assert_token("170141183460469231731687303715884105727",
-                 Literal(Decimal),
+                 Decimal,
                  Some("170141183460469231731687303715884105727"));
 
     let float_tests = ["0.",
@@ -41,7 +40,7 @@ fn test_numerical_tokens() {
                        ".12345E+5"];
 
     for t in &float_tests {
-        assert_token(t, Literal(Float), Some(t));
+        assert_token(t, Float, Some(t));
     }
 
     let imaginary_tests = ["0i",
@@ -55,24 +54,23 @@ fn test_numerical_tokens() {
                            ".12345E+5i"];
 
     for t in &imaginary_tests {
-        assert_token(t, Literal(Imaginary), Some(t));
+        assert_token(t, Imaginary, Some(t));
     }
 }
 
 #[test]
 fn test_text_literals() {
-    use super::TokenKind::Literal;
-    use super::Literal::*;
+    use super::TokenKind::{Rune, Str, StrRaw};
 
-    assert_token("'a'", Literal(Rune), Some("a"));
-    assert_token("'\\n'", Literal(Rune), Some("\\n"));
-    assert_token("'\\''", Literal(Rune), Some("\\'"));
+    assert_token("'a'", Rune, Some("a"));
+    assert_token("'\\n'", Rune, Some("\\n"));
+    assert_token("'\\''", Rune, Some("\\'"));
 
-    assert_token("\"Hello!\"", Literal(Str), Some("Hello!"));
-    assert_token("\"\\n\\n\"", Literal(Str), Some("\\n\\n"));
-    assert_token("\"\\\"\"", Literal(Str), Some("\\\""));
+    assert_token("\"Hello!\"", Str, Some("Hello!"));
+    assert_token("\"\\n\\n\"", Str, Some("\\n\\n"));
+    assert_token("\"\\\"\"", Str, Some("\\\""));
 
-    assert_token("`Hello!`", Literal(StrRaw), Some("Hello!"));
-    assert_token("`\\n\\n`", Literal(StrRaw), Some("\\n\\n"));
-    assert_token("`\\\"`", Literal(StrRaw), Some("\\\""));
+    assert_token("`Hello!`", StrRaw, Some("Hello!"));
+    assert_token("`\\n\\n`", StrRaw, Some("\\n\\n"));
+    assert_token("`\\\"`", StrRaw, Some("\\\""));
 }
