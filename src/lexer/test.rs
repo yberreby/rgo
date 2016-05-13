@@ -1,4 +1,4 @@
-use super::{Token, TokenKind, TokenAndSpan, tokenize};
+use super::{Token, TokenKind, tokenize};
 use token::TokenKind::*;
 
 fn assert_tokens(code: &str, expect: &[(TokenKind, Option<&str>)]) {
@@ -136,14 +136,14 @@ fn tokenize_simple() {
 fn tokenize_comments() {
     assert_tokens("// Hello, this is a comment", &[]);
     assert_tokens("foo /* this is a general comment */ := 2",
-                  &[(Ident, Some("foo".into())), (ColonAssign, None), (Decimal, Some("2".into()))]);
+                  &[(Ident, Some("foo")), (ColonAssign, None), (Decimal, Some("2"))]);
 }
 
 
 #[test]
 fn tokenize_ident() {
     let test_ident = |s| {
-        assert_tokens("foo", &[(TokenKind::Ident, Some("foo".into()))]);
+        assert_tokens("foo", &[(TokenKind::Ident, Some("foo"))]);
     };
 
     // XXX: add quickcheck test?
@@ -194,16 +194,16 @@ fn tokenize_mixed_whitespace() {
 #[test]
 fn tokenize_package_declaration() {
     assert_tokens("package main",
-                  &[(TokenKind::Package, None), (TokenKind::Ident, Some("main".into()))]);
+                  &[(TokenKind::Package, None), (TokenKind::Ident, Some("main"))]);
 }
 
 #[test]
 fn tokenize_plain_interpreted_str() {
-    assert_token("\"hello\"", TokenKind::Str, Some("hello".into()));
+    assert_token("\"hello\"", TokenKind::Str, Some("hello"));
 }
 
 #[test]
 fn tokenize_simple_import() {
     assert_tokens("import \"fmt\"",
-                  &[(TokenKind::Import, None), (TokenKind::Str, Some("fmt".into()))]);
+                  &[(TokenKind::Import, None), (TokenKind::Str, Some("fmt"))]);
 }
