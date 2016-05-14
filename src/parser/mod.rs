@@ -504,6 +504,18 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         unimplemented!()
     }
     fn parse_simple_stmt(&mut self) -> PResult<ast::SimpleStmt> {
+        // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
+        //  ShortVarDecl .
+        //
+        // EmptyStmt = .
+        // ExpressionStmt = Expression .
+        // SendStmt = Channel "<-" Expression .
+        // Channel  = Expression .
+        // IncDecStmt = Expression ( "++" | "--" ) .
+        // Assignment = ExpressionList assign_op ExpressionList .
+        // assign_op = [ add_op | mul_op ] "=" .
+        //
+        // ShortVarDecl = IdentifierList ":=" ExpressionList .
         trace!("parse_simple_stmt");
         unimplemented!()
     }
