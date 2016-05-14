@@ -98,6 +98,13 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         Ok(())
     }
 
+    fn eat_and_get(&mut self, expected: TokenKind) -> PResult<(Token)> {
+        if self.token.kind != expected {
+            return Err(self.err(ErrorKind::unexpected_token(vec![expected], self.token.clone())));
+        }
+        Ok(self.bump_and_get())
+    }
+
     /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> PResult<String> {
         trace!("parse_package_clause");
@@ -557,11 +564,59 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 Ok(ast::BasicLit::Imaginary(try!(self.interpret_float_lit(value_ref,
                                                                           "imaginary literal"))))
             }
-            Rune => unimplemented!(),
+            Rune => Ok(ast::BasicLit::Rune(try!(self.parse_rune_lit()))),
             _ => {
                 let expected = vec![Decimal, Octal, Hex, Float, Imaginary, Rune, Str, StrRaw];
                 return Err(self.err(ErrorKind::unexpected_token(expected, self.token.clone())));
             }
+        }
+    }
+
+    fn parse_rune_lit(&mut self) -> PResult<char> {
+        // rune_lit         = "'" ( unicode_value | byte_value ) "'" .
+        trace!("parse_rune_lit");
+
+        let value = try!(self.eat_and_get(TokenKind::Rune))
+                        .value
+                        .expect("BUG: missing value in rune literal");
+
+        let mut char_indices = value.char_indices().peekable();
+        let result;
+
+        let (_, c) = char_indices.next().unwrap();
+        if c == '\\' {
+            let &(_, pc) = char_indices.peek().expect("BUG: rune lit containing only \\");
+
+            // First check to see if we have a simple escape.
+            if let Some(escape_byte) = self.get_simple_escape(pc) {
+                char_indices.next();
+                result = escape_byte as char;
+            } else if pc == '\'' {
+                char_indices.next();
+                // \' is only valid in runes
+                result = '\'';
+            } else if pc == 'x' {
+                char_indices.next();
+                result = try!(self.interpret_hex_escape(&mut char_indices)) as char;
+            } else if pc == 'u' || pc == 'U' {
+                char_indices.next();
+                result = try!(self.interpret_unicode_escape(pc == 'U', &mut char_indices));
+            } else if pc.is_digit(8) {
+                result = try!(self.interpret_octal_escape(&mut char_indices)) as char;
+            } else {
+                let msg = format!("unknown escape sequence: {}", pc);
+                return Err(self.err(ErrorKind::other(msg)));
+            }
+        } else if c == '\n' {
+            return Err(self.err(ErrorKind::other("newline in rune literal")));
+        } else {
+            result = c;
+        }
+
+        if char_indices.next().is_none() {
+            Ok(result)
+        } else {
+            Err(self.err(ErrorKind::other("multiple characters in rune literal")))
         }
     }
 
@@ -777,9 +832,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     fn interpret_unicode_escape(&self,
                                 long: bool,
-                                chars: &mut Iterator<Item = (usize, char)>,
-                                buf: &mut Vec<u8>)
-                                -> PResult<()> {
+                                chars: &mut Iterator<Item = (usize, char)>)
+                                -> PResult<char> {
         let num_digits = if long {
             8
         } else {
@@ -804,20 +858,14 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
 
         return if let Some(value_char) = ::std::char::from_u32(value) {
-            let mut tmp = String::with_capacity(4);
-            tmp.push(value_char);
-            buf.extend_from_slice(tmp.as_bytes());
-            Ok(())
+            Ok(value_char)
         } else {
             let msg = format!("escape sequence is invalid unicode codepoint: {:#x}", value);
             Err(self.err(ErrorKind::other(msg)))
         };
     }
 
-    fn interpret_octal_escape(&self,
-                              chars: &mut Iterator<Item = (usize, char)>,
-                              buf: &mut Vec<u8>)
-                              -> PResult<()> {
+    fn interpret_octal_escape(&self, chars: &mut Iterator<Item = (usize, char)>) -> PResult<u8> {
         let mut value = 0u16;
 
         for _ in 0..3 {
@@ -839,15 +887,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             let msg = format!("illegal octal escape value > 255: {}", value);
             Err(self.err(ErrorKind::other(msg)))
         } else {
-            buf.push(value as u8);
-            Ok(())
+            Ok(value as u8)
         };
     }
 
-    fn interpret_hex_escape(&self,
-                            chars: &mut Iterator<Item = (usize, char)>,
-                            buf: &mut Vec<u8>)
-                            -> PResult<()> {
+    fn interpret_hex_escape(&self, chars: &mut Iterator<Item = (usize, char)>) -> PResult<u8> {
         let mut value = 0u8;
 
         for _ in 0..2 {
@@ -865,9 +909,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             }
         }
 
-        buf.push(value);
-
-        Ok(())
+        Ok(value)
     }
 
     fn get_simple_escape(&self, c: char) -> Option<u8> {
@@ -913,12 +955,19 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     result.push(b'"');
                 } else if pc == 'x' {
                     char_indices.next();
-                    try!(self.interpret_hex_escape(&mut char_indices, &mut result));
+                    let byte = try!(self.interpret_hex_escape(&mut char_indices));
+                    result.push(byte);
                 } else if pc == 'u' || pc == 'U' {
                     char_indices.next();
-                    try!(self.interpret_unicode_escape(pc == 'U', &mut char_indices, &mut result));
+                    let value_char = try!(self.interpret_unicode_escape(pc == 'U',
+                                                                        &mut char_indices));
+
+                    let mut tmp = String::with_capacity(4);
+                    tmp.push(value_char);
+                    result.extend_from_slice(tmp.as_bytes());
                 } else if pc.is_digit(8) {
-                    try!(self.interpret_octal_escape(&mut char_indices, &mut result));
+                    let byte = try!(self.interpret_octal_escape(&mut char_indices));
+                    result.push(byte);
                 } else {
                     let msg = format!("unknown escape sequence: {}", pc);
                     return Err(self.err(ErrorKind::other(msg)));

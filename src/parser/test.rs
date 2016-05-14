@@ -5,6 +5,8 @@ use ast;
 use num::bigint::BigInt;
 use num::BigRational;
 
+// String literals
+
 fn assert_interpret_string_eq(lit: &str, expect: Vec<u8>) {
     let tokens = lexer::tokenize(format!("\"{}\"", lit).as_ref());
 
@@ -58,6 +60,82 @@ fn test_interpret_string_invalid_codepoint() {
     assert_interpret_string_valid("\\U00110000");
 }
 
+// Rune literals
+
+fn assert_interpret_rune_eq(lit: &str, expect: char) {
+    let tokens = lexer::tokenize(format!("'{}'", lit).as_ref());
+
+    assert_eq!(tokens.len(), 1);
+
+    let mut p = Parser::new(tokens.into_iter());
+
+    let got = p.parse_rune_lit().unwrap();
+
+    assert_eq!(expect, got);
+}
+
+fn assert_interpret_rune_valid(lit: &str) {
+    let tokens = lexer::tokenize(format!("'{}'", lit).as_ref());
+
+    assert_eq!(tokens.len(), 1);
+
+    let mut p = Parser::new(tokens.into_iter());
+
+    p.parse_rune_lit().unwrap();
+}
+
+#[test]
+fn test_interpret_runes() {
+    let rune_tests = [("a", 'a'),
+                      ("ä", 'ä'),
+                      ("本", '本'),
+                      ("\\t", '\t'),
+                      ("\\000", '\0'),
+                      ("\\007", '\x07'),
+                      ("\\377", '\u{00ff}'),
+                      ("\\x07", '\x07'),
+                      ("\\xff", '\u{00ff}'),
+                      ("\\u12e4", '\u{12e4}'),
+                      ("\\U00101234", '\u{101234}'),
+                      ("\\'", '\'')];
+
+    for &(lit, expect) in &rune_tests {
+        assert_interpret_rune_eq(lit, expect);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_interpret_rune_too_many_characters() {
+    assert_interpret_rune_valid("aa");
+}
+
+#[test]
+#[should_panic]
+fn test_interpret_rune_too_few_hex_digits() {
+    assert_interpret_rune_valid("\\xa");
+}
+
+#[test]
+#[should_panic]
+fn test_interpret_rune_too_few_octal_digits() {
+    assert_interpret_rune_valid("\\0");
+}
+
+#[test]
+#[should_panic]
+fn test_interpret_rune_surrogate_half() {
+    assert_interpret_rune_valid("\\uDFFF");
+}
+
+#[test]
+#[should_panic]
+fn test_interpret_rune_invalid_codepoint() {
+    assert_interpret_rune_valid("\\u00110000");
+}
+
+// Int literals
+
 fn assert_interpret_int_eq(lit: &str, expect: BigInt) {
     let tokens = lexer::tokenize(format!("{}", lit).as_ref());
 
@@ -78,6 +156,8 @@ fn test_interpret_ints() {
     assert_interpret_int_eq("170141183460469231731687303715884105727",
                             BigInt::from_str("170141183460469231731687303715884105727").unwrap());
 }
+
+// Float/imaginary literals
 
 fn assert_interpret_float_eq(lit: &str, expect: BigRational) {
     let tokens = lexer::tokenize(format!("{}", lit).as_ref());
@@ -143,8 +223,6 @@ fn test_interpret_floats() {
         assert_interpret_float_eq(t.0, t.1.clone());
     }
 }
-
-
 
 #[test]
 fn test_interpret_imaginaries() {

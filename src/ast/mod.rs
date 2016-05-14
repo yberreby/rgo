@@ -615,7 +615,7 @@ pub enum BasicLit {
     Int(BigInt),
     Float(BigRational),
     Imaginary(BigRational),
-    Rune,
+    Rune(char),
     Str(Vec<u8>),
 }
 
