@@ -1,6 +1,4 @@
-# rgo
-
-[![Build Status](https://travis-ci.org/yberreby/rgo.svg?branch=master)](https://travis-ci.org/yberreby/rgo)
+# rgo [![Build Status](https://travis-ci.org/yberreby/rgo.svg?branch=master)](https://travis-ci.org/yberreby/rgo)
 
 `rgo` is a **work-in-progress** (i.e. unfinished) Go compiler, written
 in Rust.
