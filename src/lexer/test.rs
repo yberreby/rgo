@@ -1,10 +1,16 @@
 use super::{Token, TokenKind, tokenize};
 use token::TokenKind::*;
 
+// XXX: use the full TokenKind::* path, or `use TokenKind::*`?
+
 fn assert_tokens(code: &str, expect: &[(TokenKind, Option<&str>)]) {
     let got = tokenize(code);
 
+    // If the assertion fails, having a log message will be very useful.
+    println!("got:\n{:#?}", got);
+    println!("\nexpected:\n{:#?}", expect);
     assert_eq!(got.len(), expect.len());
+
     for (got_t, expect_t) in got.iter().zip(expect) {
         let nt = Token {
             kind: expect_t.0,
@@ -68,6 +74,7 @@ fn test_text_literals() {
     assert_token("`Hello!`", StrRaw, Some("Hello!"));
     assert_token("`\\n\\n`", StrRaw, Some("\\n\\n"));
     assert_token("`\\\"`", StrRaw, Some("\\\""));
+    assert_token(r##""\\\"oqdz""##, Str, Some("\\\\\\\"oqdz"));
 }
 
 /// Test 'simple' tokens (tokens that do not contain a value).
@@ -143,7 +150,7 @@ fn tokenize_comments() {
 #[test]
 fn tokenize_ident() {
     let test_ident = |s| {
-        assert_tokens("foo", &[(TokenKind::Ident, Some("foo"))]);
+        assert_tokens(s, &[(TokenKind::Ident, Some(s))]);
     };
 
     // XXX: add quickcheck test?
@@ -206,4 +213,104 @@ fn tokenize_plain_interpreted_str() {
 fn tokenize_simple_import() {
     assert_tokens("import \"fmt\"",
                   &[(TokenKind::Import, None), (TokenKind::Str, Some("fmt"))]);
+}
+
+#[test]
+fn tokenize_simple_assignment() {
+    assert_tokens("someVar := 23 + 45",
+                  &[(TokenKind::Ident, Some("someVar")),
+                    (TokenKind::ColonAssign, None),
+                    (TokenKind::Decimal, Some("23")),
+                    (TokenKind::Plus, None),
+                    (TokenKind::Decimal, Some("45"))]);
+}
+
+#[test]
+fn tokenize_hello() {
+    let src = r#"package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, rgo")
+}
+"#;
+
+    let expected = [(TokenKind::Package, None),
+                    (TokenKind::Ident, Some("main")),
+                    (TokenKind::Semicolon, None),
+                    (TokenKind::Import, None),
+                    (TokenKind::Str, Some("fmt")),
+                    (TokenKind::Semicolon, None),
+                    (TokenKind::Func, None),
+                    (TokenKind::Ident, Some("main")),
+                    (TokenKind::LParen, None),
+                    (TokenKind::RParen, None),
+                    (TokenKind::LBrace, None),
+                    (TokenKind::Ident, Some("fmt")),
+                    (TokenKind::Dot, None),
+                    (TokenKind::Ident, Some("Println")),
+                    (TokenKind::LParen, None),
+                    (TokenKind::Str, Some("Hello, rgo")),
+                    (TokenKind::RParen, None),
+                    (TokenKind::Semicolon, None),
+                    (TokenKind::RBrace, None),
+                    (TokenKind::Semicolon, None)];
+
+    assert_tokens(src, &expected);
+}
+
+// =====
+// Comments
+// =====
+
+#[test]
+fn tokenize_simple_assignment_with_inline_comment() {
+    assert_tokens("someVar /* someVar is a variable; and I'm a COMMENT! */ := 23 + 45",
+                  &[(TokenKind::Ident, Some("someVar")),
+                    (TokenKind::ColonAssign, None),
+                    (TokenKind::Decimal, Some("23")),
+                    (TokenKind::Plus, None),
+                    (TokenKind::Decimal, Some("45"))]);
+}
+
+#[test]
+fn tokenize_hello_with_comments() {
+    let src = r#"// This is a line comment.
+// And another!
+// All of these should be treated as a single contiguous whitespace block.
+
+// Even this one!
+
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, rgo")
+}
+"#;
+
+    let expected = [(TokenKind::Package, None),
+                    (TokenKind::Ident, Some("main")),
+                    (TokenKind::Semicolon, None),
+                    (TokenKind::Import, None),
+                    (TokenKind::Str, Some("fmt")),
+                    (TokenKind::Semicolon, None),
+                    (TokenKind::Func, None),
+                    (TokenKind::Ident, Some("main")),
+                    (TokenKind::LParen, None),
+                    (TokenKind::RParen, None),
+                    (TokenKind::LBrace, None),
+                    (TokenKind::Ident, Some("fmt")),
+                    (TokenKind::Dot, None),
+                    (TokenKind::Ident, Some("Println")),
+                    (TokenKind::LParen, None),
+                    (TokenKind::Str, Some("Hello, rgo")),
+                    (TokenKind::RParen, None),
+                    (TokenKind::Semicolon, None),
+                    (TokenKind::RBrace, None),
+                    (TokenKind::Semicolon, None)];
+
+    assert_tokens(src, &expected);
 }
