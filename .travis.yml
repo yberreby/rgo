@@ -3,3 +3,8 @@ rust:
   - nightly
   - beta
   - stable
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
