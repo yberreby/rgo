@@ -15,8 +15,8 @@ that you follow the guidelines laid out in this document.
 **Run tests** with `cargo test` after your committing your changes.
 
 We use [`rustfmt`](https://github.com/rust-lang-nursery/rustfmt) to maintain a
-consistent style throughout the project. Please run it on your code before
-submitting a PR.
+consistent style throughout the project. Please run the latest version of
+`rustfmt` on your code before submitting a PR.
 
 Put tests for a module in a separate file named `test.rs`, and import them like
 so from the module you want to test:
