@@ -917,6 +917,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn get_simple_escape(&self, c: char) -> Option<u8> {
         // The escapes are roughly sorted by most common first.
         // XXX: actually find out exact ordering
+        // XXX(perf): .find() on a static array _will_ be slower than a match.
         let simple_escapes = [('\\', b'\\'),
                               ('n', b'\n'),
                               ('t', b'\t'),
