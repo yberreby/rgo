@@ -556,8 +556,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             }
             Imaginary => {
                 let value = self.bump_and_get()
-                                .value
-                                .expect("BUG: missing value in imaginary literal");
+                    .value
+                    .expect("BUG: missing value in imaginary literal");
                 assert!(value.chars().last().unwrap() == 'i',
                         "BUG: imaginary literal token does not end with i");
                 let value_ref = value.trim_right_matches('i');
@@ -577,8 +577,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         trace!("parse_rune_lit");
 
         let value = try!(self.eat_and_get(TokenKind::Rune))
-                        .value
-                        .expect("BUG: missing value in rune literal");
+            .value
+            .expect("BUG: missing value in rune literal");
 
         let mut char_indices = value.char_indices().peekable();
         let result;
@@ -723,9 +723,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
     }
 
-    // Interpret the value of an int literal and return the result as a BigInt, using the provided base.
-    // Use `token_name` to specify what type of literal this is, for error messages.
-    // To parse an octal or hex literal, do not pass the `0` or `0x` prefixes.
+    /// Interpret the value of an int literal and return the result as a BigInt, using the provided
+    /// base.
+    ///
+    /// Use `token_name` to specify what type of literal this is, for error messages. To
+    /// parse an octal or hex literal, do not pass the `0` or `0x` prefixes.
     fn interpret_int(&mut self, lit: &str, base: u32, token_name: &str) -> PResult<BigInt> {
         trace!("interpret_int");
 
@@ -786,9 +788,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         match self.token.kind {
             TokenKind::Ident => {
                 Ok(self.bump_and_get()
-                       .value
-                       .clone()
-                       .expect("BUG: missing value in identifier token"))
+                    .value
+                    .clone()
+                    .expect("BUG: missing value in identifier token"))
             }
             _ => {
                 Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Ident],
@@ -943,7 +945,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             if c == '\\' {
                 // A string literal with a value ending with \ shouldn't get past the lexer.
                 let &(_, pc) = char_indices.peek()
-                                           .expect("unexpected end of string: this is a bug!");
+                    .expect("unexpected end of string: this is a bug!");
 
                 // First check to see if we have a simple escape.
                 if let Some(escape_byte) = self.get_simple_escape(pc) {

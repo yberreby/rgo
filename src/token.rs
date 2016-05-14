@@ -203,12 +203,7 @@ impl TokenKind {
         match self {
             Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
             Plus | Minus | Or | Caret => 4,
-            Equals |
-            NotEqual |
-            LessThan |
-            LessThanOrEqual |
-            GreaterThan |
-            GreaterThanOrEqual => 3,
+            Equals | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => 3,
             AndAnd => 2,
             OrOr => 1,
             _ => panic!("BUG: calling .precedence() on a token which is not a binary operator"),

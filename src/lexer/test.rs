@@ -34,29 +34,15 @@ fn test_numerical_tokens() {
                  Decimal,
                  Some("170141183460469231731687303715884105727"));
 
-    let float_tests = ["0.",
-                       "72.40",
-                       "072.40",
-                       "2.71828",
-                       "1.e+0",
-                       "6.67428e-11",
-                       "1E6",
-                       ".25",
-                       ".12345E+5"];
+    let float_tests =
+        ["0.", "72.40", "072.40", "2.71828", "1.e+0", "6.67428e-11", "1E6", ".25", ".12345E+5"];
 
     for t in &float_tests {
         assert_token(t, Float, Some(t));
     }
 
-    let imaginary_tests = ["0i",
-                           "011i",
-                           "0.i",
-                           "2.71828i",
-                           "1.e+0i",
-                           "6.67428e-11i",
-                           "1E6i",
-                           ".25i",
-                           ".12345E+5i"];
+    let imaginary_tests =
+        ["0i", "011i", "0.i", "2.71828i", "1.e+0i", "6.67428e-11i", "1E6i", ".25i", ".12345E+5i"];
 
     for t in &imaginary_tests {
         assert_token(t, Imaginary, Some(t));

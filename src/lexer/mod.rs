@@ -702,14 +702,7 @@ fn may_terminate_statement(t: Option<TokenKind>) -> bool {
     use token::TokenKind::*;
     match t {
         Ident => true,
-        Increment |
-        Decrement |
-        Break |
-        Continue |
-        Fallthrough |
-        Return |
-        RParen |
-        RBracket |
+        Increment | Decrement | Break | Continue | Fallthrough | Return | RParen | RBracket |
         RBrace => true,
         t if t.is_literal() => true,
         _ => false,
