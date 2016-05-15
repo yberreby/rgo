@@ -1,4 +1,5 @@
 use std::fmt;
+use self::TokenKind::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenAndSpan {
@@ -20,18 +21,18 @@ pub struct Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::TokenKind::*;
-
         if self.kind == Ident || self.kind.is_literal() {
             write!(f, "{}", self.value.as_ref().unwrap())
         } else {
-            fmt::Debug::fmt(&self.kind, f) // FIXME: we're just using the Debug impl
+            // FIXME: for now, we're just using the Debug impl of the variant.
+            fmt::Debug::fmt(&self.kind, f)
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
+    /// Identifier.
     Ident,
 
     // Delimiters.
@@ -93,7 +94,6 @@ pub enum TokenKind {
     Type,
     Var,
 
-    // -----
     // Operators.
     /// +
     Plus,
@@ -190,7 +190,6 @@ impl fmt::Display for TokenKind {
     }
 }
 
-
 impl TokenKind {
     pub fn precedence(self) -> i32 {
         // Precedence    Operator
@@ -199,7 +198,6 @@ impl TokenKind {
         //    3             ==  !=  <  <=  >  >=
         //    2             &&
         //    1             ||
-        use self::TokenKind::*;
         match self {
             Star | Slash | Percent | Lshift | Rshift | And | BitClear => 5,
             Plus | Minus | Or | Caret => 4,
@@ -211,12 +209,11 @@ impl TokenKind {
     }
 
     pub fn is_ident(self) -> bool {
-        self == TokenKind::Ident
+        self == Ident
     }
 
     pub fn is_unary_op(self) -> bool {
         // unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
-        use self::TokenKind::*;
         match self {
             Plus | Minus | Not | Caret | Star | And | Arrow => true,
             _ => false,
@@ -224,7 +221,6 @@ impl TokenKind {
     }
 
     pub fn is_literal(self) -> bool {
-        use self::TokenKind::*;
         match self {
             Str | StrRaw | Decimal | Octal | Hex | Float | Imaginary | Rune => true,
             _ => false,
@@ -248,22 +244,20 @@ impl TokenKind {
             return true;
         }
 
-        use self::TokenKind::*;
-
         match self {
             Return | Break | Continue | Goto | Fallthrough | If |
-            // XXX/TODO: double check this is correct.
+            // XXX/TODO: make sure that this is correct.
             Switch | Select | For | Defer => true,
             _ => false,
         }
     }
 
     pub fn can_start_block(self) -> bool {
-        self == TokenKind::LBrace
+        self == LBrace
     }
 
     pub fn can_start_return_stmt(self) -> bool {
-        self == TokenKind::Return
+        self == Return
     }
 
     pub fn can_start_labeled_stmt(self) -> bool {
@@ -273,17 +267,17 @@ impl TokenKind {
     }
 
     pub fn can_start_go_stmt(self) -> bool {
-        self == TokenKind::Go
+        self == Go
     }
 
     pub fn can_start_decl(self) -> bool {
         trace!("can_start_decl");
         // Declaration   = ConstDecl | TypeDecl | VarDecl .
-        self == TokenKind::Const || self == TokenKind::Type || self == TokenKind::Var
+        self == Const || self == Type || self == Var
     }
 
     pub fn can_start_simple_stmt(self) -> bool {
-        self == TokenKind::Semicolon || self.can_start_expr() || self.can_start_send_stmt() ||
+        self == Semicolon || self.can_start_expr() || self.can_start_send_stmt() ||
         self.can_start_inc_dec_stmt() || self.can_start_assignment() ||
         self.can_start_short_var_decl()
     }
@@ -343,7 +337,7 @@ impl TokenKind {
         //
         // QualifiedIdent starts with an identifier.
         // So does MethodExpr.
-        self.can_start_lit() || self.is_ident() || self == TokenKind::LParen
+        self.can_start_lit() || self.is_ident() || self == LParen
     }
 
     pub fn can_start_conversion(self) -> bool {
@@ -355,7 +349,7 @@ impl TokenKind {
         // TypeName  = identifier | QualifiedIdent .
         // TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
         //      SliceType | MapType | ChannelType .
-        self.is_ident() || self.can_start_type_lit() || self == TokenKind::LParen
+        self.is_ident() || self.can_start_type_lit() || self == LParen
     }
 
     pub fn can_start_type_lit(self) -> bool {
@@ -368,22 +362,22 @@ impl TokenKind {
     }
 
     pub fn can_start_pointer_type(self) -> bool {
-        self == TokenKind::Star
+        self == Star
     }
 
     pub fn can_start_func_type(self) -> bool {
         // FunctionType   = "func" Signature .
-        self == TokenKind::Func
+        self == Func
     }
 
     pub fn can_start_interface_type(self) -> bool {
         // InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
-        self == TokenKind::Interface
+        self == Interface
     }
 
     pub fn can_start_chan_type(self) -> bool {
         // ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
-        self == TokenKind::Chan || self == TokenKind::Arrow
+        self == Chan || self == Arrow
     }
 
     pub fn can_start_lit(self) -> bool {
@@ -404,30 +398,29 @@ impl TokenKind {
     pub fn can_start_lit_type(self) -> bool {
         // LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
         //                 SliceType | MapType | TypeName .
-        self.can_start_struct_type() || self.can_start_array_type() ||
-        self == TokenKind::RBracket || self.can_start_slice_type() ||
-        self.can_start_map_type() || self.is_ident()
+        self.can_start_struct_type() || self.can_start_array_type() || self == RBracket ||
+        self.can_start_slice_type() || self.can_start_map_type() || self.is_ident()
     }
 
     pub fn can_start_func_lit(self) -> bool {
         // FunctionLit = "func" Function .
-        self == TokenKind::Func
+        self == Func
     }
 
     pub fn can_start_struct_type(self) -> bool {
-        self == TokenKind::Struct
+        self == Struct
     }
 
     pub fn can_start_array_type(self) -> bool {
-        self == TokenKind::RBracket
+        self == RBracket
     }
 
     pub fn can_start_slice_type(self) -> bool {
-        self == TokenKind::RBracket
+        self == RBracket
     }
 
     pub fn can_start_map_type(self) -> bool {
-        self == TokenKind::Map
+        self == Map
     }
 
     pub fn can_start_send_stmt(self) -> bool {
