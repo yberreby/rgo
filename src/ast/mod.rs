@@ -313,7 +313,7 @@ pub struct FuncDecl {
     // XXX: functions with same name but different origins, how do we handle them?
     pub name: String,
     pub signature: FuncSignature,
-    pub body: Vec<Statement>,
+    pub body: Block,
 }
 
 
@@ -585,8 +585,52 @@ pub enum Else {
 pub struct SwitchStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectStmt;
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ForStmt;
+pub struct ForStmt {
+    /// The "header" is the part of of a `for` that comes before the body.
+    pub header: ForHeader,
+    pub body: Block,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ForHeader {
+    Condition(Expr),
+    ForClause(ForClause),
+    RangeClause(RangeClause),
+}
+
+// Grammar:
+//
+// ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
+// InitStmt = SimpleStmt .
+// PostStmt = SimpleStmt .
+// Condition = Expression .
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForClause {
+    pub init: Option<SimpleStmt>,
+    pub condition: Option<Expr>,
+    pub post: Option<SimpleStmt>,
+}
+
+
+// RangeClause = [ ExpressionList "=" | IdentifierList ":=" ] "range" Expression .
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RangeClause {
+    /// The iteration variables.
+    pub iter_vars: IterVars,
+    /// The range expression.
+    pub expr: Expr,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IterVars {
+    Exprs(Vec<Expr>),
+    Idents(Vec<String>),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SendStmt;

@@ -105,6 +105,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         Ok(self.bump_and_get())
     }
 
+    // === parse_*() functions ===
+
     /// Parse a package clause (e.g. `package main`).
     fn parse_package_clause(&mut self) -> PResult<String> {
         trace!("parse_package_clause");
@@ -242,7 +244,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             // This function has a body, parse it.
             TokenKind::LBrace => try!(self.parse_block()),
             // Empty body.
-            _ => vec![],
+            _ => ast::Block(vec![]),
         };
         try!(self.eat(TokenKind::Semicolon));
 
@@ -418,7 +420,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
     }
 
-    fn parse_block(&mut self) -> PResult<Vec<ast::Statement>> {
+    fn parse_block(&mut self) -> PResult<ast::Block> {
         trace!("parse_block");
         // Grammar:
         // Block = "{" StatementList "}" .
@@ -432,7 +434,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
 
         try!(self.eat(TokenKind::RBrace));
-        Ok(statements)
+        Ok(ast::Block(statements))
     }
 
     // XXX: needs thorough review.
@@ -457,7 +459,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             Switch => try!(self.parse_switch_stmt()).into(),
             Select => try!(self.parse_select_stmt()).into(),
             For => try!(self.parse_for_stmt()).into(),
-            LBrace => ast::Block(try!(self.parse_block())).into(),
+            LBrace => try!(self.parse_block()).into(),
             RBrace => {
                 // a semicolon may be omitted before a closing "}"
                 ast::EmptyStmt.into()
@@ -487,22 +489,47 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         try!(self.eat(TokenKind::Return));
         Ok(ast::ReturnStmt { expr: try!(self.parse_expr()) })
     }
+
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
         trace!("parse_if_stmt");
         unimplemented!()
     }
+
     fn parse_switch_stmt(&mut self) -> PResult<ast::SwitchStmt> {
         trace!("parse_switch_stmt");
         unimplemented!()
     }
+
     fn parse_select_stmt(&mut self) -> PResult<ast::SelectStmt> {
         trace!("parse_select_stmt");
         unimplemented!()
     }
+
     fn parse_for_stmt(&mut self) -> PResult<ast::ForStmt> {
+        // ForStmt = "for" [ Condition | ForClause | RangeClause ] Block .
+        // Condition = Expression .
+        //
+        // ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
+        // InitStmt = SimpleStmt .
+        // PostStmt = SimpleStmt .
+        //
+        // RangeClause = [ ExpressionList "=" | IdentifierList ":=" ] "range" Expression .
         trace!("parse_for_stmt");
+
+        try!(self.eat(TokenKind::For));
+
+        Ok(ast::ForStmt {
+            header: try!(self.parse_for_header()),
+            body: try!(self.parse_block()),
+        })
+
+    }
+
+    fn parse_for_header(&mut self) -> PResult<ast::ForHeader> {
+        trace!("parse_for_header");
         unimplemented!()
     }
+
     fn parse_simple_stmt(&mut self) -> PResult<ast::SimpleStmt> {
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
