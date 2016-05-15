@@ -21,11 +21,10 @@ pub struct Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.kind == Ident || self.kind.is_literal() {
-            write!(f, "{}", self.value.as_ref().unwrap())
-        } else {
-            // FIXME: for now, we're just using the Debug impl of the variant.
-            fmt::Debug::fmt(&self.kind, f)
+        // If the token contains a value, display it.
+        match self.value {
+            Some(ref v) => write!(f, "{}({})", self, v),
+            None => write!(f, "{}", self),
         }
     }
 }
@@ -186,6 +185,8 @@ pub enum TokenKind {
 
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // We're using the derived Debug impl for simplicity.
+        // It displays the name of each variant as written in the enum declaration.
         fmt::Debug::fmt(self, f)
     }
 }
