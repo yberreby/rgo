@@ -3,6 +3,7 @@ name = "rgo"
 version = "0.1.0"
 dependencies = [
  "clippy 0.0.63 (registry+https://github.com/rust-lang/crates.io-index)",
+ "colored 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "convenience 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -33,6 +34,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "convenience"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -57,6 +66,11 @@ dependencies = [
  "winapi 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "lazy_static"

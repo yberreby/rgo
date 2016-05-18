@@ -1,25 +1,44 @@
+//! The Abstract Syntax Tree.
+
 // Go language specification: https://golang.org/ref/spec
 
 use num::bigint::BigInt;
 use num::BigRational;
 use token::TokenKind;
 
-// SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
+mod types;
+mod statements;
+mod expressions;
+pub use self::types::*;
+pub use self::statements::*;
+pub use self::expressions::*;
+
 
 /// A complete source file.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
-    pub package: String,
+    /// Name of the package this file belongs to.
+    pub package: Ident,
+    /// All import declarations in this file.
     pub import_decls: Vec<ImportDecl>,
+    /// All top-level declarations in this file.
     pub top_level_decls: Vec<TopLevelDecl>,
 }
 
-// ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
-// ImportSpec       = [ "." | PackageName ] ImportPath .
-// ImportPath       = string_lit .
-
 /// An import declaration.
 /// Contains a list of "import specs".
+///
+/// ## Grammar
+///
+/// ```ignore
+/// ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
+/// ```
 ///
 /// Example:
 ///
@@ -35,10 +54,23 @@ pub struct ImportDecl {
 }
 
 /// An import spec.
-/// Can only appear in an import declaration (AFAIK).
 ///
-/// Example: `m "lib/math"`
-/// This imports lib/math as m.
+/// This can only appear in an import declaration (AFAIK).
+///
+/// ## Grammar
+///
+/// ```ignore
+/// ImportSpec       = [ "." | PackageName ] ImportPath .
+/// ImportPath       = string_lit .
+/// ```
+///
+/// Example:
+///
+/// ```ignore
+/// m "lib/math"
+/// ```
+///
+/// This imports `lib/math` as `m`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSpec {
     pub kind: ImportKind,
@@ -54,15 +86,6 @@ pub enum ImportKind {
     /// Glob import: all the package's exported identifiers will be declared in the importing
     /// source file.
     Glob,
-}
-
-// Declaration   = ConstDecl | TypeDecl | VarDecl .
-/// A statement declaration.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DeclStmt {
-    Const(ConstDecl),
-    TypeDecl(TypeDecl),
-    VarDecl(VarDecl),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,244 +105,10 @@ pub enum TopLevelDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstSpec {
-    pub identifiers: Vec<Identifier>,
+    pub identifiers: Vec<Ident>,
     pub typ: Option<Type>,
     pub expressions: Vec<Expr>,
 }
-
-
-// Expr = UnaryExpr | Expr binary_op Expr .
-// UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
-//
-// binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
-// rel_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
-// add_op     = "+" | "-" | "|" | "^" .
-// mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
-//
-// unary_op   = "+" | "-" | "!" | "^" | "*" | "&" | "<-" .
-
-// I went for a strongly-typed approach here: instead of having one giant, flat `Expr` enum, I
-// chose a deeply nested hierarchy.
-//
-// Advantage: more type-safety.
-// Disadvantages:
-// - takes up more space because Rust doesn't collapse nested enum tags
-// - more verbose
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr {
-    Unary(UnaryExpr),
-    Binary(BinaryExpr),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BinaryOperation {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Rem,
-
-    BitAnd,
-    BitOr,
-    BitXor,
-    BitClear,
-
-    LeftShift,
-    RightShift,
-
-    Equals,
-    NotEqual,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-    LogAnd,
-    LogOr,
-}
-
-impl BinaryOperation {
-    pub fn from_token_kind(tok: TokenKind) -> Option<BinaryOperation> {
-        use self::BinaryOperation::*;
-        Some(match tok {
-            TokenKind::Plus => Add,
-            TokenKind::Minus => Sub,
-            TokenKind::Star => Mul,
-            TokenKind::Slash => Div,
-            TokenKind::Percent => Rem,
-
-            TokenKind::And => BitAnd,
-            TokenKind::Or => BitOr,
-            TokenKind::Caret => BitXor,
-            TokenKind::BitClear => BitClear,
-
-            TokenKind::Lshift => LeftShift,
-            TokenKind::Rshift => RightShift,
-
-            TokenKind::Equals => Equals,
-            TokenKind::NotEqual => NotEqual,
-            TokenKind::LessThan => LessThan,
-            TokenKind::LessThanOrEqual => LessThanOrEqual,
-            TokenKind::GreaterThan => GreaterThan,
-            TokenKind::GreaterThanOrEqual => GreaterThanOrEqual,
-            TokenKind::AndAnd => LogAnd,
-            TokenKind::OrOr => LogOr,
-
-            _ => return None,
-        })
-    }
-
-    pub fn from_token_kind_assign_op(tok: TokenKind) -> Option<BinaryOperation> {
-        use self::BinaryOperation::*;
-        Some(match tok {
-            TokenKind::PlusAssign => Add,
-            TokenKind::MinusAssign => Sub,
-            TokenKind::StarAssign => Mul,
-            TokenKind::SlashAssign => Div,
-            TokenKind::PercentAssign => Rem,
-
-            TokenKind::AndAssign => BitAnd,
-            TokenKind::OrAssign => BitOr,
-            TokenKind::CaretAssign => BitXor,
-            TokenKind::BitClearAssign => BitClear,
-
-            TokenKind::LshiftAssign => LeftShift,
-            TokenKind::RshiftAssign => RightShift,
-
-            _ => return None,
-        })
-    }
-
-    pub fn precedence(self) -> i32 {
-        use self::BinaryOperation::*;
-
-        match self {
-            Mul | Div | Rem | LeftShift | RightShift | BitAnd | BitClear => 5,
-            Add | Sub | BitOr | BitXor => 4,
-            Equals | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => 3,
-            LogAnd => 2,
-            LogOr => 1,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BinaryExpr {
-    pub lhs: Box<Expr>,
-    pub op: BinaryOperation,
-    pub rhs: Box<Expr>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UnaryExpr {
-    Primary(Box<PrimaryExpr>),
-    UnaryOperation(UnaryOperation),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnaryOperation {
-    pub operator: UnaryOperator, // TODO: type safety
-    pub operand: Box<UnaryExpr>,
-}
-
-// TODO
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UnaryOperator {
-    Plus,
-    Minus,
-    Not,
-    Caret,
-    Star,
-    And,
-    Arrow, // ... not sure about this one
-}
-
-// pub enum
-
-
-// Primary expressions.
-
-// PrimaryExpr =
-// 	Operand |
-// 	Conversion |
-// 	PrimaryExpr Selector |
-// 	PrimaryExpr Index |
-// 	PrimaryExpr Slice |
-// 	PrimaryExpr TypeAssertion |
-// 	PrimaryExpr Arguments .
-//
-// Selector       = "." identifier .
-// Index          = "[" Expr "]" .
-// Slice          = "[" ( [ Expr ] ":" [ Expr ] ) |
-//                      ( [ Expr ] ":" Expr ":" Expr )
-//                  "]" .
-// TypeAssertion  = "." "(" Type ")" .
-// Arguments      = "(" [ ( ExprList | Type [ "," ExprList ] ) [ "..." ] [ "," ] ] ")".
-
-/// Primary expressions are the operands for unary and binary expressions.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PrimaryExpr {
-    Operand(Operand),
-    Conversion(Conversion),
-    SelectorExpr(SelectorExpr),
-    Indexing(IndexExpr),
-    Slicing(SliceExpr),
-    TypeAssertion(TypeAssertion),
-    FuncCall(FuncCall),
-}
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SelectorExpr {
-    pub operand: Box<PrimaryExpr>,
-    pub selector: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IndexExpr {
-    pub operand: Box<PrimaryExpr>,
-    pub index: Expr,
-}
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SliceExpr {
-    operand: Box<PrimaryExpr>,
-    slicing: Slicing,
-}
-// XXX: naming
-
-// From the Go spec:
-//
-//  For an array, pointer to array, or slice a (but not a string), the primary expression
-//
-//    a[low : high : max]
-//
-// constructs a slice of the same type, and with the same length and elements as the simple slice
-// expression a[low : high]. Additionally, it controls the resulting slice's capacity by setting it
-// to max - low. Only the first index may be omitted; it defaults to 0. After slicing the array a
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Slicing {
-    pub low: Expr,
-    pub high: Expr,
-    pub max: Option<Expr>,
-}
-
-/// A TypeAssertion contains the expression whose type is being asserted.
-/// This superficially differs from the grammar in the Go spec.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeAssertion {
-    expr: Box<PrimaryExpr>,
-    typ: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FuncCall {
-    callee: Box<PrimaryExpr>,
-    args: Arguments,
-}
-
-
 
 
 
@@ -418,11 +207,14 @@ pub enum Literal {
 /// "A qualified identifier is an identifier qualified with a package name prefix."
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MaybeQualifiedIdent {
-    pub package: Option<String>,
-    pub name: String,
+    pub package: Option<Ident>,
+    pub name: Ident,
 }
 
 // == Unimplemented types ==
+
+// We may want to intern strings later on.
+pub type Ident = String;
 
 /// A constant declaration.
 ///
@@ -432,8 +224,6 @@ pub struct ConstDecl;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MethodDecl;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Identifier;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDecl;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -445,248 +235,39 @@ pub struct VarDecl;
 // XXX/FIXME/TODO: not finished.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operand {
+    /// A literal.
     Lit(Literal),
-    /// A constant, a variable or a function.
+    /// An identifier denoting  a constant, a variable or a function.
     Ident(MaybeQualifiedIdent),
-    __Todo,
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Conversion;
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ArrayType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PointerType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FuncType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InterfaceType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SliceType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MapType;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChanType;
-
-// Statement =
-// 	Declaration | LabeledStmt | SimpleStmt |
-// 	GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
-// 	FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
-// 	DeferStmt .
-//
-// SimpleStmt = EmptyStmt | ExprStmt | SendStmt | IncDecStmt | Assignment | ShortVarDecl .
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Statement {
-    Decl(DeclStmt),
-    Labeled(LabeledStmt),
-    Simple(SimpleStmt),
-    Go(GoStmt),
-    Return(ReturnStmt),
-    Break(BreakStmt),
-    Continue(ContinueStmt),
-    Goto(GotoStmt),
-    Fallthrough(FallthroughStmt),
-    Block(Block),
-    If(IfStmt),
-    Switch(SwitchStmt),
-    Select(SelectStmt),
-    For(ForStmt),
-    Defer(DeferStmt),
-    Empty(EmptyStmt),
-}
-
-macro_rules! enum_from_impl {
-    ($enum_type:ident, $enum_variant:ident, $inner_type:ty) => {
-        impl From<$inner_type> for $enum_type {
-            fn from(x: $inner_type) -> $enum_type {
-                $enum_type::$enum_variant(x)
-            }
-        }
-    }
-}
-
-enum_from_impl!(Statement, Decl, DeclStmt);
-enum_from_impl!(Statement, Labeled, LabeledStmt);
-enum_from_impl!(Statement, Simple, SimpleStmt);
-enum_from_impl!(Statement, Go, GoStmt);
-enum_from_impl!(Statement, Return, ReturnStmt);
-enum_from_impl!(Statement, Break, BreakStmt);
-enum_from_impl!(Statement, Continue, ContinueStmt);
-enum_from_impl!(Statement, Goto, GotoStmt);
-enum_from_impl!(Statement, Fallthrough, FallthroughStmt);
-enum_from_impl!(Statement, Block, Block);
-enum_from_impl!(Statement, If, IfStmt);
-enum_from_impl!(Statement, Switch, SwitchStmt);
-enum_from_impl!(Statement, Select, SelectStmt);
-enum_from_impl!(Statement, For, ForStmt);
-enum_from_impl!(Statement, Defer, DeferStmt);
-enum_from_impl!(Statement, Empty, EmptyStmt);
-
-
-/// A simple statement.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SimpleStmt {
-    EmptyStmt,
+    /// A method expression.
+    MethodExpr(MethodExpr),
+    /// A parenthesized expression.
     Expr(Expr),
-    Send(SendStmt),
-    IncDec(IncDecStmt),
-    Assignment(Assignment),
-    ShortVarDecl(ShortVarDecl),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LabeledStmt;
-
-/// A "go" statement starts the execution of a function call as an independent concurrent thread of
-/// control, or goroutine, within the same address space.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GoStmt {
-    /// The function or method call being started.
-    pub call: Expr,
-}
-
-/// A "defer" statement invokes a function whose execution is deferred to the moment the
-/// surrounding function returns, either because the surrounding function executed a return
-/// statement, reached the end of its function body, or because the corresponding goroutine is
-/// panicking.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DeferStmt {
-    /// The function or method call being deferred.
-    pub call: Expr,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReturnStmt {
-    /// The expression being returned.
-    pub expr: Expr,
-}
-
-
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BreakStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContinueStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GotoStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FallthroughStmt;
-
-
-/// "If" statements specify the conditional execution of two branches according to the value of a
-/// boolean expression. If the expression evaluates to true, the "if" branch is executed,
-/// otherwise, if present, the "else" branch is executed.
+/// Conversions are expressions of the form T(x) where T is a type and x is an expression that can
+/// be converted to type T.
 ///
-/// The expression may be preceded by a simple statement, which executes before the expression is
-/// evaluated.
+/// ## Grammar
+///
+/// ```ignore
+/// Conversion = Type "(" Expression [ "," ] ")" .
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IfStmt {
-    pub before_stmt: Option<SimpleStmt>,
-    pub condition: Expr,
-    pub block: Block,
-    pub opt_else: Option<Box<Else>>,
-}
-
-/// The "else" portion of an if statement.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Else {
-    /// `else if <condition> { ... }`
-    If(IfStmt),
-    /// `else { ... }`
-    Block(Block),
-}
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SwitchStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SelectStmt;
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ForStmt {
-    /// The "header" is the part of of a `for` that comes before the body.
-    pub header: ForHeader,
-    pub body: Block,
-}
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ForHeader {
-    Condition(Expr),
-    ForClause(ForClause),
-    RangeClause(RangeClause),
-}
-
-// Grammar:
-//
-// ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
-// InitStmt = SimpleStmt .
-// PostStmt = SimpleStmt .
-// Condition = Expression .
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ForClause {
-    pub init: Option<SimpleStmt>,
-    pub condition: Option<Expr>,
-    pub post: Option<SimpleStmt>,
-}
-
-
-// RangeClause = [ ExpressionList "=" | IdentifierList ":=" ] "range" Expression .
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RangeClause {
-    /// The iteration variables.
-    pub iter_vars: IterVars,
-    /// The range expression.
+pub struct Conversion {
+    /// The type to convert to.
+    pub typ: Type,
+    /// The expression being converted.
     pub expr: Expr,
 }
 
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum IterVars {
-    Exprs(Vec<Expr>),
-    Idents(Vec<String>),
-}
-
-// SendStmt = Channel "<-" Expression .
-// Channel  = Expression .
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SendStmt {
-    pub channel: Expr,
-    pub expr: Expr,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IncDecStmt {
-    pub expr: Expr,
-    pub is_dec: bool, // false for ++, true for --
-}
-
-// Assignment = ExpressionList assign_op ExpressionList .
-// assign_op = [ add_op | mul_op ] "=" .
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Assignment {
-    pub lhs: Vec<Expr>,
-    pub rhs: Vec<Expr>,
-    // binary operation used in assign op
-    // XXX: add method to BinaryOperation to check if is a valid assign_op operation
-    pub op: Option<BinaryOperation>,
-}
 
 // ShortVarDecl = IdentifierList ":=" ExpressionList .
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShortVarDecl {
-    pub lhs: Vec<String>,
+    pub lhs: Vec<Ident>,
     pub rhs: Vec<Expr>,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EmptyStmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Block(pub Vec<Statement>);
@@ -706,7 +287,6 @@ pub enum BasicLit {
 pub struct CompositeLit;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncLit;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A list of arguments being passed to a function.

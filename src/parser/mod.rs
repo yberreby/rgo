@@ -662,24 +662,65 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
     /// Parse a unary *expression*, which can be a primary expression OR a unary *operation*.
+    // XXX: too much repetition, could probably be shortened
     fn parse_unary_expr(&mut self) -> PResult<ast::UnaryExpr> {
         // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
         trace!("parse_unary_expr");
 
-        if self.token.kind.is_unary_op() {
-            Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
-                operator: try!(self.parse_unary_operator()),
-                operand: Box::new(try!(self.parse_unary_expr())),
-            }))
-        } else if self.token.kind == TokenKind::Arrow {
-            unimplemented!()
-        } else {
-            unimplemented!()
+        match self.token.kind {
+            // kind: unary operator
+            TokenKind::Plus | TokenKind::Minus | TokenKind::Not | TokenKind::Caret |
+            TokenKind::And => {
+                let op = ast::UnaryOperator::from_token_kind(self.token.kind).expect("BUG");
+                self.bump();
+                let x = try!(self.parse_unary_expr());
+                Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
+                    operator: op,
+                    operand: Box::new(x),
+                }))
+            }
+            // channel receive operation
+            TokenKind::Arrow => {
+                self.bump();
+                let x = try!(self.parse_unary_expr());
+                Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
+                    operator: ast::UnaryOperator::ChanReceive,
+                    operand: Box::new(x),
+                }))
+            }
+
+            // deref expression - star op
+            TokenKind::Star => {
+                self.bump();
+                let x = try!(self.parse_unary_expr());
+                Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
+                    operator: ast::UnaryOperator::Deref,
+                    operand: Box::new(x),
+                }))
+            }
+            // No operator, this can only be a primary expression.
+            _ => {
+                let x = try!(self.parse_primary_expr());
+                Ok(ast::UnaryExpr::Primary(Box::new(x)))
+            }
         }
     }
 
-    fn parse_unary_operator(&mut self) -> PResult<ast::UnaryOperator> {
+    fn parse_primary_expr(&mut self) -> PResult<ast::PrimaryExpr> {
         unimplemented!()
+    }
+
+    fn parse_unary_operator(&mut self) -> PResult<ast::UnaryOperator> {
+        trace!("parse_unary_operator");
+
+        let k = match self.token.kind {
+            TokenKind::Plus => ast::UnaryOperator::Plus,
+            TokenKind::Minus => ast::UnaryOperator::Minus,
+            TokenKind::Not => ast::UnaryOperator::Xor,
+            _ => panic!(),
+        };
+
+        Ok(k)
     }
 
     fn parse_basic_lit(&mut self) -> PResult<ast::BasicLit> {
@@ -692,7 +733,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             Decimal | Octal | Hex => Ok(ast::BasicLit::Int(try!(self.parse_int_lit()))),
             Str | StrRaw => Ok(ast::BasicLit::Str(try!(self.parse_string_lit()))),
             Float => {
-                let value = self.bump_and_get().value.expect("BUG: missing value in float literal");
+                let value = self.bump_and_get()
+                    .value
+                    .expect("BUG: missing value in float literal");
                 Ok(ast::BasicLit::Float(try!(self.interpret_float_lit(&value[..],
                                                                       "float literal"))))
             }

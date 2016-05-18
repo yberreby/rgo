@@ -3,10 +3,19 @@ extern crate log;
 extern crate rgo;
 extern crate convenience as cnv;
 extern crate env_logger;
+extern crate colored;
+
+use colored::*;
 
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::env;
+
+fn flush() {
+    use std::io::Write;
+
+    ::std::io::stdout().flush().unwrap();
+}
 
 fn test_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut new = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -36,12 +45,19 @@ fn main() {
 }
 
 fn lexing_does_not_panic() {
+    print!("making sure lexing doesn't panic... ");
+    flush();
+
     for_all_in("pass", |src| {
         rgo::lexer::tokenize(&src);
     });
+    println!("{}", "OK.".green());
 }
 
 fn parsing_does_not_panic() {
+    print!("making sure parsing doesn't panic... ");
+    flush();
+
     for_all_in("pass", |src| {
         let tokens: Vec<_> = rgo::lexer::Lexer::new(&src).collect();
         match rgo::Parser::new(tokens.clone().into_iter()).parse() {
@@ -52,4 +68,6 @@ fn parsing_does_not_panic() {
             }
         }
     });
+
+    println!("{}", "OK.".green());
 }
