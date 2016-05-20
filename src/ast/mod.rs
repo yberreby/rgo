@@ -169,6 +169,27 @@ impl BinaryOperation {
         })
     }
 
+    pub fn from_token_kind_assign_op(tok: TokenKind) -> Option<BinaryOperation> {
+        use self::BinaryOperation::*;
+        Some(match tok {
+            TokenKind::PlusAssign => Add,
+            TokenKind::MinusAssign => Sub,
+            TokenKind::StarAssign => Mul,
+            TokenKind::SlashAssign => Div,
+            TokenKind::PercentAssign => Rem,
+
+            TokenKind::AndAssign => BitAnd,
+            TokenKind::OrAssign => BitOr,
+            TokenKind::CaretAssign => BitXor,
+            TokenKind::BitClearAssign => BitClear,
+
+            TokenKind::LshiftAssign => LeftShift,
+            TokenKind::RshiftAssign => RightShift,
+
+            _ => return None,
+        })
+    }
+
     pub fn precedence(self) -> i32 {
         use self::BinaryOperation::*;
 
@@ -632,12 +653,30 @@ pub enum IterVars {
     Idents(Vec<String>),
 }
 
+// SendStmt = Channel "<-" Expression .
+// Channel  = Expression .
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SendStmt;
+pub struct SendStmt {
+    pub channel: Expr,
+    pub expr: Expr,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IncDecStmt;
+pub struct IncDecStmt {
+    pub expr: Expr,
+    pub is_dec: bool, // false for ++, true for --
+}
+
+// Assignment = ExpressionList assign_op ExpressionList .
+// assign_op = [ add_op | mul_op ] "=" .
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Assignment;
+pub struct Assignment {
+    pub lhs: Vec<Expr>,
+    pub rhs: Vec<Expr>,
+    // binary operation used in assign op
+    // XXX: add method to BinaryOperation to check if is a valid assign_op operation
+    pub op: Option<BinaryOperation>,
+}
 
 // ShortVarDecl = IdentifierList ":=" ExpressionList .
 #[derive(Debug, Clone, PartialEq, Eq)]

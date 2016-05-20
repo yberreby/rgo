@@ -221,6 +221,18 @@ impl TokenKind {
         }
     }
 
+    pub fn is_assign_op(self) -> bool {
+        // assign_op = [ add_op | mul_op ] "=" .
+        // add_op     = "+" | "-" | "|" | "^" .
+        // mul_op     = "*" | "/" | "%" | "<<" | ">>" | "&" | "&^" .
+        match self {
+            Assign | PlusAssign | MinusAssign | OrAssign | CaretAssign | StarAssign |
+            SlashAssign | PercentAssign | LshiftAssign | RshiftAssign | AndAssign |
+            BitClearAssign => true,
+            _ => false,
+        }
+    }
+
     pub fn is_literal(self) -> bool {
         match self {
             Str | StrRaw | Decimal | Octal | Hex | Float | Imaginary | Rune => true,

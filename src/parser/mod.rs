@@ -530,6 +530,31 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         unimplemented!()
     }
 
+    fn expr_list_to_ident_list(&self, exprs: &Vec<ast::Expr>) -> PResult<Vec<String>> {
+        trace!("expr_list_to_ident_list");
+        // XXX: better errors
+
+        let mut idents = Vec::new();
+
+        for expr in exprs {
+            if let ast::Expr::Unary(ast::UnaryExpr::Primary(x)) = expr.clone() {
+                if let ast::PrimaryExpr::Operand(ast::Operand::Ident(mqident)) = *x {
+                    if mqident.package.is_some() {
+                        return Err(self.err(ErrorKind::other("expected unqualified ident")));
+                    }
+
+                    idents.push(mqident.name);
+                    continue;
+                }
+            }
+
+            // didn't successfully turn the expr into an ident
+            return Err(self.err(ErrorKind::other("expected ident")));
+        }
+
+        Ok(idents)
+    }
+
     fn parse_simple_stmt(&mut self) -> PResult<ast::SimpleStmt> {
         // SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment |
         //  ShortVarDecl .
@@ -544,8 +569,70 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         //
         // ShortVarDecl = IdentifierList ":=" ExpressionList .
         trace!("parse_simple_stmt");
-        unimplemented!()
+
+        let exprs = try!(self.parse_expr_list());
+
+        if self.token.kind.is_assign_op() {
+            let op = ast::BinaryOperation::from_token_kind_assign_op(self.bump_and_get().kind);
+            return Ok(ast::SimpleStmt::Assignment(ast::Assignment {
+                lhs: exprs,
+                rhs: try!(self.parse_expr_list()),
+                op: op,
+            }));
+        }
+
+        if self.token.kind == TokenKind::ColonAssign {
+            let idents = try!(self.expr_list_to_ident_list(&exprs));
+            return Ok(ast::SimpleStmt::ShortVarDecl(ast::ShortVarDecl {
+                lhs: idents,
+                rhs: try!(self.parse_expr_list()),
+            }));
+        }
+
+        let expr;
+
+        // Now we have no possible SimpleStmt types left that start with a list of exprs.
+        if exprs.len() > 1 {
+            return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Assign], self.token.clone())));
+        } else if exprs.len() == 1 {
+            // move exprs to prevent access later and avoid cloning
+            expr = exprs.into_iter().next().unwrap();
+        } else {
+            panic!("BUG");
+        }
+
+        match self.token.kind {
+            TokenKind::Arrow => {
+                self.bump();
+                Ok(ast::SimpleStmt::Send(ast::SendStmt {
+                    channel: expr,
+                    expr: try!(self.parse_expr()),
+                }))
+            }
+            TokenKind::Increment => {
+                self.bump();
+                Ok(ast::SimpleStmt::IncDec(ast::IncDecStmt {
+                    expr: expr,
+                    is_dec: false,
+                }))
+            }
+            TokenKind::Decrement => {
+                self.bump();
+                Ok(ast::SimpleStmt::IncDec(ast::IncDecStmt {
+                    expr: expr,
+                    is_dec: true,
+                }))
+            }
+            _ => {
+                let expected = vec![TokenKind::Arrow,
+                                    TokenKind::Increment,
+                                    TokenKind::Decrement,
+                                    TokenKind::Assign];
+                Err(self.err(ErrorKind::unexpected_token(expected, self.token.clone())))
+            }
+        }
     }
+
     fn parse_decl_stmt(&mut self) -> PResult<ast::SimpleStmt> {
         trace!("parse_decl_stmt");
         unimplemented!()
@@ -556,6 +643,22 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         trace!("parse_expr");
 
         self.parse_potential_binary_expr(0)
+    }
+
+    fn parse_expr_list(&mut self) -> PResult<Vec<ast::Expr>> {
+        // ExpressionList = Expression { "," Expression } .
+        trace!("parse_expr_list");
+
+        let mut res = Vec::new();
+
+        res.push(try!(self.parse_expr()));
+
+        while self.token.kind == TokenKind::Comma {
+            self.bump();
+            res.push(try!(self.parse_expr()));
+        }
+
+        Ok(res)
     }
 
     /// Parse a unary *expression*, which can be a primary expression OR a unary *operation*.
