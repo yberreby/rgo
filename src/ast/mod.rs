@@ -1,18 +1,25 @@
 //! The Abstract Syntax Tree.
+//!
+//! If you want to learn more, it is recommended to read the [Go language
+//! specification](https://golang.org/ref/spec).
 
-// Go language specification: https://golang.org/ref/spec
-
-use num::bigint::BigInt;
-use num::BigRational;
-use token::TokenKind;
 
 mod types;
 mod statements;
 mod expressions;
+
+use num::bigint::BigInt;
+use num::BigRational;
 pub use self::types::*;
 pub use self::statements::*;
 pub use self::expressions::*;
 
+
+// XXX: We may want to intern strings later on.
+// XXX: should we use aliases? Or resolve them in doc comments?
+pub type Ident = String;
+pub type TypeName = MaybeQualifiedIdent;
+pub type MethodName = Ident;
 
 /// A complete source file.
 ///
@@ -177,7 +184,7 @@ pub struct ParameterDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Plain(MaybeQualifiedIdent),
-    Literal(TypeLiteral),
+    Literal(Box<TypeLiteral>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -212,9 +219,6 @@ pub struct MaybeQualifiedIdent {
 }
 
 // == Unimplemented types ==
-
-// We may want to intern strings later on.
-pub type Ident = String;
 
 /// A constant declaration.
 ///
