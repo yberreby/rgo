@@ -593,7 +593,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         // Now we have no possible SimpleStmt types left that start with a list of exprs.
         if exprs.len() > 1 {
-            return Err(self.err(ErrorKind::unexpected_token(vec![TokenKind::Assign], self.token.clone())));
+            return Err(self.err(
+                    ErrorKind::unexpected_token(vec![TokenKind::Assign], self.token.clone())
+            ));
         } else if exprs.len() == 1 {
             // move exprs to prevent access later and avoid cloning
             expr = exprs.into_iter().next().unwrap();
