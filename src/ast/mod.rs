@@ -104,21 +104,6 @@ pub enum TopLevelDecl {
     Method(MethodDecl),
 }
 
-// ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
-// ConstSpec      = IdentifierList [ [ Type ] "=" ExprList ] .
-//
-// IdentifierList = identifier { "," identifier } .
-// ExprList = Expr { "," Expr } .
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConstSpec {
-    pub identifiers: Vec<Ident>,
-    pub typ: Option<Type>,
-    pub expressions: Vec<Expr>,
-}
-
-
-
 // From the Go spec:
 //
 // FunctionDecl = "func" FunctionName ( Function | Signature ) .
@@ -220,11 +205,40 @@ pub struct MaybeQualifiedIdent {
 
 // == Unimplemented types ==
 
-/// A constant declaration.
+/// A constant declaration binds a list of identifiers (the names of the constants) to the values
+/// of a list of constant expressions.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
+/// ```
 ///
 /// Example: `const Pi float64 = 3.14159265358979323846`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConstDecl;
+pub struct ConstDecl {
+    pub specs: Vec<ConstSpec>,
+}
+
+
+// TODO: docs
+/// ## Grammar
+///
+/// ```ignore
+/// ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConstSpec {
+    pub idents: Vec<Ident>,
+    pub inner: Option<ConstSpecInner>,
+}
+
+// XXX: naming
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConstSpecInner {
+    pub typ: Option<Type>,
+    pub exprs: Vec<Expr>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MethodDecl;
