@@ -563,20 +563,25 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         use ast::{Expr, UnaryExpr, PrimaryExpr, Operand};
 
         for expr in exprs {
-            // make sure to preserve the spans
-            if let Spanned { span, item: Expr::Unary(UnaryExpr::Primary(x)) } = expr.clone() {
+            if let Expr::Unary(UnaryExpr::Primary(x)) = expr.item.clone() {
                 if let PrimaryExpr::Operand(Operand::Ident(mqident)) = *x {
                     if mqident.package.is_some() {
-                        return Err(self.err(ErrorKind::other("expected unqualified ident")));
+                        return Err(Error {
+                            kind: ErrorKind::other("expected unqualified ident"),
+                            span: expr.span,
+                        });
                     }
 
-                    idents.push(Spanned::new(span, mqident.name));
+                    idents.push(Spanned::new(expr.span, mqident.name));
                     continue;
                 }
             }
 
             // didn't successfully turn the expr into an ident
-            return Err(self.err(ErrorKind::other("expected ident")));
+            return Err(Error {
+                kind: ErrorKind::other("expected ident"),
+                span: expr.span,
+            });
         }
 
         Ok(idents)
