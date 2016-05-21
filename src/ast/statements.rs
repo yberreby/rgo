@@ -31,31 +31,34 @@ pub enum Statement {
 }
 
 macro_rules! enum_from_impl {
-    ($enum_type:ident, $enum_variant:ident, $inner_type:ty) => {
-        impl From<$inner_type> for $enum_type {
-            fn from(x: $inner_type) -> $enum_type {
-                $enum_type::$enum_variant(x)
+    ($enum_type:ident, $(($enum_variant:ident, $inner_type:ty)),*) => {
+        $(
+            impl From<$inner_type> for $enum_type {
+                fn from(x: $inner_type) -> $enum_type {
+                    $enum_type::$enum_variant(x)
+                }
             }
-        }
+        )*
     }
 }
 
-enum_from_impl!(Statement, Decl, DeclStmt);
-enum_from_impl!(Statement, Labeled, LabeledStmt);
-enum_from_impl!(Statement, Simple, SimpleStmt);
-enum_from_impl!(Statement, Go, GoStmt);
-enum_from_impl!(Statement, Return, ReturnStmt);
-enum_from_impl!(Statement, Break, BreakStmt);
-enum_from_impl!(Statement, Continue, ContinueStmt);
-enum_from_impl!(Statement, Goto, GotoStmt);
-enum_from_impl!(Statement, Fallthrough, FallthroughStmt);
-enum_from_impl!(Statement, Block, Block);
-enum_from_impl!(Statement, If, IfStmt);
-enum_from_impl!(Statement, Switch, SwitchStmt);
-enum_from_impl!(Statement, Select, SelectStmt);
-enum_from_impl!(Statement, For, ForStmt);
-enum_from_impl!(Statement, Defer, DeferStmt);
-enum_from_impl!(Statement, Empty, EmptyStmt);
+enum_from_impl!(Statement,
+                (Decl, DeclStmt),
+                (Labeled, LabeledStmt),
+                (Simple, SimpleStmt),
+                (Go, GoStmt),
+                (Return, ReturnStmt),
+                (Break, BreakStmt),
+                (Continue, ContinueStmt),
+                (Goto, GotoStmt),
+                (Fallthrough, FallthroughStmt),
+                (Block, Block),
+                (If, IfStmt),
+                (Switch, SwitchStmt),
+                (Select, SelectStmt),
+                (For, ForStmt),
+                (Defer, DeferStmt),
+                (Empty, EmptyStmt));
 
 
 /// A simple statement.
