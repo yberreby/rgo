@@ -2,6 +2,8 @@
 //!
 //! If you want to learn more, it is recommended to read the [Go language
 //! specification](https://golang.org/ref/spec).
+//!
+//! This module needs attention.
 
 
 mod types;
@@ -115,7 +117,7 @@ pub struct FuncDecl {
     // XXX: functions with same name but different origins, how do we handle them?
     pub name: String,
     pub signature: FuncSignature,
-    pub body: Block,
+    pub body: Option<Block>,
 }
 
 
@@ -191,9 +193,6 @@ pub enum Literal {
     Func(FuncLit),
 }
 
-// XXX: dubious pattern. "Maybe<Something>" does not _feel_ completely right, but it doesn't feel
-// _wrong_ either. I just don't see a better solution.
-
 /// A _potentially_ qualified identifier (e.g. `math.Sin`, but also `someUnqualifiedIdent`).
 ///
 /// "A qualified identifier is an identifier qualified with a package name prefix."
@@ -202,8 +201,6 @@ pub struct MaybeQualifiedIdent {
     pub package: Option<Ident>,
     pub name: Ident,
 }
-
-// == Unimplemented types ==
 
 /// A constant declaration binds a list of identifiers (the names of the constants) to the values
 /// of a list of constant expressions.
@@ -240,12 +237,70 @@ pub struct ConstSpecInner {
     pub exprs: Vec<Expr>,
 }
 
+
+/// A method is a function with a receiver. A method declaration binds an identifier, the method
+/// name, to a method, and associates the method with the receiver's base type.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// MethodDecl   = "func" Receiver MethodName ( Function | Signature ) .
+/// Receiver     = Parameters .
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MethodDecl;
+pub struct MethodDecl {
+    pub receiver: Parameters,
+    pub name: Ident,
+    pub signature: FuncSignature,
+    pub body: Option<Block>,
+}
+
+/// A type declaration binds an identifier, the type name, to a new type that has the same
+/// underlying type as an existing type, and operations defined for the existing type are also
+/// defined for the new type.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// TypeDecl     = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
+/// TypeSpec     = identifier Type .
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeDecl;
+pub struct TypeDecl {
+    pub specs: Vec<TypeSpec>,
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VarDecl;
+pub struct TypeSpec {
+    pub ident: Ident,
+    pub typ: Type,
+}
+
+/// A variable declaration creates one or more variables, binds corresponding identifiers to them,
+/// and gives each a type and an initial value.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// VarDecl     = "var" ( VarSpec | "(" { VarSpec ";" } ")" ) .
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VarDecl {
+    pub specs: Vec<VarSpec>,
+}
+
+/// ## Grammar
+///
+/// ```ignore
+/// VarSpec     = IdentifierList ( Type [ "=" ExpressionList ] | "=" ExpressionList ) .
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VarSpec {
+    pub idents: Vec<Ident>,
+    pub typ: Option<Type>,
+    pub exprs: Vec<Expr>,
+}
 
 /// Operands denote the elementary values in an expression. An operand may be a literal, a
 /// (possibly qualified) non-blank identifier denoting a constant, variable, or function, a method
@@ -301,10 +356,80 @@ pub enum BasicLit {
     Str(Vec<u8>),
 }
 
+
+/// Composite literals construct values for structs, arrays, slices, and maps and create a new
+/// value each time they are evaluated. They consist of the type of the literal followed by a
+/// brace-bound list of elements. Each element may optionally be preceded by a corresponding key.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// CompositeLit  = LiteralType LiteralValue .
+/// LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
+///                 SliceType | MapType | TypeName .
+/// LiteralValue  = "{" [ ElementList [ "," ] ] "}" .
+/// ElementList   = KeyedElement { "," KeyedElement } .
+/// KeyedElement  = [ Key ":" ] Element .
+/// Key           = FieldName | Expression | LiteralValue .
+/// FieldName     = identifier .
+/// Element       = Expression | LiteralValue .
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompositeLit;
+pub struct CompositeLit {
+    pub typ: LiteralType,
+    pub val: LiteralValue,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FuncLit;
+pub enum LiteralType {
+    Struct(StructType),
+    Array(ArrayType),
+    // FIXME: MISSING: `[...]int` array (computes size at compile time)
+    Slice(SliceType),
+    Map(MapType),
+    Type(MaybeQualifiedIdent),
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LiteralValue {
+    pub elems: Vec<KeyedElem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyedElem {
+    pub key: Option<Key>,
+    pub elem: Elem,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Key {
+    FieldName(Ident),
+    Expr(Expr),
+    LiteralValue(LiteralValue),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Elem {
+    Expr(Expr),
+    LiteralValue(LiteralValue),
+}
+
+
+/// A function literal represents an anonymous function.
+///
+/// ## Grammar
+///
+/// ```ignore
+/// FunctionLit = "func" Function .
+/// Function     = Signature FunctionBody .
+/// FunctionBody = Block .
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FuncLit {
+    pub signature: FuncSignature,
+    pub body: Block,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A list of arguments being passed to a function.

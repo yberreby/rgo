@@ -242,9 +242,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         let body = match self.token.kind {
             // This function has a body, parse it.
-            TokenKind::LBrace => try!(self.parse_block()),
-            // Empty body.
-            _ => ast::Block(vec![]),
+            TokenKind::LBrace => Some(try!(self.parse_block())),
+            // No body.
+            _ => None,
         };
         try!(self.eat(TokenKind::Semicolon));
 
