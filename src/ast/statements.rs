@@ -1,4 +1,5 @@
 use super::{Block, Expr, ShortVarDecl, ConstDecl, TypeDecl, VarDecl, BinaryOperation};
+use token::Spanned;
 
 
 // Statement =
@@ -76,7 +77,7 @@ pub struct LabeledStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GoStmt {
     /// The function or method call being started.
-    pub call: Expr,
+    pub call: Spanned<Expr>,
 }
 
 /// A "defer" statement invokes a function whose execution is deferred to the moment the
@@ -86,13 +87,13 @@ pub struct GoStmt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeferStmt {
     /// The function or method call being deferred.
-    pub call: Expr,
+    pub call: Spanned<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReturnStmt {
     /// The expression being returned.
-    pub expr: Expr,
+    pub expr: Spanned<Expr>,
 }
 
 
@@ -117,7 +118,7 @@ pub struct FallthroughStmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt {
     pub before_stmt: Option<SimpleStmt>,
-    pub condition: Expr,
+    pub condition: Spanned<Expr>,
     pub block: Block,
     pub opt_else: Option<Box<Else>>,
 }
@@ -173,27 +174,27 @@ pub struct RangeClause {
     /// The iteration variables.
     pub iter_vars: IterVars,
     /// The range expression.
-    pub expr: Expr,
+    pub expr: Spanned<Expr>,
 }
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IterVars {
-    Exprs(Vec<Expr>),
-    Idents(Vec<String>),
+    Exprs(Vec<Spanned<Expr>>),
+    Idents(Vec<Spanned<String>>),
 }
 
 // SendStmt = Channel "<-" Expression .
 // Channel  = Expression .
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SendStmt {
-    pub channel: Expr,
-    pub expr: Expr,
+    pub channel: Spanned<Expr>,
+    pub expr: Spanned<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IncDecStmt {
-    pub expr: Expr,
+    pub expr: Spanned<Expr>,
     pub is_dec: bool, // false for ++, true for --
 }
 
@@ -201,8 +202,8 @@ pub struct IncDecStmt {
 // assign_op = [ add_op | mul_op ] "=" .
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment {
-    pub lhs: Vec<Expr>,
-    pub rhs: Vec<Expr>,
+    pub lhs: Vec<Spanned<Expr>>,
+    pub rhs: Vec<Spanned<Expr>>,
     // binary operation used in assign op
     // XXX: add method to BinaryOperation to check if is a valid assign_op operation
     pub op: Option<BinaryOperation>,

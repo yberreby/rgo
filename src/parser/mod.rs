@@ -11,6 +11,22 @@ mod test;
 mod error;
 pub use self::error::{PResult, Error, ErrorKind};
 
+macro_rules! span {
+    ($s:expr, $x:expr) => {{
+        let start_off = $s.span.start;
+        let val = $x;
+        let end_off = $s.prev_end_offset;
+
+        Spanned::new(Span {start: start_off, end: end_off}, val)
+    }}
+}
+
+macro_rules! try_span {
+    ($s:expr, $x:expr) => {
+        span!($s, try!($x))
+    }
+}
+
 pub struct Parser<R: Iterator<Item = TokenAndSpan>> {
     /// Our source of tokens.
     /// Users can choose to read all the tokens up-front, or to read them lazily.
@@ -125,14 +141,14 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
     /// Parse any number of import declarations.
-    fn parse_import_decls(&mut self) -> PResult<Vec<ast::ImportDecl>> {
+    fn parse_import_decls(&mut self) -> PResult<Vec<Spanned<ast::ImportDecl>>> {
         trace!("parse_import_decls");
         let mut decls = Vec::new();
 
         loop {
             match self.token.kind {
                 TokenKind::Import => {
-                    decls.push(try!(self.parse_import_decl()));
+                    decls.push(try_span!(self, self.parse_import_decl()));
                 }
                 _ => return Ok(decls),
             }
@@ -166,13 +182,13 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                             break;
                         }
                         _ => {
-                            specs.push(try!(self.parse_import_spec()));
+                            specs.push(try_span!(self, self.parse_import_spec()));
                         }
                     }
                 }
             }
             // Short import (single ImportSpec).
-            _ => specs.push(try!(self.parse_import_spec())),
+            _ => specs.push(try_span!(self, self.parse_import_spec())),
         }
         try!(self.eat(TokenKind::Semicolon));
 
@@ -200,7 +216,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         };
 
         // The next token MUST be a string literal (interpreted or raw).
-        let path = try!(self.parse_string_lit());
+        let path = try_span!(self, self.parse_string_lit());
 
         Ok(ast::ImportSpec {
             path: path,
@@ -243,7 +259,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         // FunctionBody = Block .
 
         try!(self.eat(TokenKind::Func));
-        let name = try!(self.parse_ident());
+        let name = try_span!(self, self.parse_ident());
         let signature = try!(self.parse_func_signature());
 
         let body = match self.token.kind {
@@ -480,20 +496,20 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         trace!("parse_go_stmt");
 
         try!(self.eat(TokenKind::Go));
-        Ok(ast::GoStmt { call: try!(self.parse_expr()) })
+        Ok(ast::GoStmt { call: try_span!(self, self.parse_expr()) })
     }
 
     fn parse_defer_stmt(&mut self) -> PResult<ast::DeferStmt> {
         trace!("parse_defer_stmt");
 
         try!(self.eat(TokenKind::Defer));
-        Ok(ast::DeferStmt { call: try!(self.parse_expr()) })
+        Ok(ast::DeferStmt { call: try_span!(self, self.parse_expr()) })
     }
 
     fn parse_return_stmt(&mut self) -> PResult<ast::ReturnStmt> {
         trace!("parse_return_stmt");
         try!(self.eat(TokenKind::Return));
-        Ok(ast::ReturnStmt { expr: try!(self.parse_expr()) })
+        Ok(ast::ReturnStmt { expr: try_span!(self, self.parse_expr()) })
     }
 
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
@@ -536,20 +552,25 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         unimplemented!()
     }
 
-    fn expr_list_to_ident_list(&self, exprs: &Vec<ast::Expr>) -> PResult<Vec<String>> {
+    fn expr_list_to_ident_list(&self,
+                               exprs: &Vec<Spanned<ast::Expr>>)
+                               -> PResult<Vec<Spanned<String>>> {
         trace!("expr_list_to_ident_list");
         // XXX: better errors
 
         let mut idents = Vec::new();
 
+        use ast::{Expr, UnaryExpr, PrimaryExpr, Operand};
+
         for expr in exprs {
-            if let ast::Expr::Unary(ast::UnaryExpr::Primary(x)) = expr.clone() {
-                if let ast::PrimaryExpr::Operand(ast::Operand::Ident(mqident)) = *x {
+            // make sure to preserve the spans
+            if let Spanned { span, item: Expr::Unary(UnaryExpr::Primary(x)) } = expr.clone() {
+                if let PrimaryExpr::Operand(Operand::Ident(mqident)) = *x {
                     if mqident.package.is_some() {
                         return Err(self.err(ErrorKind::other("expected unqualified ident")));
                     }
 
-                    idents.push(mqident.name);
+                    idents.push(Spanned::new(span, mqident.name));
                     continue;
                 }
             }
@@ -614,7 +635,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 self.bump();
                 Ok(ast::SimpleStmt::Send(ast::SendStmt {
                     channel: expr,
-                    expr: try!(self.parse_expr()),
+                    expr: try_span!(self, self.parse_expr()),
                 }))
             }
             TokenKind::Increment => {
@@ -653,17 +674,17 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         self.parse_potential_binary_expr(0)
     }
 
-    fn parse_expr_list(&mut self) -> PResult<Vec<ast::Expr>> {
+    fn parse_expr_list(&mut self) -> PResult<Vec<Spanned<ast::Expr>>> {
         // ExpressionList = Expression { "," Expression } .
         trace!("parse_expr_list");
 
         let mut res = Vec::new();
 
-        res.push(try!(self.parse_expr()));
+        res.push(try_span!(self, self.parse_expr()));
 
         while self.token.kind == TokenKind::Comma {
             self.bump();
-            res.push(try!(self.parse_expr()));
+            res.push(try_span!(self, self.parse_expr()));
         }
 
         Ok(res)
@@ -681,7 +702,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             TokenKind::And => {
                 let op = ast::UnaryOperator::from_token_kind(self.token.kind).expect("BUG");
                 self.bump();
-                let x = try!(self.parse_unary_expr());
+                let x = try_span!(self, self.parse_unary_expr());
                 Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
                     operator: op,
                     operand: Box::new(x),
@@ -690,7 +711,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             // channel receive operation
             TokenKind::Arrow => {
                 self.bump();
-                let x = try!(self.parse_unary_expr());
+                let x = try_span!(self, self.parse_unary_expr());
                 Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
                     operator: ast::UnaryOperator::ChanReceive,
                     operand: Box::new(x),
@@ -700,7 +721,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             // deref expression - star op
             TokenKind::Star => {
                 self.bump();
-                let x = try!(self.parse_unary_expr());
+                let x = try_span!(self, self.parse_unary_expr());
                 Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
                     operator: ast::UnaryOperator::Deref,
                     operand: Box::new(x),
@@ -944,7 +965,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         Ok(ast::UnaryOperation {
             operator: try!(self.parse_unary_operator()),
-            operand: Box::new(try!(self.parse_unary_expr())),
+            operand: Box::new(try_span!(self, self.parse_unary_expr())),
         })
     }
 
@@ -954,23 +975,29 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         //  Expression binary_op Expression
         trace!("parse_potential_binary_expr");
 
-        let mut x = ast::Expr::Unary(try!(self.parse_unary_expr()));
+        let a = try_span!(self, self.parse_unary_expr());
+        let mut x = Spanned::new(a.span, ast::Expr::Unary(a.item));
 
         loop {
             let op_kind = ast::BinaryOperation::from_token_kind(self.token.kind).unwrap();
             let precedence = op_kind.precedence();
             if precedence < prec1 {
-                return Ok(x);
+                return Ok(x.item);
             }
 
             self.bump();
 
-            let y = try!(self.parse_potential_binary_expr(precedence + 1));
-            x = ast::Expr::Binary(ast::BinaryExpr {
-                lhs: Box::new(x),
-                op: op_kind,
-                rhs: Box::new(y),
-            });
+            let y = try_span!(self, self.parse_potential_binary_expr(precedence + 1));
+            let binop_span = Span {
+                start: x.span.start,
+                end: y.span.end,
+            };
+            x = Spanned::new(binop_span,
+                             ast::Expr::Binary(ast::BinaryExpr {
+                                 lhs: Box::new(x),
+                                 op: op_kind,
+                                 rhs: Box::new(y),
+                             }));
         }
     }
 

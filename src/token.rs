@@ -13,6 +13,60 @@ pub struct Span {
     pub end: u32,
 }
 
+pub trait Spanner {
+    fn span(&self) -> Span;
+}
+
+impl Spanner for Span {
+    fn span(&self) -> Span {
+        *self
+    }
+}
+
+/// Returns a new span from the start of the first element to the end of the last element.
+/// This is useful in cases like the following:
+/// ```
+/// var a, b, c, d, e, f, g int
+/// ```
+/// We have `Vec<Spanned<Ident>>` for all the variable names, so we can get a span of the whole list.
+///
+/// If the vector is empty, this returns a default `Span`.
+impl<T: Spanner> Spanner for Vec<T> {
+    fn span(&self) -> Span {
+        if self.is_empty() {
+            // XXX
+            return Span { start: 0, end: 0 };
+        }
+
+        Span {
+            start: self.first().unwrap().span().start,
+            end: self.last().unwrap().span().end,
+        }
+    }
+}
+
+/// Simply get the span embedded in this `Spanned`.
+impl<T: fmt::Debug + Clone + PartialEq + Eq> Spanner for Spanned<T> {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Spanned<T: fmt::Debug + Clone + PartialEq + Eq> {
+    pub span: Span,
+    pub item: T,
+}
+
+impl<T: fmt::Debug + Clone + PartialEq + Eq> Spanned<T> {
+    pub fn new(span: Span, item: T) -> Spanned<T> {
+        Spanned {
+            span: span,
+            item: item,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,

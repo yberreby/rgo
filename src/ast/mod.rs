@@ -12,6 +12,7 @@ mod expressions;
 
 use num::bigint::BigInt;
 use num::BigRational;
+use token::Spanned;
 pub use self::types::*;
 pub use self::statements::*;
 pub use self::expressions::*;
@@ -35,7 +36,7 @@ pub struct SourceFile {
     /// Name of the package this file belongs to.
     pub package: Ident,
     /// All import declarations in this file.
-    pub import_decls: Vec<ImportDecl>,
+    pub import_decls: Vec<Spanned<ImportDecl>>,
     /// All top-level declarations in this file.
     pub top_level_decls: Vec<TopLevelDecl>,
 }
@@ -59,7 +60,7 @@ pub struct SourceFile {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
-    pub specs: Vec<ImportSpec>,
+    pub specs: Vec<Spanned<ImportSpec>>,
 }
 
 /// An import spec.
@@ -83,7 +84,7 @@ pub struct ImportDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSpec {
     pub kind: ImportKind,
-    pub path: Vec<u8>,
+    pub path: Spanned<Vec<u8>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,7 +116,7 @@ pub enum TopLevelDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncDecl {
     // XXX: functions with same name but different origins, how do we handle them?
-    pub name: String,
+    pub name: Spanned<String>,
     pub signature: FuncSignature,
     pub body: Option<Block>,
 }
@@ -226,7 +227,7 @@ pub struct ConstDecl {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstSpec {
-    pub idents: Vec<Ident>,
+    pub idents: Vec<Spanned<Ident>>,
     pub inner: Option<ConstSpecInner>,
 }
 
@@ -250,7 +251,7 @@ pub struct ConstSpecInner {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MethodDecl {
     pub receiver: Parameters,
-    pub name: Ident,
+    pub name: Spanned<Ident>,
     pub signature: FuncSignature,
     pub body: Option<Block>,
 }
@@ -267,14 +268,14 @@ pub struct MethodDecl {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDecl {
-    pub specs: Vec<TypeSpec>,
+    pub specs: Vec<Spanned<TypeSpec>>,
 }
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeSpec {
-    pub ident: Ident,
-    pub typ: Type,
+    pub ident: Spanned<Ident>,
+    pub typ: Spanned<Type>,
 }
 
 /// A variable declaration creates one or more variables, binds corresponding identifiers to them,
@@ -287,7 +288,7 @@ pub struct TypeSpec {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarDecl {
-    pub specs: Vec<VarSpec>,
+    pub specs: Vec<Spanned<VarSpec>>,
 }
 
 /// ## Grammar
@@ -297,9 +298,9 @@ pub struct VarDecl {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarSpec {
-    pub idents: Vec<Ident>,
+    pub idents: Vec<Spanned<Ident>>,
     pub typ: Option<Type>,
-    pub exprs: Vec<Expr>,
+    pub exprs: Vec<Spanned<Expr>>,
 }
 
 /// Operands denote the elementary values in an expression. An operand may be a literal, a
@@ -329,17 +330,17 @@ pub enum Operand {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Conversion {
     /// The type to convert to.
-    pub typ: Type,
+    pub typ: Spanned<Type>,
     /// The expression being converted.
-    pub expr: Expr,
+    pub expr: Spanned<Expr>,
 }
 
 
 // ShortVarDecl = IdentifierList ":=" ExpressionList .
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShortVarDecl {
-    pub lhs: Vec<Ident>,
-    pub rhs: Vec<Expr>,
+    pub lhs: Vec<Spanned<Ident>>,
+    pub rhs: Vec<Spanned<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -376,7 +377,7 @@ pub enum BasicLit {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositeLit {
-    pub typ: LiteralType,
+    pub typ: Spanned<LiteralType>,
     pub val: LiteralValue,
 }
 
@@ -398,8 +399,8 @@ pub struct LiteralValue {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyedElem {
-    pub key: Option<Key>,
-    pub elem: Elem,
+    pub key: Option<Spanned<Key>>,
+    pub elem: Spanned<Elem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -438,6 +439,6 @@ pub struct FuncLit {
 /// functions: `make` and `new`, and these functions take a **type** instead of an expression
 /// as their first argument.
 pub struct Arguments {
-    pub typ: Option<Type>,
-    pub expressions: Vec<Expr>,
+    pub typ: Option<Spanned<Type>>,
+    pub expressions: Vec<Spanned<Expr>>,
 }

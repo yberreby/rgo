@@ -1,4 +1,5 @@
 use lexer::TokenKind;
+use token::Spanned;
 use super::{Arguments, Operand, Conversion, Type, Ident};
 
 // Expr = UnaryExpr | Expr binary_op Expr .
@@ -118,9 +119,9 @@ impl BinaryOperation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BinaryExpr {
-    pub lhs: Box<Expr>,
+    pub lhs: Box<Spanned<Expr>>,
     pub op: BinaryOperation,
-    pub rhs: Box<Expr>,
+    pub rhs: Box<Spanned<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,7 +133,7 @@ pub enum UnaryExpr {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnaryOperation {
     pub operator: UnaryOperator, // TODO: type safety
-    pub operand: Box<UnaryExpr>,
+    pub operand: Box<Spanned<UnaryExpr>>,
 }
 
 // TODO
@@ -228,8 +229,8 @@ pub struct SelectorExpr {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndexExpr {
-    pub operand: Box<PrimaryExpr>,
-    pub index: Expr,
+    pub operand: Box<Spanned<PrimaryExpr>>,
+    pub index: Spanned<Expr>,
 }
 
 
@@ -244,7 +245,7 @@ pub struct IndexExpr {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SliceExpr {
-    pub operand: Box<PrimaryExpr>,
+    pub operand: Box<Spanned<PrimaryExpr>>,
     pub slicing: Slicing,
 }
 // XXX: naming
@@ -260,22 +261,22 @@ pub struct SliceExpr {
 // to max - low. Only the first index may be omitted; it defaults to 0. After slicing the array a
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Slicing {
-    pub low: Expr,
-    pub high: Expr,
-    pub max: Option<Expr>,
+    pub low: Spanned<Expr>,
+    pub high: Spanned<Expr>,
+    pub max: Option<Spanned<Expr>>,
 }
 
 /// A TypeAssertion contains the expression whose type is being asserted.
 /// This superficially differs from the grammar in the Go spec.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeAssertion {
-    pub expr: Box<PrimaryExpr>,
-    pub typ: String,
+    pub expr: Box<Spanned<PrimaryExpr>>,
+    pub typ: Spanned<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncCall {
-    pub callee: Box<PrimaryExpr>,
+    pub callee: Box<Spanned<PrimaryExpr>>,
     pub args: Arguments,
 }
 
