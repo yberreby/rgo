@@ -1,11 +1,11 @@
 use std::fmt;
-use token::{Token, TokenKind};
+use token::{Span, Token, TokenKind};
 
 pub type PResult<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
-    pub offset: u32,
+    pub span: Span,
     pub kind: ErrorKind,
 }
 

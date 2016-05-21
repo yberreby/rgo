@@ -17,8 +17,10 @@ pub struct Parser<R: Iterator<Item = TokenAndSpan>> {
     reader: Peekable<R>,
     /// The current token.
     token: Token,
-    /// Current byte offset from start of source string.
-    offset: u32,
+    /// The span of the current token.
+    span: Span,
+    /// Byte offset of the end of the most recently consumed token.
+    prev_end_offset: u32,
 }
 
 impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
@@ -28,7 +30,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         debug!("first_tok_and_pos: {:?}", first_tok_and_pos);
         Parser {
             token: first_tok_and_pos.token,
-            offset: first_tok_and_pos.span.start,
+            span: first_tok_and_pos.span,
+            prev_end_offset: first_tok_and_pos.span.end,
             reader: it.peekable(),
         }
     }
@@ -51,7 +54,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     /// Build a parse error.
     fn err(&self, kind: ErrorKind) -> Error {
         Error {
-            offset: self.offset,
+            span: self.span,
             kind: kind,
         }
     }
@@ -61,15 +64,18 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         trace!("bump");
         let next = self.reader.next();
 
-        if let Some(ref tap) = next {
-            self.offset = tap.span.start;
-        }
+        self.prev_end_offset = self.span.end;
 
-        let next_tok = next.map(|x| x.token).unwrap_or(Token {
-            kind: TokenKind::Eof,
-            value: None,
-        });
-        self.token = next_tok;
+        if let Some(TokenAndSpan { span, token }) = next {
+            self.token = token;
+            self.span = span;
+        } else {
+            // XXX what span to set?
+            self.token = Token {
+                kind: TokenKind::Eof,
+                value: None,
+            };
+        }
     }
 
     /// Advance the parser by one token and return the bumped token.
