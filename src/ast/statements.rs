@@ -99,15 +99,24 @@ pub struct ReturnStmt {
     pub expr: Spanned<Expr>,
 }
 
-
-
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BreakStmt {
+    /// An optional label referring to an enclosing "for", "switch", or "select".
+    pub label: Option<Spanned<String>>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BreakStmt;
+pub struct ContinueStmt {
+    /// An optional label referring to an enclosing "for", "switch", or "select".
+    pub label: Option<Spanned<String>>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContinueStmt;
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GotoStmt;
+pub struct GotoStmt {
+    pub label: Spanned<String>,
+}
+
+/// "Fallthrough" statements contain no associated data!
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FallthroughStmt;
 

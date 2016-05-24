@@ -481,6 +481,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             Switch => try!(self.parse_switch_stmt()).into(),
             Select => try!(self.parse_select_stmt()).into(),
             For => try!(self.parse_for_stmt()).into(),
+            Break => try!(self.parse_break_stmt()).into(),
+            Continue => try!(self.parse_continue_stmt()).into(),
+            Goto => try!(self.parse_goto_stmt()).into(),
+            Fallthrough => try!(self.parse_fallthrough_stmt()).into(),
             LBrace => try!(self.parse_block()).into(),
             RBrace => {
                 // a semicolon may be omitted before a closing "}"
@@ -497,6 +501,46 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         try!(self.eat(TokenKind::Go));
         Ok(ast::GoStmt { call: try_span!(self, self.parse_expr()) })
+    }
+
+    fn parse_break_stmt(&mut self) -> PResult<ast::BreakStmt> {
+        trace!("parse_break_stmt");
+
+        try!(self.eat(TokenKind::Break));
+        let label = if self.token.kind == TokenKind::Semicolon {
+            None
+        } else {
+            Some(try_span!(self, self.parse_ident()))
+        };
+
+        Ok(ast::BreakStmt { label: label })
+    }
+
+    fn parse_continue_stmt(&mut self) -> PResult<ast::ContinueStmt> {
+        trace!("parse_continue_stmt");
+
+        try!(self.eat(TokenKind::Continue));
+        let label = if self.token.kind == TokenKind::Semicolon {
+            None
+        } else {
+            Some(try_span!(self, self.parse_ident()))
+        };
+
+        Ok(ast::ContinueStmt { label: label })
+    }
+
+    fn parse_goto_stmt(&mut self) -> PResult<ast::GotoStmt> {
+        trace!("parse_goto_stmt");
+
+        try!(self.eat(TokenKind::Goto));
+        Ok(ast::GotoStmt { label: try_span!(self, self.parse_ident()) })
+    }
+
+    fn parse_fallthrough_stmt(&mut self) -> PResult<ast::FallthroughStmt> {
+        trace!("parse_fallthrough_stmt");
+
+        try!(self.eat(TokenKind::Fallthrough));
+        Ok(ast::FallthroughStmt)
     }
 
     fn parse_defer_stmt(&mut self) -> PResult<ast::DeferStmt> {
