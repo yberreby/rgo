@@ -65,7 +65,7 @@ enum_from_impl!(Statement,
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimpleStmt {
     EmptyStmt,
-    Expr(Expr),
+    Expr(Spanned<Expr>),
     Send(SendStmt),
     IncDec(IncDecStmt),
     Assignment(Assignment),

@@ -701,6 +701,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     is_dec: true,
                 }))
             }
+            TokenKind::Semicolon => Ok(ast::SimpleStmt::Expr(expr)),
             _ => {
                 let expected = vec![TokenKind::Arrow,
                                     TokenKind::Increment,
