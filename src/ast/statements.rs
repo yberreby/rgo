@@ -129,7 +129,7 @@ pub struct FallthroughStmt;
 /// evaluated.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt {
-    pub before_stmt: Option<SimpleStmt>,
+    pub before_stmt: Option<Spanned<SimpleStmt>>,
     pub condition: Spanned<Expr>,
     pub block: Block,
     pub opt_else: Option<Box<Else>>,

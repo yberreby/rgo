@@ -557,8 +557,59 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
     fn parse_if_stmt(&mut self) -> PResult<ast::IfStmt> {
+        // IfStmt = "if" [ SimpleStmt ";" ] Expression Block [ "else" ( IfStmt | Block ) ] .
         trace!("parse_if_stmt");
-        unimplemented!()
+
+        try!(self.eat(TokenKind::If));
+
+        let stmt = try_span!(self, self.parse_simple_stmt());
+
+        let before_stmt;
+        let condition;
+
+        if self.token.kind == TokenKind::Semicolon {
+            // We have a complex if statment.
+            self.bump();
+            before_stmt = Some(stmt);
+
+            condition = try_span!(self, self.parse_expr());
+        } else {
+            // We have a simple if statment.
+            // What we just parsed must be an ExprStmt representing the condition.
+            if let ast::SimpleStmt::Expr(expr) = stmt.item {
+                condition = expr;
+            } else {
+                return Err(Error {
+                    span: stmt.span,
+                    kind: ErrorKind::other("invalid expression as if condition"),
+                });
+            }
+            before_stmt = None;
+        }
+
+        let block = try!(self.parse_block());
+
+        let opt_else = if self.token.kind == TokenKind::Else {
+            self.bump();
+
+            Some(Box::new(match self.token.kind {
+                TokenKind::LBrace => ast::Else::Block(try!(self.parse_block())),
+                TokenKind::If => ast::Else::If(try!(self.parse_if_stmt())),
+                _ => {
+                    let expected = vec![TokenKind::LBrace, TokenKind::If];
+                    return Err(self.err(ErrorKind::unexpected_token(expected, self.token.clone())));
+                }
+            }))
+        } else {
+            None
+        };
+
+        Ok(ast::IfStmt {
+            before_stmt: before_stmt,
+            condition: condition,
+            block: block,
+            opt_else: opt_else,
+        })
     }
 
     fn parse_switch_stmt(&mut self) -> PResult<ast::SwitchStmt> {
