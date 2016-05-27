@@ -137,7 +137,7 @@ fn test_interpret_rune_invalid_codepoint() {
 // Int literals
 
 fn assert_interpret_int_eq(lit: &str, expect: BigInt) {
-    let tokens = lexer::tokenize(format!("{}", lit).as_ref());
+    let tokens = lexer::tokenize(lit);
 
     assert_eq!(tokens.len(), 1);
 
@@ -176,7 +176,7 @@ fn assert_interpret_float_eq(lit: &str, expect: BigRational) {
 }
 
 fn assert_interpret_imaginary_eq(lit: &str, expect: BigRational) {
-    let tokens = lexer::tokenize(format!("{}", lit).as_ref());
+    let tokens = lexer::tokenize(lit);
 
     assert_eq!(tokens.len(), 1);
 
