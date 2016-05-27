@@ -27,7 +27,7 @@ pub enum Expr {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BinaryOperation {
+pub enum BinaryOperator {
     Add,
     Sub,
     Mul,
@@ -52,9 +52,9 @@ pub enum BinaryOperation {
     LogOr,
 }
 
-impl BinaryOperation {
-    pub fn from_token_kind(tok: TokenKind) -> Option<BinaryOperation> {
-        use self::BinaryOperation::*;
+impl BinaryOperator {
+    pub fn from_token_kind(tok: TokenKind) -> Option<BinaryOperator> {
+        use self::BinaryOperator::*;
         Some(match tok {
             TokenKind::Plus => Add,
             TokenKind::Minus => Sub,
@@ -83,8 +83,8 @@ impl BinaryOperation {
         })
     }
 
-    pub fn from_token_kind_assign_op(tok: TokenKind) -> Option<BinaryOperation> {
-        use self::BinaryOperation::*;
+    pub fn from_token_kind_assign_op(tok: TokenKind) -> Option<BinaryOperator> {
+        use self::BinaryOperator::*;
         Some(match tok {
             TokenKind::PlusAssign => Add,
             TokenKind::MinusAssign => Sub,
@@ -105,7 +105,7 @@ impl BinaryOperation {
     }
 
     pub fn precedence(self) -> i32 {
-        use self::BinaryOperation::*;
+        use self::BinaryOperator::*;
 
         match self {
             Mul | Div | Rem | LeftShift | RightShift | BitAnd | BitClear => 5,
@@ -120,7 +120,7 @@ impl BinaryOperation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BinaryExpr {
     pub lhs: Box<Spanned<Expr>>,
-    pub op: BinaryOperation,
+    pub op: BinaryOperator,
     pub rhs: Box<Spanned<Expr>>,
 }
 

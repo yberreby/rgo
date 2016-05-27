@@ -700,7 +700,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         let exprs = try!(self.parse_expr_list());
 
         if self.token.kind.is_assign_op() {
-            let op = ast::BinaryOperation::from_token_kind_assign_op(self.bump_and_get().kind);
+            let op = ast::BinaryOperator::from_token_kind_assign_op(self.bump_and_get().kind);
             return Ok(ast::SimpleStmt::Assignment(ast::Assignment {
                 lhs: exprs,
                 rhs: try!(self.parse_expr_list()),
@@ -1080,7 +1080,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         let mut x = Spanned::new(a.span, ast::Expr::Unary(a.item));
 
         loop {
-            let op_kind = ast::BinaryOperation::from_token_kind(self.token.kind).unwrap();
+            let op_kind = ast::BinaryOperator::from_token_kind(self.token.kind).unwrap();
             let precedence = op_kind.precedence();
             if precedence < prec1 {
                 return Ok(x.item);

@@ -1,4 +1,4 @@
-use super::{Block, Expr, ShortVarDecl, ConstDecl, TypeDecl, VarDecl, BinaryOperation};
+use super::{Block, Expr, ShortVarDecl, ConstDecl, TypeDecl, VarDecl, BinaryOperator};
 use token::Spanned;
 
 
@@ -217,8 +217,8 @@ pub struct Assignment {
     pub lhs: Vec<Spanned<Expr>>,
     pub rhs: Vec<Spanned<Expr>>,
     // binary operation used in assign op
-    // XXX: add method to BinaryOperation to check if is a valid assign_op operation
-    pub op: Option<BinaryOperation>,
+    // XXX: add method to BinaryOperator to check if is a valid assign_op operation
+    pub op: Option<BinaryOperator>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
