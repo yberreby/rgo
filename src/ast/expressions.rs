@@ -193,6 +193,7 @@ impl UnaryOperator {
 //                  "]" .
 // TypeAssertion  = "." "(" Type ")" .
 // Arguments      = "(" [ ( ExprList | Type [ "," ExprList ] ) [ "..." ] [ "," ] ] ")".
+// Conversion = Type "(" Expression [ "," ] ")" .
 
 /// Primary expressions are the operands for unary and binary expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -268,10 +269,14 @@ pub struct Slicing {
 
 /// A TypeAssertion contains the expression whose type is being asserted.
 /// This superficially differs from the grammar in the Go spec.
+// XXX: wrap both fields in Spanned<T>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeAssertion {
-    pub expr: Box<Spanned<PrimaryExpr>>,
-    pub typ: Spanned<String>,
+    /// The expression whose type is being asserted.
+    pub expr: Box<PrimaryExpr>,
+    /// The 'target type'.
+    /// If None, we're in a type switch (`x.(type)` - with the literal `type` keyword).
+    pub typ: Option<Type>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
