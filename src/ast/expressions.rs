@@ -1,6 +1,6 @@
 use lexer::TokenKind;
 use token::Spanned;
-use super::{Arguments, Operand, Conversion, Type, Ident};
+use super::{Arguments, Conversion, Type, Ident, MaybeQualifiedIdent, Literal};
 
 // Expr = UnaryExpr | Expr binary_op Expr .
 // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
@@ -205,6 +205,22 @@ pub enum PrimaryExpr {
     Slicing(SliceExpr),
     TypeAssertion(TypeAssertion),
     FuncCall(FuncCall),
+}
+
+/// Operands denote the elementary values in an expression. An operand may be a literal, a
+/// (possibly qualified) non-blank identifier denoting a constant, variable, or function, a method
+/// expression yielding a function, or a parenthesized expression.
+// XXX/FIXME/TODO: not finished.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Operand {
+    /// A literal.
+    Lit(Literal),
+    /// An identifier denoting a constant, a variable or a function.
+    Ident(MaybeQualifiedIdent),
+    /// A method expression.
+    MethodExpr(MethodExpr),
+    /// A parenthesized expression.
+    Expr(Expr),
 }
 
 
