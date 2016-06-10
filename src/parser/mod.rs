@@ -836,6 +836,71 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
     }
 
+
+    fn parse_selector(&mut self, x: ast::PrimaryExpr) -> PResult<ast::SelectorExpr> {
+        // ~ "assert x is an expr or a type... and not a "raw type" such as
+        // [...]T".
+        // I have _no_ idea what the author meant by that.
+
+        let selector = try!(self.parse_ident());
+
+        // Here's how things look at this point:
+        //
+        //    value.fieldOrMethod
+        //      ^       ^
+        //      |       |
+        //      |       |
+        //     `x`  `selector`
+        //
+        // We had already parsed the value (`x`), encountered a dot, and
+        // immediately knew we had to look for an identifier - a plain
+        // identifier, which cannot be qualified. This identifier is
+        // `selector`.
+
+        Ok(ast::SelectorExpr {
+            operand: Box::new(x),
+            selector: selector,
+        })
+    }
+
+    fn parse_type_assertion(&mut self, x: ast::PrimaryExpr) -> PResult<ast::TypeAssertion> {
+        // So now `x` _has_ to be an expression, and not a _type_. According to
+        // the original Go source. Don't ask me!
+
+        //    x.(T)
+        //       ^
+        //       |
+        //       |
+        //   left paren
+        try!(self.eat(TokenKind::LParen));
+
+        // XXX: left off spanning for now.
+
+        let typ;
+
+        // There's a catch. Type switches. Look at this code:
+        //
+        //    someVal.(type)
+        //
+        // This is the _literal_ `type` keyword. Not a placeholder. A keyword.
+        // It indicates a special kind of switch that compares to types instead
+        // of values.
+        if self.token.kind == TokenKind::Type {
+            typ = None;
+            self.bump();
+        } else {
+            typ = Some(try!(self.parse_type()));
+        }
+
+        try!(self.eat(TokenKind::RParen));
+
+
+        Ok(ast::TypeAssertion {
+            expr: Box::new(x),
+            typ: typ,
+        })
+    }
+
     // XXX: straight, unidiomatic port from Go source.
     // Well... almost. I tried to clean up a bit.
     fn parse_primary_expr(&mut self) -> PResult<ast::PrimaryExpr> {
@@ -850,65 +915,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
                     match self.token.kind {
                         TokenKind::Ident => {
-                            // ~ "assert x is an expr or a type... and not a "raw type" such as
-                            // [...]T".
-                            // I have _no_ idea what the author meant by that.
-
-                            let selector = try!(self.parse_ident());
-
-                            // Here's how things look at this point:
-                            //
-                            //    value.fieldOrMethod
-                            //      ^       ^
-                            //      |       |
-                            //      |       |
-                            //     `x`  `selector`
-                            //
-                            // We had already parsed the value (`x`), encountered a dot, and
-                            // immediately knew we had to look for an identifier - a plain
-                            // identifier, which cannot be qualified. This identifier is
-                            // `selector`.
-
-                            x = ast::PrimaryExpr::SelectorExpr(ast::SelectorExpr {
-                                operand: Box::new(x),
-                                selector: selector,
-                            });
+                            x = ast::PrimaryExpr::SelectorExpr(try!(self.parse_selector(x)));
                         }
                         TokenKind::LParen => {
-                            // So now `x` _has_ to be an expression, and not a _type_. According to
-                            // the original Go source. Don't ask me!
-
-                            //    x.(T)
-                            //       ^
-                            //       |
-                            //       |
-                            //   left paren
-                            try!(self.eat(TokenKind::LParen));
-
-                            // XXX: left off spanning for now.
-
-                            let typ;
-
-                            // There's a catch. Type switches. Look at this code:
-                            //
-                            //    someVal.(type)
-                            //
-                            // This is the _literal_ `type` keyword. Not a placeholder. A keyword.
-                            // It indicates a special kind of switch that compares to types instead
-                            // of values.
-                            if self.token.kind == TokenKind::Type {
-                                typ = None;
-                                self.bump();
-                            } else {
-                                typ = Some(try!(self.parse_type()));
-                            }
-
-                            try!(self.eat(TokenKind::RParen));
-
-                            x = ast::PrimaryExpr::TypeAssertion(ast::TypeAssertion {
-                                expr: Box::new(x),
-                                typ: typ,
-                            });
+                            x = ast::PrimaryExpr::TypeAssertion(try!(self.parse_type_assertion(x)));
                         }
                         _ => {
                             // XXX: the Go parser signals the error and keeps going, here.
