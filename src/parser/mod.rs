@@ -68,6 +68,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     // === Utility functions ===
 
     /// Build a parse error.
+    #[cold]
+    #[inline(never)]
     fn err(&self, kind: ErrorKind) -> Error {
         Error {
             span: self.span,
@@ -903,9 +905,17 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     // XXX: straight, unidiomatic port from Go source.
     // Well... almost. I tried to clean up a bit.
+    // This method (and the corresponding smaller methods) is really complicated. It needs careful
+    // review, and a lot of testing.
     fn parse_primary_expr(&mut self) -> PResult<ast::PrimaryExpr> {
         trace!("parse_primary_expr");
 
+        // Parse the first part of the expression, which may be a literal, a (potentially
+        // qualified) identifier, a method expression (= `SomeType.MethodName` - returns a
+        // function), or any expression if it is parenthesized.
+        //
+        //    Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
+        //
         let mut x = try!(self.parse_operand());
 
         'L: loop {
@@ -961,12 +971,37 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 TempOperand::BasicLit(x)
             }
             TokenKind::LParen => {
+                // Skip past the LParen.
                 self.bump();
-                // XXX: `p.exprLev++` in orig code...
+                self.expr_level += 1;
+                let x = try!(self.parse_rhs_or_type());
+                self.expr_level -= 1;
+                try!(self.eat(TokenKind::RParen));
+
+                TempOperand::ParenExpr(x)
+            }
+            TokenKind::Func => {
+                // We can use self.parse_func_decl() here, even though this isn't a declaration,
+                // because function declarations and (types | lit) follow the same grammar.
+                let x = try!(self.parse_func_decl());
+                TempOperand::FuncTypeOrLit(x)
+            }
+            _ => {
+                // XXX: is this correct?
+                if let Ok(typ) = self.parse_type() {
+                    // XXX: assert typ isn't an identifier here.
+                    typ
+                } else {
+                    return Err(self.err(ErrorKind::other("expected operand")));
+                }
             }
         };
 
         Ok(ret)
+    }
+
+    fn parse_rhs_or_type(&mut self) -> PResult<ExprOrType> {
+        unimplemented!()
     }
 
     fn parse_index_or_slice(&mut self, x: ast::PrimaryExpr) -> PResult<ast::PrimaryExpr> {
@@ -1449,6 +1484,14 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 enum TempOperand {
     Ident(ast::Ident),
     BasicLit(ast::BasicLit),
+    /// A parenthesized expression OR type.
+    ParenExpr(ExprOrType),
+    FuncTypeOrLit(ast::FuncDecl),
+}
+
+enum ExprOrType {
+    Expr(ast::Expr),
+    Type(ast::Type),
 }
 
 pub fn parse_tokens(tokens: Vec<TokenAndSpan>) -> ast::SourceFile {
