@@ -37,6 +37,12 @@ pub struct Parser<R: Iterator<Item = TokenAndSpan>> {
     span: Span,
     /// Byte offset of the end of the most recently consumed token.
     prev_end_offset: u32,
+
+    // Honestly, I'm not sure what this (the expression depth level) is used for. I'm just
+    // straightly porting a chunk of parser code from Go to Rust till it works.
+    //
+    // "Make it work, make it right, make if fast", they say. This is the concept at work here.
+    expr_level: i32,
 }
 
 impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
@@ -49,6 +55,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             span: first_tok_and_pos.span,
             prev_end_offset: first_tok_and_pos.span.end,
             reader: it.peekable(),
+            expr_level: 0,
         }
     }
 
@@ -925,6 +932,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
                     match self.token.kind {
                         TokenKind::Ident => {
+                            // XXX: Selector ~= MethodExpr?...
+                            let x = try!(x.into_primary_expr());
                             x = ast::PrimaryExpr::SelectorExpr(try!(self.parse_selector(x)));
                         }
                         TokenKind::LParen => {
@@ -959,7 +968,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         Ok(x)
     }
 
-    // XXX XXX XXX
+    // XXX XXX XXX: Ruling out all the bugs this hacky port will have introduced is going to be
+    // fun.
     fn parse_operand(&mut self) -> PResult<TempOperand> {
         let ret = match self.token.kind {
             TokenKind::Ident => {
