@@ -950,8 +950,23 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
     // XXX XXX XXX
-    fn parse_operand(&mut self) -> PResult<ast::PrimaryExpr> {
-        unimplemented!()
+    fn parse_operand(&mut self) -> PResult<TempOperand> {
+        let ret = match self.token.kind {
+            TokenKind::Ident => {
+                let x = try!(self.parse_ident());
+                TempOperand::Ident(x)
+            }
+            k if k.is_literal() => {
+                let x = try!(self.parse_basic_lit());
+                TempOperand::BasicLit(x)
+            }
+            TokenKind::LParen => {
+                self.bump();
+                // XXX: `p.exprLev++` in orig code...
+            }
+        };
+
+        Ok(ret)
     }
 
     fn parse_index_or_slice(&mut self, x: ast::PrimaryExpr) -> PResult<ast::PrimaryExpr> {
@@ -1429,6 +1444,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         Ok(result)
     }
+}
+
+enum TempOperand {
+    Ident(ast::Ident),
+    BasicLit(ast::BasicLit),
 }
 
 pub fn parse_tokens(tokens: Vec<TokenAndSpan>) -> ast::SourceFile {
