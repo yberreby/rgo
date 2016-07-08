@@ -37,6 +37,8 @@ pub struct Parser<R: Iterator<Item = TokenAndSpan>> {
     span: Span,
     /// Byte offset of the end of the most recently consumed token.
     prev_end_offset: u32,
+    /// (XXX) Seems to indicate the current level of nesting when parsing expressions.
+    expression_level: u32,
 }
 
 impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
@@ -49,6 +51,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             span: first_tok_and_pos.span,
             prev_end_offset: first_tok_and_pos.span.end,
             reader: it.peekable(),
+            // In the Go code, the initial value of `exprLev` implicitly defaults to 0.
+            expression_level: 0,
         }
     }
 
@@ -408,38 +412,43 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             }
             // If a Type starts with an identifier, it can only be a TypeName.
             TokenKind::Ident => {
-                let part1 = try!(self.parse_ident());
-
-                let name;
-                let package;
-                match self.token.kind {
-                    // This is a qualified identifier.
-                    // XXX: should we move that to a new function?
-                    // Qualified idents can only appear in:
-                    // - types (that's what we're parsing)
-                    // - operands.
-                    TokenKind::Dot => {
-                        // XXX: I don't like this pattern.
-                        try!(self.eat(TokenKind::Dot));
-                        let part2 = try!(self.parse_ident());
-
-                        package = Some(part1);
-                        name = part2;
-                    }
-                    // Not qualified? Doesn't matter.
-                    _ => {
-                        name = part1;
-                        package = None;
-                    }
-                }
-
-                Ok(ast::Type::Plain(ast::MaybeQualifiedIdent {
-                    package: package,
-                    name: name,
-                }))
+                let id = try!(self.parse_maybe_qualified_ident());
+                Ok(ast::Type::Plain(id))
             }
             _ => unimplemented!(),
         }
+    }
+
+    fn parse_maybe_qualified_ident(&mut self) -> PResult<ast::MaybeQualifiedIdent> {
+        let part1 = try!(self.parse_ident());
+
+        let name;
+        let package;
+        match self.token.kind {
+            // This is a qualified identifier.
+            // XXX: should we move that to a new function?
+            // Qualified idents can only appear in:
+            // - types (that's what we're parsing)
+            // - operands.
+            TokenKind::Dot => {
+                // XXX: I don't like this pattern.
+                try!(self.eat(TokenKind::Dot));
+                let part2 = try!(self.parse_ident());
+
+                package = Some(part1);
+                name = part2;
+            }
+            // Not qualified? Doesn't matter.
+            _ => {
+                name = part1;
+                package = None;
+            }
+        }
+
+        Ok(ast::MaybeQualifiedIdent {
+            package: package,
+            name: name,
+        })
     }
 
     fn parse_block(&mut self) -> PResult<ast::Block> {
@@ -659,7 +668,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         for expr in exprs {
             if let Expr::Unary(UnaryExpr::Primary(x)) = expr.item.clone() {
-                if let PrimaryExpr::Operand(Operand::Ident(mqident)) = *x {
+                if let PrimaryExpr::Operand(Operand::MaybeQualifiedIdent(mqident)) = *x {
                     if mqident.package.is_some() {
                         return Err(Error {
                             kind: ErrorKind::other("expected unqualified ident"),
@@ -841,7 +850,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn parse_primary_expr(&mut self) -> PResult<ast::PrimaryExpr> {
         trace!("parse_primary_expr");
 
-        let mut x = try!(self.parse_operand());
+        let mut x = ast::PrimaryExpr::Operand(try!(self.parse_operand()));
 
         'L: loop {
             match self.token.kind {
@@ -939,9 +948,46 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         Ok(x)
     }
 
-    // XXX XXX XXX
-    fn parse_operand(&mut self) -> PResult<ast::PrimaryExpr> {
+    // XXX XXX XXX: Straight, untested, stupid port from the Go source.
+    fn parse_operand(&mut self) -> PResult<ast::Operand> {
+        trace!("parse_operand");
+
+        match self.token.kind {
+            TokenKind::Ident => {
+                let id = try!(self.parse_maybe_qualified_ident());
+                Ok(ast::Operand::MaybeQualifiedIdent(id))
+            }
+            token_kind if token_kind.can_start_basic_lit() => {
+                let lit = try!(self.parse_basic_lit());
+                Ok(ast::Operand::Lit(ast::Literal::Basic(lit)))
+            }
+            TokenKind::LParen => {
+                self.bump();
+                self.expression_level += 1;
+                let expr = try!(self.parse_expr());
+                self.expression_level -= 1;
+                Ok(ast::Operand::Expr(expr))
+            }
+            TokenKind::Func => {
+                let fl = try!(self.parse_func_lit());
+                Ok(ast::Operand::Lit(ast::Literal::Func(fl)))
+            }
+            _ => {
+                let method_expr = try!(self.parse_method_expr());
+                Ok(ast::Operand::MethodExpr(method_expr))
+            }
+        }
+    }
+
+    fn parse_method_expr(&mut self) -> PResult<ast::MethodExpr> {
         unimplemented!()
+    }
+
+    fn parse_func_lit(&mut self) -> PResult<ast::FuncLit> {
+        Ok(ast::FuncLit {
+            signature: try!(self.parse_func_signature()),
+            body: try!(self.parse_block()),
+        })
     }
 
     fn parse_index_or_slice(&mut self, x: ast::PrimaryExpr) -> PResult<ast::PrimaryExpr> {

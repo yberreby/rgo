@@ -312,7 +312,7 @@ pub enum Operand {
     /// A literal.
     Lit(Literal),
     /// An identifier denoting  a constant, a variable or a function.
-    Ident(MaybeQualifiedIdent),
+    MaybeQualifiedIdent(MaybeQualifiedIdent),
     /// A method expression.
     MethodExpr(MethodExpr),
     /// A parenthesized expression.
