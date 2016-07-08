@@ -418,9 +418,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     // Qualified idents can only appear in:
                     // - types (that's what we're parsing)
                     // - operands.
-                    TokenKind::Colon => {
+                    TokenKind::Dot => {
                         // XXX: I don't like this pattern.
-                        try!(self.eat(TokenKind::Colon));
+                        try!(self.eat(TokenKind::Dot));
                         let part2 = try!(self.parse_ident());
 
                         package = Some(part1);
