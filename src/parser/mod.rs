@@ -83,6 +83,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     /// Advance the parser by one token.
     fn bump(&mut self) {
+        trace!("current token: {:?}", self.token);
+        trace!("current span: {:?}", self.span);
         trace!("bump");
         let next = self.reader.next();
 
@@ -102,12 +104,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
     /// Advance the parser by one token and return the bumped token.
     fn bump_and_get(&mut self) -> Token {
-        // The star is used a dummy token and replaced immediately.
-        let old_token = mem::replace(&mut self.token,
-                                     Token {
-                                         kind: TokenKind::Star,
-                                         value: None,
-                                     });
+        // XXX(perf): clone; cloning is needed to let bump() see the previous token.
+        let old_token = self.token.clone();
         self.bump();
         old_token
     }
@@ -1265,8 +1263,13 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         let mut x = Spanned::new(a.span, ast::Expr::Unary(a.item));
 
         loop {
-            let op_kind = ast::BinaryOperator::from_token_kind(self.token.kind).unwrap();
-            let precedence = op_kind.precedence();
+            let bin_op_kind = match ast::BinaryOperator::from_token_kind(self.token.kind) {
+                Some(x) => x,
+                // The current token is not a binary operator.
+                None => return Ok(x.item),
+            };
+
+            let precedence = bin_op_kind.precedence();
             if precedence < prec1 {
                 return Ok(x.item);
             }
@@ -1281,7 +1284,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             x = Spanned::new(binop_span,
                              ast::Expr::Binary(ast::BinaryExpr {
                                  lhs: Box::new(x),
-                                 op: op_kind,
+                                 op: bin_op_kind,
                                  rhs: Box::new(y),
                              }));
         }
