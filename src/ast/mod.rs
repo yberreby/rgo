@@ -303,22 +303,6 @@ pub struct VarSpec {
     pub exprs: Vec<Spanned<Expr>>,
 }
 
-/// Operands denote the elementary values in an expression. An operand may be a literal, a
-/// (possibly qualified) non-blank identifier denoting a constant, variable, or function, a method
-/// expression yielding a function, or a parenthesized expression.
-// XXX/FIXME/TODO: not finished.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Operand {
-    /// A literal.
-    Lit(Literal),
-    /// An identifier denoting  a constant, a variable or a function.
-    MaybeQualifiedIdent(MaybeQualifiedIdent),
-    /// A method expression.
-    MethodExpr(MethodExpr),
-    /// A parenthesized expression.
-    Expr(Expr),
-}
-
 /// Conversions are expressions of the form T(x) where T is a type and x is an expression that can
 /// be converted to type T.
 ///

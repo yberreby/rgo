@@ -72,6 +72,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     // === Utility functions ===
 
     /// Build a parse error.
+    #[cold]
+    #[inline(never)]
     fn err(&self, kind: ErrorKind) -> Error {
         Error {
             span: self.span,
@@ -845,11 +847,84 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
     }
 
+
+    fn parse_selector(&mut self, x: ast::PrimaryExpr) -> PResult<ast::SelectorExpr> {
+        // ~ "assert x is an expr or a type... and not a "raw type" such as
+        // [...]T".
+        // I have _no_ idea what the author meant by that.
+
+        let selector = try!(self.parse_ident());
+
+        // Here's how things look at this point:
+        //
+        //    value.fieldOrMethod
+        //      ^       ^
+        //      |       |
+        //      |       |
+        //     `x`  `selector`
+        //
+        // We had already parsed the value (`x`), encountered a dot, and
+        // immediately knew we had to look for an identifier - a plain
+        // identifier, which cannot be qualified. This identifier is
+        // `selector`.
+
+        Ok(ast::SelectorExpr {
+            operand: Box::new(x),
+            selector: selector,
+        })
+    }
+
+    fn parse_type_assertion(&mut self, x: ast::PrimaryExpr) -> PResult<ast::TypeAssertion> {
+        // So now `x` _has_ to be an expression, and not a _type_. According to
+        // the original Go source. Don't ask me!
+
+        //    x.(T)
+        //       ^
+        //       |
+        //       |
+        //   left paren
+        try!(self.eat(TokenKind::LParen));
+
+        // XXX: left off spanning for now.
+
+        let typ;
+
+        // There's a catch. Type switches. Look at this code:
+        //
+        //    someVal.(type)
+        //
+        // This is the _literal_ `type` keyword. Not a placeholder. A keyword.
+        // It indicates a special kind of switch that compares to types instead
+        // of values.
+        if self.token.kind == TokenKind::Type {
+            typ = None;
+            self.bump();
+        } else {
+            typ = Some(try!(self.parse_type()));
+        }
+
+        try!(self.eat(TokenKind::RParen));
+
+
+        Ok(ast::TypeAssertion {
+            expr: Box::new(x),
+            typ: typ,
+        })
+    }
+
     // XXX: straight, unidiomatic port from Go source.
     // Well... almost. I tried to clean up a bit.
+    // This method (and the corresponding smaller methods) is really complicated. It needs careful
+    // review, and a lot of testing.
     fn parse_primary_expr(&mut self) -> PResult<ast::PrimaryExpr> {
         trace!("parse_primary_expr");
 
+        // Parse the first part of the expression, which may be a literal, a (potentially
+        // qualified) identifier, a method expression (= `SomeType.MethodName` - returns a
+        // function), or any expression if it is parenthesized.
+        //
+        //    Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
+        //
         let mut x = ast::PrimaryExpr::Operand(try!(self.parse_operand()));
 
         'L: loop {
@@ -859,65 +934,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
                     match self.token.kind {
                         TokenKind::Ident => {
-                            // ~ "assert x is an expr or a type... and not a "raw type" such as
-                            // [...]T".
-                            // I have _no_ idea what the author meant by that.
-
-                            let selector = try!(self.parse_ident());
-
-                            // Here's how things look at this point:
-                            //
-                            //    value.fieldOrMethod
-                            //      ^       ^
-                            //      |       |
-                            //      |       |
-                            //     `x`  `selector`
-                            //
-                            // We had already parsed the value (`x`), encountered a dot, and
-                            // immediately knew we had to look for an identifier - a plain
-                            // identifier, which cannot be qualified. This identifier is
-                            // `selector`.
-
-                            x = ast::PrimaryExpr::SelectorExpr(ast::SelectorExpr {
-                                operand: Box::new(x),
-                                selector: selector,
-                            });
+                            // XXX: Selector ~= MethodExpr?...
+                            x = ast::PrimaryExpr::SelectorExpr(try!(self.parse_selector(x)));
                         }
                         TokenKind::LParen => {
-                            // So now `x` _has_ to be an expression, and not a _type_. According to
-                            // the original Go source. Don't ask me!
-
-                            //    x.(T)
-                            //       ^
-                            //       |
-                            //       |
-                            //   left paren
-                            try!(self.eat(TokenKind::LParen));
-
-                            // XXX: left off spanning for now.
-
-                            let typ;
-
-                            // There's a catch. Type switches. Look at this code:
-                            //
-                            //    someVal.(type)
-                            //
-                            // This is the _literal_ `type` keyword. Not a placeholder. A keyword.
-                            // It indicates a special kind of switch that compares to types instead
-                            // of values.
-                            if self.token.kind == TokenKind::Type {
-                                typ = None;
-                                self.bump();
-                            } else {
-                                typ = Some(try!(self.parse_type()));
-                            }
-
-                            try!(self.eat(TokenKind::RParen));
-
-                            x = ast::PrimaryExpr::TypeAssertion(ast::TypeAssertion {
-                                expr: Box::new(x),
-                                typ: typ,
-                            });
+                            x = ast::PrimaryExpr::TypeAssertion(try!(self.parse_type_assertion(x)));
                         }
                         _ => {
                             // XXX: the Go parser signals the error and keeps going, here.
@@ -952,31 +973,37 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn parse_operand(&mut self) -> PResult<ast::Operand> {
         trace!("parse_operand");
 
-        match self.token.kind {
+        let ret = match self.token.kind {
             TokenKind::Ident => {
                 let id = try!(self.parse_maybe_qualified_ident());
-                Ok(ast::Operand::MaybeQualifiedIdent(id))
+                ast::Operand::MaybeQualifiedIdent(id)
             }
             token_kind if token_kind.can_start_basic_lit() => {
                 let lit = try!(self.parse_basic_lit());
-                Ok(ast::Operand::Lit(ast::Literal::Basic(lit)))
+                ast::Operand::Lit(ast::Literal::Basic(lit))
             }
             TokenKind::LParen => {
+                //    "(" Expr ")"
+                //
+                // Skip past the LParen.
                 self.bump();
                 self.expression_level += 1;
                 let expr = try!(self.parse_expr());
                 self.expression_level -= 1;
-                Ok(ast::Operand::Expr(expr))
+                try!(self.eat(TokenKind::RParen));
+                ast::Operand::Expr(expr)
             }
             TokenKind::Func => {
                 let fl = try!(self.parse_func_lit());
-                Ok(ast::Operand::Lit(ast::Literal::Func(fl)))
+                ast::Operand::Lit(ast::Literal::Func(fl))
             }
             _ => {
                 let method_expr = try!(self.parse_method_expr());
-                Ok(ast::Operand::MethodExpr(method_expr))
+                ast::Operand::MethodExpr(method_expr)
             }
-        }
+        };
+
+        Ok(ret)
     }
 
     fn parse_method_expr(&mut self) -> PResult<ast::MethodExpr> {
@@ -1465,6 +1492,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         Ok(result)
     }
+}
+
+enum ExprOrType {
+    Expr(ast::Expr),
+    Type(ast::Type),
 }
 
 pub fn parse_tokens(tokens: Vec<TokenAndSpan>) -> ast::SourceFile {
