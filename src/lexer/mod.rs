@@ -74,7 +74,9 @@ impl<'src> Lexer<'src> {
     }
 
     /// Scan a number literal (integer or float).
-    // FIXME: ONLY supports integers for now.
+    ///
+    /// The literal "0" is considered octal, [as in
+    /// C++](http://stackoverflow.com/a/6895543/2754323).
     fn scan_number(&mut self) -> Token {
         // Integer literal grammar:
         //
@@ -548,7 +550,6 @@ impl<'src> Lexer<'src> {
         })
     }
 
-    // XXX: add some validity checking.
     fn scan_rune_lit(&mut self) -> Token {
         self.bump();
 
@@ -601,15 +602,14 @@ impl<'src> Lexer<'src> {
         // Skip the quote _after_ slicing so that it isn't included
         // in the slice.
         self.bump();
-        // XXX(perf): alloc.
 
         Token {
+            // XXX(perf): alloc.
             value: Some(s.into()),
             kind: TokenKind::Str,
         }
     }
 
-    // XXX: review and test.
     fn scan_raw_str_lit(&mut self) -> Token {
         // Bump past the opening backtrick.
         self.bump();
@@ -629,9 +629,9 @@ impl<'src> Lexer<'src> {
         // Skip the backtick _after_ slicing so that it isn't included
         // in the slice.
         self.bump();
-        // XXX(perf): alloc.
 
         Token {
+            // XXX(perf): alloc.
             value: Some(s.into()),
             kind: TokenKind::StrRaw,
         }
