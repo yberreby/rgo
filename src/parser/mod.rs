@@ -1,4 +1,3 @@
-use std::mem;
 use std::iter::Peekable;
 use num::bigint::BigInt;
 use num::BigRational;
@@ -108,11 +107,6 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         let old_token = self.token.clone();
         self.bump();
         old_token
-    }
-
-    /// Peek at the kind of the next token.
-    fn next_kind(&mut self) -> TokenKind {
-        self.reader.peek().map(|x| x.token.kind).unwrap_or(TokenKind::Eof)
     }
 
     /// Consume the next token, asserting its kind is equal to `expected`.
@@ -1018,22 +1012,9 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn parse_index_or_slice(&mut self, x: ast::PrimaryExpr) -> PResult<ast::PrimaryExpr> {
         unimplemented!()
     }
+
     fn parse_call_or_conversion(&mut self, x: ast::PrimaryExpr) -> PResult<ast::PrimaryExpr> {
         unimplemented!()
-    }
-
-
-    fn parse_unary_operator(&mut self) -> PResult<ast::UnaryOperator> {
-        trace!("parse_unary_operator");
-
-        let k = match self.token.kind {
-            TokenKind::Plus => ast::UnaryOperator::Plus,
-            TokenKind::Minus => ast::UnaryOperator::Minus,
-            TokenKind::Not => ast::UnaryOperator::Xor,
-            _ => panic!(),
-        };
-
-        Ok(k)
     }
 
     fn parse_basic_lit(&mut self) -> PResult<ast::BasicLit> {
@@ -1242,15 +1223,6 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         }
 
         Ok(res)
-    }
-
-    fn parse_unary_operation(&mut self) -> PResult<ast::UnaryOperation> {
-        trace!("parse_unary_operation");
-
-        Ok(ast::UnaryOperation {
-            operator: try!(self.parse_unary_operator()),
-            operand: Box::new(try_span!(self, self.parse_unary_expr())),
-        })
     }
 
     // This is pretty much a straight port from the official Go source.
@@ -1495,11 +1467,6 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
         Ok(result)
     }
-}
-
-enum ExprOrType {
-    Expr(ast::Expr),
-    Type(ast::Type),
 }
 
 pub fn parse_tokens(tokens: Vec<TokenAndSpan>) -> ast::SourceFile {
