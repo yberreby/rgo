@@ -1,6 +1,6 @@
 use lexer::TokenKind;
 use token::Spanned;
-use super::{Arguments, Conversion, Type, Ident, MaybeQualifiedIdent, Literal};
+use super::{Type, Ident, MaybeQualifiedIdent, Literal};
 
 // Expr = UnaryExpr | Expr binary_op Expr .
 // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
@@ -199,12 +199,12 @@ impl UnaryOperator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrimaryExpr {
     Operand(Operand),
-    Conversion(Conversion),
+    /// Function calls and type conversions have a similar syntax.
+    CallOrConv(CallOrConv),
     SelectorExpr(SelectorExpr),
     Indexing(IndexExpr),
     Slicing(SliceExpr),
     TypeAssertion(TypeAssertion),
-    FuncCall(FuncCall),
 }
 
 /// Operands denote the elementary values in an expression. An operand may be a literal, a
@@ -295,12 +295,19 @@ pub struct TypeAssertion {
     pub typ: Option<Type>,
 }
 
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FuncCall {
-    pub callee: Box<Spanned<PrimaryExpr>>,
-    pub args: Arguments,
+pub struct CallOrConv {
+    pub callee: Box<ExprOrType>,
+    pub args: Vec<Expr>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExprOrType {
+    Expr(Expr),
+    Type(Type),
+}
 
 
 /// A method expression.

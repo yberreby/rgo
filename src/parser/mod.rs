@@ -951,7 +951,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     // ~"x must be an expression or a type, but NOT a 'raw type'"...?
 
                     // `x(x)` could be `T(x)` (conversion) or `f(x)` (function call).
-                    x = try!(self.parse_call_or_conversion(x));
+                    x = ast::PrimaryExpr::CallOrConv(try!(self.parse_call_or_conversion(x)));
                 }
                 TokenKind::LBrace => unimplemented!(),
                 _ => break 'L,
@@ -1013,7 +1013,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         unimplemented!()
     }
 
-    fn parse_call_or_conversion(&mut self, x: ast::PrimaryExpr) -> PResult<ast::PrimaryExpr> {
+    fn parse_call_or_conversion(&mut self, x: ast::PrimaryExpr) -> PResult<ast::CallOrConv> {
         unimplemented!()
     }
 

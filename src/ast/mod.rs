@@ -303,23 +303,6 @@ pub struct VarSpec {
     pub exprs: Vec<Spanned<Expr>>,
 }
 
-/// Conversions are expressions of the form T(x) where T is a type and x is an expression that can
-/// be converted to type T.
-///
-/// ## Grammar
-///
-/// ```ignore
-/// Conversion = Type "(" Expression [ "," ] ")" .
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Conversion {
-    /// The type to convert to.
-    pub typ: Spanned<Type>,
-    /// The expression being converted.
-    pub expr: Spanned<Expr>,
-}
-
-
 // ShortVarDecl = IdentifierList ":=" ExpressionList .
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShortVarDecl {
