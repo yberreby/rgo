@@ -917,7 +917,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         //
         //    Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
         //
-        let mut x = ast::PrimaryExpr::Operand(try!(self.parse_operand()));
+        let mut x = try!(self.parse_operand());
 
         'L: loop {
             match self.token.kind {
@@ -926,11 +926,14 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
                     match self.token.kind {
                         TokenKind::Ident => {
-                            // XXX: Selector ~= MethodExpr?...
-                            x = ast::PrimaryExpr::SelectorExpr(try!(self.parse_selector(x)));
+                            let first_part = x.into_expr_or_type();
+                            let selector = try!(self.parse_selector(first_part));
+                            x = ast::ExprOrType::Expr(ast::PrimaryExpr::SelectorExpr(selector));
                         }
                         TokenKind::LParen => {
-                            x = ast::PrimaryExpr::TypeAssertion(try!(self.parse_type_assertion(x)));
+                            let expr = x.into_expr();
+                            let assertion = try!(self.parse_type_assertion(expr));
+                            x = ast::ExprOrType::Expr(ast::PrimaryExpr::TypeAssertion(assertion));
                         }
                         _ => {
                             // XXX: the Go parser signals the error and keeps going, here.
@@ -945,20 +948,30 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 }
                 TokenKind::LBracket => {
                     // ~"x must be an expression, not a type"
+                    let expr = x.into_expr();
                     x = try!(self.parse_index_or_slice(x));
                 }
                 TokenKind::LParen => {
                     // ~"x must be an expression or a type, but NOT a 'raw type'"...?
 
                     // `x(x)` could be `T(x)` (conversion) or `f(x)` (function call).
-                    x = ast::PrimaryExpr::CallOrConv(try!(self.parse_call_or_conversion(x)));
+                    let callee = x.into_expr_or_type();
+                    x = try!(self.parse_call_or_conversion(x));
                 }
-                TokenKind::LBrace => unimplemented!(),
+                TokenKind::LBrace => {
+                    if x.is_literal_type() && (self.expression_level >= 0 || !x.is_type_name()) {
+                        x = try!(self.parse_literal_value(x));
+                    }
+                }
                 _ => break 'L,
             }
         }
 
         Ok(x)
+    }
+
+    fn parse_literal_value(&mut self, typ: ast::Type) -> PResult<ast::CompositeLit> {
+        unimplemented!()
     }
 
     // XXX XXX XXX: Straight, untested, stupid port from the Go source.
@@ -1013,8 +1026,41 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         unimplemented!()
     }
 
-    fn parse_call_or_conversion(&mut self, x: ast::PrimaryExpr) -> PResult<ast::CallOrConv> {
-        unimplemented!()
+    fn parse_call_or_conversion(&mut self, callee: ast::ExprOrType) -> PResult<ast::CallOrConv> {
+        trace!("parse_call_or_conversion");
+
+        try!(self.eat(TokenKind::LParen));
+        self.expression_level += 1;
+
+        let mut args = Vec::new();
+        let mut ellipsis = false;
+
+        // XXX: no conditions, just a break.
+        loop {
+            let x = try!(self.parse_expr_or_type());
+            args.push(x);
+
+            if self.token.kind == TokenKind::Ellipsis {
+                ellipsis = true;
+                self.bump();
+            }
+
+            // DO NOT use an `else if` here, maybe we just bumped past the ellipsis.
+            if self.token.kind == TokenKind::Comma {
+                self.bump();
+            } else {
+                break;
+            }
+        }
+
+        self.expression_level -= 1;
+        try!(self.eat(TokenKind::RParen));
+
+        Ok(ast::CallOrConv {
+            callee: Box::new(callee),
+            args: args,
+            ellipsis: ellipsis,
+        })
     }
 
     fn parse_basic_lit(&mut self) -> PResult<ast::BasicLit> {

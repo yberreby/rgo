@@ -207,7 +207,9 @@ pub enum PrimaryExpr {
     TypeAssertion(TypeAssertion),
 }
 
-/// Operands denote the elementary values in an expression. An operand may be a literal, a
+/// Operands denote the elementary values in an expression. They are themselves expressions.
+///
+/// An operand may be a literal, a
 /// (possibly qualified) non-blank identifier denoting a constant, variable, or function, a method
 /// expression yielding a function, or a parenthesized expression.
 // XXX/FIXME/TODO: not finished.
@@ -221,20 +223,6 @@ pub enum Operand {
     MethodExpr(MethodExpr),
     /// A parenthesized expression.
     Expr(Expr),
-}
-
-
-/// A selector expression.
-///
-/// ## Grammar
-///
-/// ```ignore
-/// SelectorExpr = PrimaryExpr "." identifier .
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SelectorExpr {
-    pub operand: Box<PrimaryExpr>,
-    pub selector: Ident,
 }
 
 /// An index expression.
@@ -310,22 +298,26 @@ pub enum ExprOrType {
 }
 
 
-/// A method expression.
+/// A selector expression.
 ///
-/// If M is in the method set of type T, T.M is a function that is callable as a regular function
-/// with the same arguments as M prefixed by an additional argument that is the receiver of the
-/// method.
+/// This can represent either a field access (`someVar.field`) or a method expression
+/// (`Type.MethodName`).
 ///
 /// ## Grammar
 ///
+/// Field access:
+///
+/// ```ignore
+/// SelectorExpr = PrimaryExpr "." identifier .
+/// ````
+///
+/// Method expression:
 /// ```ignore
 /// MethodExpr    = ReceiverType "." MethodName .
 /// ReceiverType  = TypeName | "(" "*" TypeName ")" | "(" ReceiverType ")" .
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MethodExpr {
-    /// Receiver type.
-    pub receiver: Type,
-    /// Name of the method.
-    pub name: String,
+pub struct SelectorExpr {
+    pub operand: Box<ExprOrType>,
+    pub selector: Ident,
 }
