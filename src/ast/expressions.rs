@@ -220,7 +220,7 @@ pub enum Operand {
     /// An identifier denoting a constant, a variable or a function.
     MaybeQualifiedIdent(MaybeQualifiedIdent),
     /// A method expression.
-    MethodExpr(MethodExpr),
+    MethodExpr(SelectorExpr),
     /// A parenthesized expression.
     Expr(Expr),
 }
@@ -289,6 +289,8 @@ pub struct TypeAssertion {
 pub struct CallOrConv {
     pub callee: Box<ExprOrType>,
     pub args: Vec<Expr>,
+    /// Whether an ellipsis was encountered.
+    pub ellipsis: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

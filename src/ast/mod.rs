@@ -361,24 +361,24 @@ pub enum LiteralType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LiteralValue {
-    pub elems: Vec<KeyedElem>,
+    pub elems: Vec<KeyedLiteralElem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KeyedElem {
-    pub key: Option<Spanned<Key>>,
-    pub elem: Spanned<Elem>,
+pub struct KeyedLiteralElem {
+    pub key: Option<Spanned<LiteralKey>>,
+    pub elem: Spanned<LiteralElem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Key {
+pub enum LiteralKey {
     FieldName(Ident),
     Expr(Expr),
     LiteralValue(LiteralValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Elem {
+pub enum LiteralElem {
     Expr(Expr),
     LiteralValue(LiteralValue),
 }

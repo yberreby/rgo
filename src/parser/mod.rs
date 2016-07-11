@@ -840,7 +840,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
 
-    fn parse_selector(&mut self, x: ast::PrimaryExpr) -> PResult<ast::SelectorExpr> {
+    fn parse_selector_expr(&mut self, x: ast::ExprOrType) -> PResult<ast::SelectorExpr> {
         // ~ "assert x is an expr or a type... and not a "raw type" such as
         // [...]T".
         // I have _no_ idea what the author meant by that.
@@ -927,7 +927,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     match self.token.kind {
                         TokenKind::Ident => {
                             let first_part = x.into_expr_or_type();
-                            let selector = try!(self.parse_selector(first_part));
+                            let selector = try!(self.parse_selector_expr(first_part));
                             x = ast::ExprOrType::Expr(ast::PrimaryExpr::SelectorExpr(selector));
                         }
                         TokenKind::LParen => {
@@ -970,8 +970,61 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         Ok(x)
     }
 
-    fn parse_literal_value(&mut self, typ: ast::Type) -> PResult<ast::CompositeLit> {
-        unimplemented!()
+    fn parse_literal_value(&mut self) -> PResult<ast::LiteralValue> {
+        trace!("parse_literal_value");
+
+        try!(self.eat(TokenKind::LBrace));
+        let mut elems = None;
+
+        self.expression_level += 1;
+        if self.token.kind != TokenKind::RBrace {
+            elems = Some(try!(self.parse_keyed_literal_element_list()));
+        }
+        self.expression_level -= 1;
+
+        try!(self.eat(TokenKind::RBrace));
+
+        Ok(ast::LiteralValue { elems: elems })
+    }
+
+    fn parse_keyed_literal_element_list(&mut self) -> PResult<Vec<ast::KeyedLiteralElem>> {
+        trace!("parse_keyed_literal_element_list");
+
+        let mut v = Vec::new();
+
+        // XXX: original code:
+        //      for p.tok != token.RBRACE && p.tok != token.EOF {
+        // Do we need these checks?
+        while self.token.kind != TokenKind::RBrace && self.token.kind != TokenKind::Eof {
+            let elem = try!(self.parse_keyed_literal_element());
+            v.push(elem);
+
+            // XXX: original code:
+            //      if !p.atComma("composite literal", token.RBRACE) {
+            if self.token.kind == TokenKind::Comma {
+                self.bump();
+            } else {
+                break;
+            }
+        }
+
+        Ok(v)
+    }
+
+    fn parse_keyed_literal_element(&mut self) -> PResult<ast::KeyedLiteralElem> {
+        let mut key = None;
+        let mut elem = try_span!(self, self.parse_inner_literal_value());
+
+        if self.token.kind == TokenKind::Colon {
+            self.bump();
+            key = Some(elem);
+            elem = try_span!(self, self.parse_inner_literal_value());
+        }
+
+        Ok(ast::KeyedLiteralElem {
+            key: key,
+            elem: elem,
+        })
     }
 
     // XXX XXX XXX: Straight, untested, stupid port from the Go source.
@@ -1003,16 +1056,12 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 ast::Operand::Lit(ast::Literal::Func(fl))
             }
             _ => {
-                let method_expr = try!(self.parse_method_expr());
+                let method_expr = try!(self.parse_selector_expr());
                 ast::Operand::MethodExpr(method_expr)
             }
         };
 
         Ok(ret)
-    }
-
-    fn parse_method_expr(&mut self) -> PResult<ast::MethodExpr> {
-        unimplemented!()
     }
 
     fn parse_func_lit(&mut self) -> PResult<ast::FuncLit> {
