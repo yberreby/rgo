@@ -917,7 +917,12 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         //
         //    Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
         //
-        let mut x = try!(self.parse_operand());
+        //
+        // A PrimaryExpr may start with:
+        // - an Operand
+        // - a Conversion, and hence a type (`Conversion = Type "(" Expression [ "," ] ")" .`)
+
+        let mut x = try!(self.parse_primary_expr_start());
 
         'L: loop {
             match self.token.kind {
@@ -1027,18 +1032,21 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         })
     }
 
+
     // XXX XXX XXX: Straight, untested, stupid port from the Go source.
-    fn parse_operand(&mut self) -> PResult<ast::Operand> {
-        trace!("parse_operand");
+    // The original code is convoluted, but I need to get something working. Then I will write
+    // tests, and only then will I refactor what I can.
+    fn parse_primary_expr_start(&mut self) -> PResult<PrimaryExprStart> {
+        trace!("parse_primary_expr_start");
 
         let ret = match self.token.kind {
             TokenKind::Ident => {
-                let id = try!(self.parse_maybe_qualified_ident());
-                ast::Operand::MaybeQualifiedIdent(id)
+                let id = try!(self.parse_ident());
+                PrimaryExprStart::Ident(id)
             }
             token_kind if token_kind.can_start_basic_lit() => {
                 let lit = try!(self.parse_basic_lit());
-                ast::Operand::Lit(ast::Literal::Basic(lit))
+                PrimaryExprStart::BasicLit(lit)
             }
             TokenKind::LParen => {
                 //    "(" Expr ")"
@@ -1046,7 +1054,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 // Skip past the LParen.
                 self.bump();
                 self.expression_level += 1;
-                let expr = try!(self.parse_expr());
+                let expr = try!(self.parse_rhs_or_type());
                 self.expression_level -= 1;
                 try!(self.eat(TokenKind::RParen));
                 ast::Operand::Expr(expr)
@@ -1062,6 +1070,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         };
 
         Ok(ret)
+    }
+
+    fn parse_rhs_or_type(&mut self) -> PResult<ExprOrType> {
+        unimplemented!()
     }
 
     fn parse_func_lit(&mut self) -> PResult<ast::FuncLit> {
