@@ -1,6 +1,6 @@
 use lexer::TokenKind;
 use token::Spanned;
-use super::{Type, Ident, MaybeQualifiedIdent, Literal};
+use super::{Type, Ident, MaybeQualifiedIdent, Literal, BasicLit, FuncDecl};
 
 // Expr = UnaryExpr | Expr binary_op Expr .
 // UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
@@ -287,18 +287,15 @@ pub struct TypeAssertion {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallOrConv {
-    pub callee: Box<ExprOrType>,
+    pub callee: Box<FuzzyOperand>,
     pub args: Vec<Expr>,
     /// Whether an ellipsis was encountered.
     pub ellipsis: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExprOrType {
-    Expr(Expr),
-    Type(Type),
-}
-
+// unimplemented!
+pub struct Callee;
 
 /// A selector expression.
 ///
@@ -320,6 +317,19 @@ pub enum ExprOrType {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectorExpr {
-    pub operand: Box<ExprOrType>,
+    pub operand: Box<FuzzyOperand>,
     pub selector: Ident,
+}
+
+
+/// An ugly parsing hack.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum FuzzyOperand {
+    Ident(Ident),
+    BasicLit(BasicLit),
+    /// A parenthesized expression or type (rhs or type).
+    Paren(ExprOrType),
+    /// A function type or literal, which has exactly the same syntax as a function
+    /// declaration.
+    FuncTypeOrLit(FuncDecl),
 }

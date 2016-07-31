@@ -775,6 +775,8 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     fn parse_expr(&mut self) -> PResult<ast::Expr> {
         trace!("parse_expr");
 
+        // Arg = precedence.
+        // XXX: self-documenting code.
         self.parse_potential_binary_expr(0)
     }
 
@@ -1036,17 +1038,17 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     // XXX XXX XXX: Straight, untested, stupid port from the Go source.
     // The original code is convoluted, but I need to get something working. Then I will write
     // tests, and only then will I refactor what I can.
-    fn parse_primary_expr_start(&mut self) -> PResult<PrimaryExprStart> {
+    fn parse_primary_expr_start(&mut self) -> PResult<ast::FuzzyOperand> {
         trace!("parse_primary_expr_start");
 
-        let ret = match self.token.kind {
+        match self.token.kind {
             TokenKind::Ident => {
                 let id = try!(self.parse_ident());
-                PrimaryExprStart::Ident(id)
+                return Ok(ast::FuzzyOperand::Ident(id));
             }
             token_kind if token_kind.can_start_basic_lit() => {
                 let lit = try!(self.parse_basic_lit());
-                PrimaryExprStart::BasicLit(lit)
+                return Ok(ast::FuzzyOperand::BasicLit(lit));
             }
             TokenKind::LParen => {
                 //    "(" Expr ")"
@@ -1054,25 +1056,33 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 // Skip past the LParen.
                 self.bump();
                 self.expression_level += 1;
-                let expr = try!(self.parse_rhs_or_type());
+                let x = try!(self.parse_rhs_or_type());
                 self.expression_level -= 1;
                 try!(self.eat(TokenKind::RParen));
-                ast::Operand::Expr(expr)
+                return Ok(ast::FuzzyOperand::Paren(x));
             }
             TokenKind::Func => {
-                let fl = try!(self.parse_func_lit());
-                ast::Operand::Lit(ast::Literal::Func(fl))
+                // We can use self.parse_func_decl() here, even though this isn't a declaration,
+                // because function declarations and (types | lit) follow the same grammar.
+                let x = try!(self.parse_func_decl());
+                return Ok(ast::FuzzyOperand::FuncTypeOrLit(x));
             }
-            _ => {
-                let method_expr = try!(self.parse_selector_expr());
-                ast::Operand::MethodExpr(method_expr)
-            }
+            _ => {}
         };
 
-        Ok(ret)
+        if let Ok(typ) = self.parse_type() {
+            if let ast::Type::Plain(id) = typ {
+                panic!("type cannot be identifier ({:?})", id);
+            } else {
+                return Ok(typ);
+            }
+        }
+
+        panic!("expected start of primary expression")
     }
 
-    fn parse_rhs_or_type(&mut self) -> PResult<ExprOrType> {
+    // pretty much the same as "parseRhsOrType()" in Go code
+    fn parse_expr_or_type(&mut self) -> PResult<ast::ExprOrType> {
         unimplemented!()
     }
 
@@ -1333,11 +1343,14 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
     // This is pretty much a straight port from the official Go source.
+    /// This is called `parse_potential_binary_expr` because it could potentially parse a single
+    /// unary expression (at least in theory).
     fn parse_potential_binary_expr(&mut self, prec1: i32) -> PResult<ast::Expr> {
         // Grammar:
         //  Expression binary_op Expression
         trace!("parse_potential_binary_expr");
 
+        // XXX: this is not readable.
         let a = try_span!(self, self.parse_unary_expr());
         let mut x = Spanned::new(a.span, ast::Expr::Unary(a.item));
 
