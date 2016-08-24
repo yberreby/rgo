@@ -31,7 +31,7 @@ impl ErrorKind {
     // XXX: potential code bloat due to monomorphisation, unless inlined. But we don't want to
     // inline cold functions... so it could be best to remove all generics here and
     // #[inline(never)].
-    pub fn other<T: Into<String>>(msg: T) -> ErrorKind {
+    pub fn msg<T: Into<String>>(msg: T) -> ErrorKind {
         ErrorKind::Other { msg: msg.into() }
     }
 }

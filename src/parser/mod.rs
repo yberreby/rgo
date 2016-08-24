@@ -20,6 +20,9 @@ macro_rules! span {
     }}
 }
 
+// FIXME: `try_span!` works in a non-obvious way, impeding code readability.
+// Besides, it (as well as `span!`) does not work when the argument is a variable instead of a
+// function call.
 macro_rules! try_span {
     ($s:expr, $x:expr) => {
         span!($s, try!($x))
@@ -584,7 +587,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             } else {
                 return Err(Error {
                     span: stmt.span,
-                    kind: ErrorKind::other("invalid expression as if condition"),
+                    kind: ErrorKind::msg("invalid expression as if condition"),
                 });
             }
             before_stmt = None;
@@ -665,7 +668,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 if let PrimaryExpr::Operand(Operand::MaybeQualifiedIdent(mqident)) = *x {
                     if mqident.package.is_some() {
                         return Err(Error {
-                            kind: ErrorKind::other("expected unqualified ident"),
+                            kind: ErrorKind::msg("expected unqualified ident"),
                             span: expr.span,
                         });
                     }
@@ -677,7 +680,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
 
             // didn't successfully turn the expr into an ident
             return Err(Error {
-                kind: ErrorKind::other("expected ident"),
+                kind: ErrorKind::msg("expected ident"),
                 span: expr.span,
             });
         }
@@ -816,8 +819,65 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             }
             // channel receive operation
             TokenKind::Arrow => {
+                // Quick reminder of the channel syntax:
+                //
+                // ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType .
+                //
+                // chan T          // can be used to send and receive values of type T
+                // chan<- float64  // can only be used to send float64s
+                // <-chan int      // can only be used to receive ints
+
+                // Skip the arrow.
                 self.bump();
+
+
+                // If the next token is TokenKind::Chan, we still don't know if it
+                // is a channel type or a receive operation - we only know
+                // once we have found the end of the unary expression. There
+                // are two cases:
+                //
+                //   <- type  => (<-type) must be channel type
+                //   <- expr  => <-(expr) is a receive from an expression
+                //
+                // In the first case, the arrow must be re-associated with
+                // the channel type parsed already:
+                //
+                //   <- (chan type)    =>  (<-chan type)
+                //   <- (chan<- type)  =>  (<-chan (<-type))
+
+
                 let x = try_span!(self, self.parse_unary_expr());
+
+                let maybe_chan_type = x.into_channel_type();
+                if maybe_chan_type.is_some() {
+                    // (<-type)
+                    let direction = ast::ChanDirection::Send;
+
+                    while let Some(chan_type) = maybe_chan_type {
+                        if direction != ast::ChanDirection::Send {
+                            break;
+                        }
+
+                        if chan_type.direction == ast::ChanDirection::Receive {
+                            return Err(self.err(ErrorKind::msg("expected 'chan' -- (<-type) \
+                                                                  is (<-(<-chan T))")));
+                        }
+
+                        // TODO: span information - this seems to be the whole point of the loop
+
+                        direction = chan_type.direction;
+                        chan_type.direction = ast::ChanDirection::Receive;
+                        maybe_chan_type = chan_type.element_type.into_channel_type();
+                    }
+
+                    if direction == ast::ChanDirection::Send {
+                        return Err(self.err(ErrorKind::msg("expected channel type")));
+                    }
+
+                    return x;
+                }
+
+
                 Ok(ast::UnaryExpr::UnaryOperation(ast::UnaryOperation {
                     operator: ast::UnaryOperator::ChanReceive,
                     operand: Box::new(x),
@@ -842,7 +902,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
 
-    fn parse_selector_expr(&mut self, x: ast::ExprOrType) -> PResult<ast::SelectorExpr> {
+    fn parse_selector_expr(&mut self, x: ast::FuzzyExpr) -> PResult<ast::SelectorExpr> {
         // ~ "assert x is an expr or a type... and not a "raw type" such as
         // [...]T".
         // I have _no_ idea what the author meant by that.
@@ -935,12 +995,12 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                         TokenKind::Ident => {
                             let first_part = x.into_expr_or_type();
                             let selector = try!(self.parse_selector_expr(first_part));
-                            x = ast::ExprOrType::Expr(ast::PrimaryExpr::SelectorExpr(selector));
+                            x = ast::FuzzyExpr::Expr(ast::PrimaryExpr::SelectorExpr(selector));
                         }
                         TokenKind::LParen => {
                             let expr = x.into_expr();
                             let assertion = try!(self.parse_type_assertion(expr));
-                            x = ast::ExprOrType::Expr(ast::PrimaryExpr::TypeAssertion(assertion));
+                            x = ast::FuzzyExpr::Expr(ast::PrimaryExpr::TypeAssertion(assertion));
                         }
                         _ => {
                             // XXX: the Go parser signals the error and keeps going, here.
@@ -967,7 +1027,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 }
                 TokenKind::LBrace => {
                     if x.is_literal_type() && (self.expression_level >= 0 || !x.is_type_name()) {
-                        x = try!(self.parse_literal_value(x));
+                        x = try!(self.parse_literal_value());
                     }
                 }
                 _ => break 'L,
@@ -1082,7 +1142,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
     }
 
     // pretty much the same as "parseRhsOrType()" in Go code
-    fn parse_expr_or_type(&mut self) -> PResult<ast::ExprOrType> {
+    fn parse_expr_or_type(&mut self) -> PResult<ast::FuzzyExpr> {
         unimplemented!()
     }
 
@@ -1097,7 +1157,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         unimplemented!()
     }
 
-    fn parse_call_or_conversion(&mut self, callee: ast::ExprOrType) -> PResult<ast::CallOrConv> {
+    fn parse_call_or_conversion(&mut self, callee: ast::FuzzyExpr) -> PResult<ast::CallOrConv> {
         trace!("parse_call_or_conversion");
 
         try!(self.eat(TokenKind::LParen));
@@ -1201,10 +1261,10 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 result = try!(self.interpret_octal_escape(&mut char_indices)) as char;
             } else {
                 let msg = format!("unknown escape sequence: {}", pc);
-                return Err(self.err(ErrorKind::other(msg)));
+                return Err(self.err(ErrorKind::msg(msg)));
             }
         } else if c == '\n' {
-            return Err(self.err(ErrorKind::other("newline in rune literal")));
+            return Err(self.err(ErrorKind::msg("newline in rune literal")));
         } else {
             result = c;
         }
@@ -1212,7 +1272,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
         if char_indices.next().is_none() {
             Ok(result)
         } else {
-            Err(self.err(ErrorKind::other("multiple characters in rune literal")))
+            Err(self.err(ErrorKind::msg("multiple characters in rune literal")))
         }
     }
 
@@ -1265,8 +1325,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 }
             } else {
                 // Empty exponent
-                return Err(self.err(ErrorKind::other(format!("malformed {} exponent",
-                                                             token_name))));
+                return Err(self.err(ErrorKind::msg(format!("malformed {} exponent", token_name))));
             }
 
             let mut exponent = 0;
@@ -1335,7 +1394,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                 res = res + BigInt::from(d);
             } else {
                 let msg = format!("invalid character in {}: {}", token_name, c);
-                return Err(self.err(ErrorKind::other(msg)));
+                return Err(self.err(ErrorKind::msg(msg)));
             }
         }
 
@@ -1452,11 +1511,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     value += number;
                 } else {
                     let msg = format!("illegal character in unicode escape: '{}'", c);
-                    return Err(self.err(ErrorKind::other(msg)));
+                    return Err(self.err(ErrorKind::msg(msg)));
                 }
             } else {
                 let msg = "unexpected end of string in unicode escape";
-                return Err(self.err(ErrorKind::other(msg)));
+                return Err(self.err(ErrorKind::msg(msg)));
             }
         }
 
@@ -1464,7 +1523,7 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
             Ok(value_char)
         } else {
             let msg = format!("escape sequence is invalid unicode codepoint: {:#x}", value);
-            Err(self.err(ErrorKind::other(msg)))
+            Err(self.err(ErrorKind::msg(msg)))
         };
     }
 
@@ -1478,17 +1537,17 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     value += number as u16;
                 } else {
                     let msg = format!("illegal character in octal escape: '{}'", c);
-                    return Err(self.err(ErrorKind::other(msg)));
+                    return Err(self.err(ErrorKind::msg(msg)));
                 }
             } else {
                 let msg = "unexpected end of string in octal escape";
-                return Err(self.err(ErrorKind::other(msg)));
+                return Err(self.err(ErrorKind::msg(msg)));
             }
         }
 
         return if value > 255 {
             let msg = format!("illegal octal escape value > 255: {}", value);
-            Err(self.err(ErrorKind::other(msg)))
+            Err(self.err(ErrorKind::msg(msg)))
         } else {
             Ok(value as u8)
         };
@@ -1504,11 +1563,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     value += number as u8;
                 } else {
                     let msg = format!("illegal character in hex escape: '{}'", c);
-                    return Err(self.err(ErrorKind::other(msg)));
+                    return Err(self.err(ErrorKind::msg(msg)));
                 }
             } else {
                 let msg = "unexpected end of string in hex escape";
-                return Err(self.err(ErrorKind::other(msg)));
+                return Err(self.err(ErrorKind::msg(msg)));
             }
         }
 
@@ -1574,11 +1633,11 @@ impl<R: Iterator<Item = TokenAndSpan>> Parser<R> {
                     result.push(byte);
                 } else {
                     let msg = format!("unknown escape sequence: {}", pc);
-                    return Err(self.err(ErrorKind::other(msg)));
+                    return Err(self.err(ErrorKind::msg(msg)));
                 }
             } else if c == '\n' {
                 let msg = format!("newline in string");
-                return Err(self.err(ErrorKind::other(msg)));
+                return Err(self.err(ErrorKind::msg(msg)));
             } else {
                 let orig_str = &lit[offset..offset + c.len_utf8()];
                 result.extend_from_slice(orig_str.as_bytes());

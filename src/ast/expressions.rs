@@ -26,6 +26,12 @@ pub enum Expr {
     Binary(BinaryExpr),
 }
 
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FuzzyExpr {
+    Expr(Expr),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOperator {
     Add,
@@ -328,7 +334,7 @@ enum FuzzyOperand {
     Ident(Ident),
     BasicLit(BasicLit),
     /// A parenthesized expression or type (rhs or type).
-    Paren(ExprOrType),
+    Paren(FuzzyExpr),
     /// A function type or literal, which has exactly the same syntax as a function
     /// declaration.
     FuncTypeOrLit(FuncDecl),
