@@ -1,5 +1,4 @@
-use lexer::TokenKind;
-use token::Spanned;
+use token::{TokenKind, Spanned};
 use super::{Type, Ident, MaybeQualifiedIdent, Literal, BasicLit, FuncDecl};
 
 // Expr = UnaryExpr | Expr binary_op Expr .

@@ -6,5 +6,5 @@ name = "rgo-lexer"
 repository = "https://github.com/yberreby/rgo"
 version = "0.1.0"
 
-[dependencies]
-log = "0.3.6"
+[dependencies.rgo-token]
+path = "../token"

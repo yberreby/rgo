@@ -6,12 +6,9 @@
 // Other possible future improvements:
 // - interned strings for Token values
 
-#[macro_use]
-extern crate log;
+extern crate rgo_token as token;
 
 mod pos;
-// FIXME: either token is made public, or we publicly export its contents. Not both.
-pub mod token;
 #[cfg(test)]
 mod test;
 

@@ -1,10 +1,10 @@
-//! The Abstract Syntax Tree.
+//! The Go Abstract Syntax Tree.
 //!
 //! If you want to learn more, it is recommended to read the [Go language
 //! specification](https://golang.org/ref/spec).
-//!
-//! This module needs attention.
 
+extern crate num;
+extern crate rgo_token as token;
 
 mod types;
 mod statements;

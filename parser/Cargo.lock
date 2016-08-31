@@ -20,6 +20,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "rgo-lexer"
 version = "0.1.0"
 dependencies = [
+ "rgo-token 0.1.0",
+]
+
+[[package]]
+name = "rgo-token"
+version = "0.1.0"
+dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

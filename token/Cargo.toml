@@ -1,0 +1,7 @@
+[package]
+authors = ["Yohai Berreby (yberreby) <yohaiberreby@gmail.com>"]
+name = "rgo-token"
+version = "0.1.0"
+
+[dependencies]
+log = "0.3.6"
