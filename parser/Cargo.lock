@@ -2,12 +2,18 @@
 name = "rgo-parser"
 version = "0.1.0"
 dependencies = [
+ "pest 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rgo-lexer 0.1.0",
 ]
 
 [[package]]
 name = "log"
 version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "pest"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -19,3 +25,4 @@ dependencies = [
 
 [metadata]
 "checksum log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ab83497bf8bf4ed2a74259c1c802351fcd67a65baa86394b6ba73c36f4838054"
+"checksum pest 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2f6666c81a6359af7a9dbc48f596d6f318a9dbaefdec248581ab836dc0c1f082"
