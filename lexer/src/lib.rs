@@ -1,34 +1,32 @@
-//! # Lexer
-//!
-//! A `Lexer` parses a source string into a list of tokens, which may later be used to construct an
-//! Abstract Syntax Tree.
-//!
-//! ## Notes
-//!
-//! - We want meaningful errors from the start. That means printing the line and column number on
-//! error, returning `Result`s instead of panicking (later on, we may use unwinding to speed up
-//! lexical analysis in non-erroneous cases).
-//!
-//! - It is unclear whether we should operator on Unicode `char`, or plain bytes `u8`. `char`s are
-//! more convenient to display and offer a clean API; bytes are (most likely) faster to work with.
-//!
-//! - I'm not sure what the best way to store tokens is. A slice into the original source, an
-//! interned string...? Probably an interned string, this is what rustc uses and it speeds up
-//! comparisons, which are going to be very frequent. Probably reduces allocations, too - and we're
-//! allocating a _lot_. We'd have to benchmark to be sure.
+// FIXME: the lexer currently panics on errors. This is not good. Use `Result`s, and embed the line
+// and column indexes in the error struct.
+//
+// FIXME: Unicode handling needs review. This whole module needs review.
+//
+// Other possible future improvements:
+// - interned strings for Token values
 
-use std::iter::Iterator;
-pub use token::*;
+#[macro_use]
+extern crate log;
 
+mod pos;
+// FIXME: either token is made public, or we publicly export its contents. Not both.
+pub mod token;
 #[cfg(test)]
 mod test;
 
+use std::iter::Iterator;
+pub use self::pos::Position;
+pub use self::token::*;
+
+/// A `Lexer` parses a source string into a list of tokens, which may later be used to construct an
+/// Abstract Syntax Tree.
 pub struct Lexer<'src> {
     /// Byte offset from the start of the source string.
-    offset: usize,
+    byte_offset: usize,
     /// The source string.
     src: &'src str,
-    /// The last character to be read.
+    /// The last character to be read. Is `None` if we are at the end of the file.
     current_char: Option<char>,
     /// The kind of token we read last. Used for automatic semicolon insertion.
     last_token_kind: Option<TokenKind>,
@@ -42,19 +40,22 @@ impl<'src> Lexer<'src> {
 
         Lexer {
             src: s,
-            offset: 0,
+            byte_offset: 0,
             current_char: first_char,
             last_token_kind: None,
         }
     }
 
-    /// 'eat' one character.
+    /// 'Eat' one character, setting `self.current_char` to `None` in case of EOF.
+    ///
+    /// Will panick if we are already at EOF.
+    ///
     /// This is a _very_ hot function.
     fn bump(&mut self) {
-        self.offset += self.current_char.unwrap().len_utf8();
+        self.byte_offset += self.current_char.unwrap().len_utf8();
 
-        if self.offset < self.src.len() {
-            let ch = char_at(&self.src, self.offset);
+        if self.byte_offset < self.src.len() {
+            let ch = char_at(&self.src, self.byte_offset);
             self.current_char = Some(ch);
         } else {
             self.current_char = None;
@@ -64,7 +65,7 @@ impl<'src> Lexer<'src> {
     /// Return the next character **without** bumping.
     /// Useful for lookahead.
     fn next_char(&self) -> Option<char> {
-        let next_offset = self.offset + 1;
+        let next_offset = self.byte_offset + 1;
         if next_offset < self.src.len() {
             let ch = char_at(&self.src, next_offset);
             Some(ch)
@@ -85,7 +86,7 @@ impl<'src> Lexer<'src> {
         // octal_lit   = "0" { octal_digit } .
         // hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
 
-        let start = self.offset;
+        let start = self.byte_offset;
 
         // If we have a hexadecimal, treat it specially.
         if self.current_char == Some('0') &&
@@ -102,7 +103,7 @@ impl<'src> Lexer<'src> {
             }
 
             return Token {
-                value: Some(self.src[start..self.offset].into()),
+                value: Some(self.src[start..self.byte_offset].into()),
                 kind: TokenKind::Hex,
             };
         }
@@ -128,7 +129,7 @@ impl<'src> Lexer<'src> {
                 self.bump();
 
                 return Token {
-                    value: Some(self.src[start..self.offset].into()),
+                    value: Some(self.src[start..self.byte_offset].into()),
                     kind: TokenKind::Imaginary,
                 };
             } else {
@@ -136,7 +137,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.offset];
+        let s = &self.src[start..self.byte_offset];
 
         let kind = if had_e || had_dot {
             TokenKind::Float
@@ -210,7 +211,7 @@ impl<'src> Lexer<'src> {
     }
 
     fn scan_ident(&mut self) -> &str {
-        let start = self.offset;
+        let start = self.byte_offset;
 
         while let Some(c) = self.current_char {
             if can_continue_identifier(c) {
@@ -220,7 +221,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        &self.src[start..self.offset]
+        &self.src[start..self.byte_offset]
     }
 
     fn scan_ident_or_keyword(&mut self) -> Token {
@@ -553,7 +554,7 @@ impl<'src> Lexer<'src> {
     fn scan_rune_lit(&mut self) -> Token {
         self.bump();
 
-        let start = self.offset;
+        let start = self.byte_offset;
 
         while let Some(c) = self.current_char {
             // If we encounter a backslash escape, we just skip past the '\' and the
@@ -568,7 +569,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.offset];
+        let s = &self.src[start..self.byte_offset];
 
         // Skip the quote _after_ slicing so that it isn't included
         // in the slice.
@@ -582,7 +583,7 @@ impl<'src> Lexer<'src> {
 
     fn scan_interpreted_str_lit(&mut self) -> Token {
         self.bump();
-        let start = self.offset;
+        let start = self.byte_offset;
 
         while let Some(c) = self.current_char {
             // If we encounter a backslash escape, we just skip past the '\' and the
@@ -597,7 +598,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.offset];
+        let s = &self.src[start..self.byte_offset];
 
         // Skip the quote _after_ slicing so that it isn't included
         // in the slice.
@@ -613,7 +614,7 @@ impl<'src> Lexer<'src> {
     fn scan_raw_str_lit(&mut self) -> Token {
         // Bump past the opening backtrick.
         self.bump();
-        let start = self.offset;
+        let start = self.byte_offset;
 
         while let Some(c) = self.current_char {
             // Raw strings are pretty simple, because we don't have to handle escapes.
@@ -624,7 +625,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let s = &self.src[start..self.offset];
+        let s = &self.src[start..self.byte_offset];
 
         // Skip the backtick _after_ slicing so that it isn't included
         // in the slice.
@@ -642,7 +643,7 @@ impl<'src> Iterator for Lexer<'src> {
     type Item = TokenAndSpan;
 
     fn next(&mut self) -> Option<TokenAndSpan> {
-        let start = self.offset as u32;
+        let start = self.byte_offset as u32;
         let t = self.next_token_inner();
         self.last_token_kind = t.as_ref().map(|t| t.kind);
 
@@ -651,7 +652,7 @@ impl<'src> Iterator for Lexer<'src> {
                 token: t,
                 span: Span {
                     start: start,
-                    end: self.offset as u32,
+                    end: self.byte_offset as u32,
                 },
             }
         })

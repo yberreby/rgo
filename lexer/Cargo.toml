@@ -1,0 +1,10 @@
+[package]
+authors = ["Yohai Berreby (yberreby) <yohaiberreby@gmail.com>"]
+description = "A lexer for the Go programming language"
+license = "MIT/Apache-2.0"
+name = "rgo-lexer"
+repository = "https://github.com/yberreby/rgo"
+version = "0.1.0"
+
+[dependencies]
+log = "0.3.6"
