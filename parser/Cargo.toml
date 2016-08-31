@@ -1,0 +1,7 @@
+[package]
+name = "rgo-parser"
+version = "0.1.0"
+authors = ["Yohai Berreby (yberreby) <yohaiberreby@gmail.com>"]
+
+[dependencies.rgo-lexer]
+path = "../lexer"
