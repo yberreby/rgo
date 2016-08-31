@@ -329,7 +329,7 @@ pub struct SelectorExpr {
 
 /// An ugly parsing hack.
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum FuzzyOperand {
+pub enum FuzzyOperand {
     Ident(Ident),
     BasicLit(BasicLit),
     /// A parenthesized expression or type (rhs or type).
