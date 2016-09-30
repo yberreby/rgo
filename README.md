@@ -1,17 +1,16 @@
-# rgo [![Build Status](https://travis-ci.org/yberreby/rgo.svg?branch=master)](https://travis-ci.org/yberreby/rgo)
+# rgo (stalled) [![Build Status](https://travis-ci.org/yberreby/rgo.svg?branch=master)](https://travis-ci.org/yberreby/rgo)
 
-`rgo` is a **work-in-progress** (i.e. unfinished) Go compiler, written
-in Rust.
+`rgo` was a work-in-progress Go compiler, written in Rust.
 
-For now, this is primarily a fun learning project.
+This was primarily a fun learning project.
 
 I chose Go as the source language because C compilers have been written over and
 over, and I wanted to do something new. Go's spec is pretty simple, so it seemed
-like a good choice. The fact that is has a GC also makes implementing a compiler
+like a good choice. The fact that is has a GC also made implementing a compiler
 for it more challenging and, therefore, more interesting.
 
 Additionally, Go's reference implementation uses a custom backend for
-optimization and codegen, while `rgo` will use LLVM for optimization and machine
+optimization and codegen, while `rgo` was to use LLVM for optimization and machine
 code generation.
 
 ## License
