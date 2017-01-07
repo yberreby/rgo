@@ -292,40 +292,26 @@ impl<'src> Lexer<'src> {
             None => return None,
         };
 
+        // Check for simple tokens.
+        let simple_kind_mappings = [('(', TokenKind::LParen),
+                (')', TokenKind::RParen),
+                ('{', TokenKind::LBrace),
+                ('}', TokenKind::RBrace),
+                ('[', TokenKind::LBracket),
+                (']', TokenKind::RBracket),
+                (',', TokenKind::Comma),
+                (';', TokenKind::Semicolon),
+        ];
+
+        if let Some(kind_mapping) = simple_kind_mappings.iter().find(|x| x.0 == c) {
+            self.bump();
+            return Some(Token {
+                kind: kind_mapping.1,
+                value: None,
+            });
+        }
+
         let kind = match c {
-            // Single-character tokens.
-            '(' => {
-                self.bump();
-                TokenKind::LParen
-            }
-            ')' => {
-                self.bump();
-                TokenKind::RParen
-            }
-            '{' => {
-                self.bump();
-                TokenKind::LBrace
-            }
-            '}' => {
-                self.bump();
-                TokenKind::RBrace
-            }
-            '[' => {
-                self.bump();
-                TokenKind::LBracket
-            }
-            ']' => {
-                self.bump();
-                TokenKind::RBracket
-            }
-            ',' => {
-                self.bump();
-                TokenKind::Comma
-            }
-            ';' => {
-                self.bump();
-                TokenKind::Semicolon
-            }
             // More complex tokens.
             '.' => {
                 if self.next_char().map(|x| x.is_digit(10)) == Some(true) {
